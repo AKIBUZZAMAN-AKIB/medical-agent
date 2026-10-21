@@ -882,6 +882,14 @@ async function loadToolDefinitionsWrapper({
     if (tool === ASK_USER_QUESTION_TOOL_NAME) {
       return checkCapability(AgentCapabilities.ask_user_question);
     }
+    /**
+     * Past-session recall is one capability behind two tool names, so the pair
+     * is granted together or not at all — a model that could list a user's
+     * conversations but not read one would only be able to confuse them.
+     */
+    if (tool === Tools.conversation_history || tool === Tools.conversation_transcript) {
+      return checkCapability(AgentCapabilities.conversation_history);
+    }
     if (isActionTool(tool)) {
       return actionsEnabled;
     }

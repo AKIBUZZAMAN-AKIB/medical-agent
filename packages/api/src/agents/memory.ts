@@ -6,6 +6,7 @@ import { Run, Providers, GraphEvents } from '@librechat/agents';
 import { HumanMessage } from '@librechat/agents/langchain/messages';
 import {
   Tools,
+  MemoryPolicy,
   MemoryScope,
   Permissions,
   EModelEndpoint,
@@ -36,11 +37,14 @@ import type { BaseMessage, ToolMessage } from '@librechat/agents/langchain/messa
 import type { DynamicStructuredTool } from '@librechat/agents/langchain/tools';
 import type { Response as ServerResponse } from 'express';
 import type { ServerRequest, RunLLMConfig } from '~/types';
+import type { ProfileToolMethods } from '~/tools/profiles';
 import { resolveConfigHeaders, createSafeUser, getSafeErrorMetadata } from '~/utils';
 import { contentFilterModelBoundBlockResponse } from '~/middleware/contentFilter';
 import { extractMemoryContent } from '~/protection/adapters/submissions';
 import { assertModelBoundContent } from '~/middleware/modelBoundContent';
+import { PROFILE_ARG_DESCRIPTION } from '~/tools/profiles/definitions';
 import { GenerationJobManager } from '~/stream/GenerationJobManager';
+import { prepareProfileTarget } from '~/tools/profiles/runtime';
 import { inspectContent } from '~/protection/runtime';
 import { checkAccess } from '~/middleware/access';
 import { isMemoryEnabled } from '~/memory';
@@ -120,6 +124,16 @@ When in doubt, and the user hasn't asked to remember or forget anything, END THE
 type MemoryArtifactRecord = Record<Tools.memory, MemoryArtifact>;
 
 /**
+ * Resolves the `profile` argument on a memory write to a storage partition,
+ * opening the person's record the first time they are written about. Injected
+ * by the caller so this module keeps no dependency on the profile registry.
+ */
+export type ProfileTargetResolver = (profile?: string) => Promise<{
+  profileId?: string;
+  created?: string;
+}>;
+
+/**
  * Creates a memory tool instance with user context
  */
 export const createMemoryTool = ({
@@ -133,6 +147,9 @@ export const createMemoryTool = ({
   tokenCountsByKey,
   filters,
   onWrite,
+  profilesEnabled,
+  resolveProfileTarget,
+  getProfileTokenUsage,
 }: {
   userId: string | ObjectId;
   /** Agent partition to write to; omit for the shared personal pool */
@@ -145,6 +162,13 @@ export const createMemoryTool = ({
   tokenCountsByKey?: ReadonlyMap<string, number>;
   filters?: FiltersConfig;
   onWrite?: () => void;
+  /** Agent keeps one record per person; the `profile` argument selects which */
+  profilesEnabled?: boolean;
+  resolveProfileTarget?: ProfileTargetResolver;
+  /** Per-partition token usage for that agent. `tokenLimit` then applies to
+   *  each person's own facts, and the partition is only known once the model
+   *  names someone, so usage is loaded on that partition's first write. */
+  getProfileTokenUsage?: (args: { profileId?: string }) => Promise<FormattedMemoriesResult>;
 }): DynamicStructuredTool => {
   /** Running token total, advanced after each successful write. Writes are
    *  serialized through `writeChain` so multiple `set_memory` calls in one
@@ -156,9 +180,18 @@ export const createMemoryTool = ({
    *  successful write. `set_memory` upserts, so every write replaces this
    *  key's prior contribution instead of adding both values to the total. */
   const currentTokensByKey = new Map(tokenCountsByKey);
+  /** Partitions already read this run. A batch that interleaves people costs
+   *  one query per person, not per write, and `currentTotalTokens` is restored
+   *  from the memo whenever the write moves to a partition already seen. */
+  const partitionUsage = new Map<
+    string,
+    { totalTokens: number; tokenCountsByKey: Map<string, number> }
+  >();
+  let activePartition: string | undefined;
+  let partitionLoaded = getProfileTokenUsage == null;
 
   return tool(
-    async ({ key, value }) => {
+    async ({ key, value, profile }) => {
       const run = async (): Promise<[string, MemoryArtifactRecord?]> => {
         try {
           /** Mirror the REST memory routes' size guards so inline writes can't
@@ -187,6 +220,36 @@ export const createMemoryTool = ({
               allowedKeyCount: validKeys.length,
             });
             return [`Invalid key "${key}". Must be one of: ${validKeys.join(', ')}`, undefined];
+          }
+
+          const target =
+            profilesEnabled && resolveProfileTarget != null
+              ? await resolveProfileTarget(profile)
+              : { profileId: undefined };
+
+          /** Switch the accounting to the partition this write belongs to before
+           *  measuring it, so a limit is a limit on one person's facts rather
+           *  than on the pooled total of everybody. */
+          if (getProfileTokenUsage != null) {
+            const partition = target.profileId ?? '';
+            if (!partitionLoaded || activePartition !== partition) {
+              let usage = partitionUsage.get(partition);
+              if (usage == null) {
+                const loaded = await getProfileTokenUsage({ profileId: target.profileId });
+                usage = {
+                  totalTokens: loaded?.totalTokens ?? 0,
+                  tokenCountsByKey: new Map(loaded?.tokenCountsByKey),
+                };
+                partitionUsage.set(partition, usage);
+              }
+              currentTotalTokens = usage.totalTokens;
+              currentTokensByKey.clear();
+              for (const [keyId, count] of usage.tokenCountsByKey) {
+                currentTokensByKey.set(keyId, count);
+              }
+              activePartition = partition;
+              partitionLoaded = true;
+            }
           }
 
           const tokenCount = Tokenizer.getTokenCount(value, 'o200k_base');
@@ -242,18 +305,42 @@ export const createMemoryTool = ({
               tokenCount,
               type: 'update',
               ...(agentId ? { agentId } : {}),
+              ...(target.profileId ? { profileId: target.profileId } : {}),
             },
           };
 
-          const result = await setMemory({ userId, key, value, tokenCount, agentId });
+          const result = await setMemory({
+            userId,
+            key,
+            value,
+            tokenCount,
+            agentId,
+            profileId: target.profileId,
+          });
           if (result.ok) {
             if (tokenLimit) {
               currentTotalTokens = newTotalTokens;
               currentTokensByKey.set(key, tokenCount);
+              const usage = partitionUsage.get(target.profileId ?? '');
+              if (usage != null) {
+                usage.totalTokens = newTotalTokens;
+                usage.tokenCountsByKey.set(key, tokenCount);
+              }
             }
             onWrite?.();
-            logger.debug(`Memory set for key "${key}" (${tokenCount} tokens) for user "${userId}"`);
-            return [`Memory set for key "${key}" (${tokenCount} tokens)`, artifact];
+            const scope = target.profileId ? ` for the ${target.profileId} record` : '';
+            /** A first write about a person opens their record, so the model is
+             *  told in the tool result — a new profile must never appear silently. */
+            const opened = target.created
+              ? ` Opened a new record for "${target.created}"; tell the user you are keeping a separate record for them.`
+              : '';
+            logger.debug(
+              `Memory set for key "${key}" (${tokenCount} tokens) for user "${userId}"${scope}`,
+            );
+            return [
+              `Memory set for key "${key}" (${tokenCount} tokens)${scope}${opened}`,
+              artifact,
+            ];
           }
           logger.warn(`Failed to set memory for key "${key}" for user "${userId}"`);
           return [`Failed to set memory for key "${key}"`, undefined];
@@ -286,6 +373,9 @@ export const createMemoryTool = ({
           .describe(
             'Value MUST be a complete sentence that fully describes relevant user information.',
           ),
+        ...(profilesEnabled && resolveProfileTarget != null
+          ? { profile: z.string().optional().describe(PROFILE_ARG_DESCRIPTION) }
+          : {}),
       }),
     },
   );
@@ -300,6 +390,8 @@ export const createDeleteMemoryTool = ({
   deleteMemory,
   validKeys,
   onWrite,
+  profilesEnabled,
+  resolveProfileTarget,
 }: {
   userId: string | ObjectId;
   /** Agent partition to delete from; omit for the shared personal pool */
@@ -307,9 +399,12 @@ export const createDeleteMemoryTool = ({
   deleteMemory: MemoryMethods['deleteMemory'];
   validKeys?: string[];
   onWrite?: () => void;
+  /** Agent keeps one record per person; the `profile` argument selects which */
+  profilesEnabled?: boolean;
+  resolveProfileTarget?: ProfileTargetResolver;
 }): DynamicStructuredTool => {
   return tool(
-    async ({ key }) => {
+    async ({ key, profile }) => {
       try {
         if (validKeys && validKeys.length > 0 && !validKeys.includes(key)) {
           logger.warn(
@@ -320,19 +415,35 @@ export const createDeleteMemoryTool = ({
           return [`Invalid key "${key}". Must be one of: ${validKeys.join(', ')}`, undefined];
         }
 
+        const target =
+          profilesEnabled && resolveProfileTarget != null
+            ? await resolveProfileTarget(profile)
+            : { profileId: undefined };
+
         const artifact: Record<Tools.memory, MemoryArtifact> = {
           [Tools.memory]: {
             key,
             type: 'delete',
             ...(agentId ? { agentId } : {}),
+            ...(target.profileId ? { profileId: target.profileId } : {}),
           },
         };
 
-        const result = await deleteMemory({ userId, key, agentId });
+        const result = await deleteMemory({
+          userId,
+          key,
+          agentId,
+          profileId: target.profileId,
+        });
         if (result.ok) {
           onWrite?.();
-          logger.debug(`Memory deleted for key "${key}" for user "${userId}"`);
-          return [`Memory deleted for key "${key}"`, artifact];
+          logger.debug(
+            `Memory deleted for key "${key}" for user "${userId}"${
+              target.profileId ? ` profile "${target.profileId}"` : ''
+            }`,
+          );
+          const scope = target.profileId ? ` from the ${target.profileId} record` : '';
+          return [`Memory deleted for key "${key}"${scope}`, artifact];
         }
         logger.warn(`Failed to delete memory for key "${key}" for user "${userId}"`);
         return [`Failed to delete memory for key "${key}"`, undefined];
@@ -353,6 +464,9 @@ export const createDeleteMemoryTool = ({
               ? `The key of the memory to delete. Must be one of: ${validKeys.join(', ')}`
               : 'The key identifier of the memory to delete',
           ),
+        ...(profilesEnabled && resolveProfileTarget != null
+          ? { profile: z.string().optional().describe(PROFILE_ARG_DESCRIPTION) }
+          : {}),
       }),
     },
   );
@@ -365,6 +479,51 @@ export const createDeleteMemoryTool = ({
 export const memoryToolUsageGuard = `Only use the \`set_memory\` and \`delete_memory\` tools when the user explicitly asks you to remember, update, or forget something (e.g. "remember that...", "don't forget...", "forget..."). Never store information merely because the user mentioned it in conversation.`;
 
 /**
+ * Guard for an agent that opted into `memory_policy: 'proactive'` — a
+ * continuity agent whose job includes carrying a patient's own history between
+ * sessions. It still refuses identifiers and transient detail, and it still
+ * never treats a remembered fact as a verified one, so what it may add is
+ * judgement about durability rather than permission to keep everything.
+ */
+export const proactiveMemoryToolUsageGuard = `You may use \`set_memory\` to record a fact about this user that will still be true and still matter in a later conversation: a condition they report, a medicine they take, an allergy, a physiological constraint that changes what you can safely discuss, a standing preference about how to answer, or a follow-up you agreed to check.
+
+Rules for what you write:
+- Date every time-bound fact in \`YYYY-MM-DD\` form at the start of the value, so its age is knowable later.
+- Never store an identifier that serves no clinical purpose: no name, address, contact detail, government or insurance number, or date of birth as such. If a fact would not change any answer you give, it does not belong in memory.
+- Never store a single retrieved figure, a one-off question, or anything you are about to look up anyway.
+- Say plainly when you store something, and when the user asks you to forget something, use \`delete_memory\`.
+
+A stored fact is what the user reported, on the date they reported it. It is not verified, and when a live source disagrees with it, the live source wins and you correct the entry rather than repeating it.`;
+
+/**
+ * Guard for an agent that keeps one memory record per person. The consent rule
+ * is the point: a mention is not agreement, and a record opened for a relative
+ * the user never approved is a permanent disclosure about someone who cannot
+ * withdraw it. It is appended only for `memory_profiles` agents, so nothing
+ * here changes what an ordinary memory agent is told to do.
+ */
+export const profileUsageGuard = `You keep a separate record for each person, so that a fact about someone's father or child is never mixed into the user's own.
+
+Rules for the \`profile\` argument on \`set_memory\` and \`delete_memory\`:
+- Facts the user reports about themselves need no \`profile\`, or use "self". They always go to their own record.
+- For anyone else, ask the user once, plainly and briefly, whether you may keep a record for that person, and wait for a clear yes before you write anything about them. A mention, a question about them, or your own assumption is not consent.
+- Name the person on the record the same way the user does, so \`read_profile\` can find it again.
+- If the user declines, answer from this conversation only and do not write a record.
+
+Emergency and urgent questions are never held back waiting for consent. Triage first, ask afterwards, or not at all — safety does not wait on a memory write.`;
+
+/**
+ * Picks the memory usage guard for an agent. Absent `memory_policy` keeps the
+ * conservative explicit-request default, so an agent that says nothing about
+ * memory behaves exactly as it did before this option existed.
+ */
+export function getMemoryToolUsageGuard(memoryPolicy?: MemoryPolicy | string | null): string {
+  return memoryPolicy === MemoryPolicy.proactive
+    ? proactiveMemoryToolUsageGuard
+    : memoryToolUsageGuard;
+}
+
+/**
  * LLM-facing definitions for the inline memory tool pair, used by the
  * event-driven (definitions-only) loader. The `memory` capability string on
  * an agent's `tools` array expands into this pair at initialize time via
@@ -373,8 +532,14 @@ export const memoryToolUsageGuard = `Only use the \`set_memory\` and \`delete_me
  * `validKeys` is surfaced in the key descriptions so the model is told the
  * allowed keys up front, matching the runtime `createMemoryTool` schema.
  */
-export function getMemoryToolDefinitions(validKeys?: string[]): LCTool[] {
+export function getMemoryToolDefinitions(validKeys?: string[], profilesEnabled = false): LCTool[] {
   const hasValidKeys = Array.isArray(validKeys) && validKeys.length > 0;
+  const profileProperty = {
+    profile: {
+      type: 'string',
+      description: PROFILE_ARG_DESCRIPTION,
+    },
+  };
   return [
     {
       name: SET_MEMORY_TOOL_NAME,
@@ -393,6 +558,7 @@ export function getMemoryToolDefinitions(validKeys?: string[]): LCTool[] {
             description:
               'Value MUST be a complete sentence that fully describes relevant user information.',
           },
+          ...(profilesEnabled ? profileProperty : {}),
         },
         required: ['key', 'value'],
       },
@@ -409,6 +575,7 @@ export function getMemoryToolDefinitions(validKeys?: string[]): LCTool[] {
               ? `The key of the memory to delete. Must be one of: ${validKeys!.join(', ')}`
               : 'The key identifier of the memory to delete',
           },
+          ...(profilesEnabled ? profileProperty : {}),
         },
         required: ['key'],
       },
@@ -427,12 +594,14 @@ export function registerMemoryTools({
   toolRegistry,
   toolDefinitions,
   validKeys,
+  profilesEnabled,
 }: {
   toolRegistry?: LCToolRegistry;
   toolDefinitions?: LCTool[];
   validKeys?: string[];
+  profilesEnabled?: boolean;
 }): { toolDefinitions: LCTool[]; registered: string[]; toolNames: string[] } {
-  const memoryToolDefinitions = getMemoryToolDefinitions(validKeys);
+  const memoryToolDefinitions = getMemoryToolDefinitions(validKeys, profilesEnabled === true);
   const toolNames = memoryToolDefinitions.map((def) => def.name);
   const inputDefinitions = toolDefinitions ?? [];
   const newDefs: LCTool[] = [];
@@ -461,7 +630,14 @@ type GetRoleByName = (
 ) => Promise<IRole | null>;
 
 type InlineMemoryAgent =
-  | { id?: string; tools?: unknown[]; memoryToolsRegistered?: boolean; memory_scope?: MemoryScope }
+  | {
+      id?: string;
+      tools?: unknown[];
+      memoryToolsRegistered?: boolean;
+      memory_scope?: MemoryScope;
+      /** Agent keeps one memory record per person */
+      memory_profiles?: boolean;
+    }
   | null
   | undefined;
 
@@ -505,6 +681,45 @@ export function agentHasInlineMemoryTools(agent: InlineMemoryAgent): boolean {
   );
 }
 
+/**
+ * The system context a profile-aware agent receives instead of its facts.
+ *
+ * Injection happens once per request, before the model runs at all
+ * (`responses.js` → `buildInlineMemoryContext` → `applyContextToAgent` →
+ * `createRun`), so a subject chosen from what the user said on this turn cannot
+ * retroactively exclude facts that are already in the prompt. Labelling a pile
+ * of everyone's facts and trusting the model to pick is not isolation, and in
+ * a medical context a confused father/patient split is a dosing error. So the
+ * facts are withheld and the model asks for the one person the question is
+ * about. The cost is a tool call; the benefit is that a conversation about one
+ * person's blood pressure structurally cannot surface another's.
+ */
+export const profileIndexInstructions = `You keep a separate record for each person the user cares about, including themselves. Facts about a person are not in this message and are not something you already know: call \`read_profile\` for the person the question is about, before you answer anything that depends on what you have on file, and before you write a new fact about them. Never answer from one person's record while the question is about another, and never combine two people's facts into one answer.
+
+The user themselves always has a record. Anyone else appears only because the user agreed to you keeping one — if a relative or dependent is not listed, they are not being tracked, and you must ask before you create a record for them.`;
+
+export interface ProfileIndexEntry {
+  profileId?: string;
+  name: string;
+  relationship?: string;
+  isSelf?: boolean;
+  factCount: number;
+}
+
+export function formatProfileIndex(profiles: ProfileIndexEntry[]): string {
+  if (profiles.length === 0) {
+    return `${profileIndexInstructions}\n\nNo records have been created yet.`;
+  }
+  const lines = profiles.map((profile) => {
+    const who = profile.isSelf ? `${profile.name} (the user themselves)` : profile.name;
+    const relation = profile.relationship != null ? `, ${profile.relationship}` : '';
+    const id = profile.profileId ?? 'self';
+    const count = profile.factCount;
+    return `- ${id}: ${who}${relation} — ${count} stored fact${count === 1 ? '' : 's'}`;
+  });
+  return `${profileIndexInstructions}\n\nPeople on file:\n${lines.join('\n')}`;
+}
+
 /** Builds the existing-memory system context for an inline-memory agent. */
 export async function buildInlineMemoryContext({
   agent,
@@ -512,17 +727,35 @@ export async function buildInlineMemoryContext({
   userId,
   memoryAvailable,
   getFormattedMemories,
+  getUserProfiles,
+  ensureSelfProfile,
 }: {
   agent: InlineMemoryAgent;
   req: ServerRequest;
   userId: string | ObjectId;
   memoryAvailable: boolean;
   getFormattedMemories: MemoryMethods['getFormattedMemories'];
+  /** Supplied only for a profile-aware agent; its presence selects index mode */
+  getUserProfiles?: (userId: string | ObjectId) => Promise<ProfileIndexEntry[]>;
+  ensureSelfProfile?: (userId: string | ObjectId, name?: string) => Promise<unknown>;
 }): Promise<string> {
   if (!memoryAvailable || !agentHasInlineMemoryTools(agent)) {
     return '';
   }
   try {
+    /**
+     * Profile mode: hand over names and counts, not content. The fact query is
+     * never issued here, so a person the user has not asked about costs zero
+     * tokens and cannot leak into this turn.
+     */
+    if (getUserProfiles != null) {
+      if (ensureSelfProfile != null) {
+        await ensureSelfProfile(userId);
+      }
+      const profiles = await getUserProfiles(userId);
+      return formatProfileIndex(profiles);
+    }
+
     const memories = await getRequestMemories({
       req,
       userId,
@@ -636,6 +869,7 @@ export async function buildInlineMemoryTool({
   userId,
   memoryMethods,
   getRoleByName,
+  profileMethods,
 }: {
   toolName: string;
   req: ServerRequest;
@@ -643,6 +877,8 @@ export async function buildInlineMemoryTool({
   userId: string | ObjectId;
   memoryMethods: Pick<MemoryMethods, 'setMemory' | 'deleteMemory' | 'getFormattedMemories'>;
   getRoleByName: GetRoleByName;
+  /** Supplied only for a profile-aware agent; its presence adds the argument */
+  profileMethods?: ProfileToolMethods;
 }): Promise<DynamicStructuredTool | null> {
   if (!agentHasInlineMemoryTools(agent)) {
     return null;
@@ -651,6 +887,11 @@ export async function buildInlineMemoryTool({
   const memoryConfig = req?.config?.memory;
   const validKeys = memoryConfig?.validKeys as string[] | undefined;
   const memoryAgentId = getMemoryAgentId(agent);
+  const profilesEnabled = profileMethods != null;
+  const resolveProfileTarget =
+    profilesEnabled && typeof userId === 'string'
+      ? (profile?: string) => prepareProfileTarget({ userId, profile, ...profileMethods })
+      : undefined;
 
   if (toolName === DELETE_MEMORY_TOOL_NAME) {
     const allowed = await isMemoryToolAllowed({
@@ -667,6 +908,8 @@ export async function buildInlineMemoryTool({
       deleteMemory: memoryMethods.deleteMemory,
       validKeys,
       onWrite: () => invalidateRequestMemories(req, memoryAgentId),
+      profilesEnabled,
+      resolveProfileTarget,
     });
   }
 
@@ -683,7 +926,10 @@ export async function buildInlineMemoryTool({
   const tokenLimit = memoryConfig?.tokenLimit as number | undefined;
   let totalTokens = 0;
   let tokenCountsByKey: ReadonlyMap<string, number> | undefined;
-  if (tokenLimit) {
+  /** In profile mode the pooled total is the wrong thing to measure: the limit
+   *  applies per person, and which person this write is about is only known
+   *  once the model names them, so the tool loads that partition's usage. */
+  if (tokenLimit && !profilesEnabled) {
     try {
       const formatted = await getRequestMemories({
         req,
@@ -715,6 +961,13 @@ export async function buildInlineMemoryTool({
     tokenCountsByKey,
     filters: req.config?.filters,
     onWrite: () => invalidateRequestMemories(req, memoryAgentId),
+    profilesEnabled,
+    resolveProfileTarget,
+    getProfileTokenUsage:
+      profilesEnabled && typeof userId === 'string'
+        ? ({ profileId }) =>
+            memoryMethods.getFormattedMemories({ userId, agentId: memoryAgentId, profileId })
+        : undefined,
   });
 }
 

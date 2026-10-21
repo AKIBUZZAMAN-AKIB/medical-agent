@@ -269,3 +269,167 @@ describe('memory partitions', () => {
     expect(await MemoryEntry.countDocuments({ userId: otherUserId })).toBe(1);
   });
 });
+
+describe('memory profile partitions', () => {
+  const fatherId = 'father';
+  const motherId = 'mother';
+
+  it('keeps the same key separate per profile instead of overwriting across people', async () => {
+    await methods.setMemory({
+      userId,
+      key: 'blood_pressure',
+      value: 'father: 150/95',
+      profileId: fatherId,
+    });
+    await methods.setMemory({ userId, key: 'blood_pressure', value: 'self: 118/76' });
+    await methods.setMemory({
+      userId,
+      key: 'blood_pressure',
+      value: 'mother: 122/80',
+      profileId: motherId,
+    });
+
+    expect(await MemoryEntry.countDocuments({ userId })).toBe(3);
+    const father = await methods.getUserMemories({ userId, profileId: fatherId });
+    expect(father).toHaveLength(1);
+    expect(father[0].value).toBe('father: 150/95');
+  });
+
+  it('never returns one person`s facts when another profile is read', async () => {
+    await methods.setMemory({
+      userId,
+      key: 'diabetes',
+      value: 'father has type 2',
+      profileId: fatherId,
+    });
+    await methods.setMemory({ userId, key: 'allergies', value: 'self: none known' });
+
+    const motherRead = await methods.getUserMemories({ userId, profileId: motherId });
+    expect(motherRead).toHaveLength(0);
+
+    const fatherRead = await methods.getUserMemories({ userId, profileId: fatherId });
+    expect(fatherRead[0].value).toBe('father has type 2');
+    expect(fatherRead.some((entry) => entry.key === 'allergies')).toBe(false);
+  });
+
+  it('scopes delete to the named profile only', async () => {
+    await methods.setMemory({
+      userId,
+      key: 'medication',
+      value: 'father: amlodipine',
+      profileId: fatherId,
+    });
+    await methods.setMemory({ userId, key: 'medication', value: 'self: none' });
+
+    const result = await methods.deleteMemory({ userId, key: 'medication', profileId: fatherId });
+    expect(result.ok).toBe(true);
+
+    const remaining = await methods.getUserMemories({ userId });
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].value).toBe('self: none');
+  });
+
+  it('reports a duplicate key only within the same profile', async () => {
+    await methods.createMemory({
+      userId,
+      key: 'condition',
+      value: 'father: hypertension',
+      profileId: fatherId,
+    });
+
+    /** The same key is a different fact about a different person, so this must not collide. */
+    const second = await methods.createMemory({ userId, key: 'condition', value: 'self: none' });
+    expect(second.ok).toBe(true);
+
+    /** A real duplicate in the same partition throws; the REST layer turns that into a 409. */
+    await expect(
+      methods.createMemory({ userId, key: 'condition', value: 'father: CKD', profileId: fatherId }),
+    ).rejects.toThrow('already exists');
+  });
+
+  /**
+   * The migration guarantee: rows written before profiles existed carry no
+   * `profileId`, and must stay visible in the user's own partition while being
+   * unreachable from any named profile. A backfill would have to rewrite every
+   * existing row to get this; the null-matches-absent filter gets it for free.
+   */
+  it('treats rows written before profiles existed as the user`s own', async () => {
+    await MemoryEntry.create({
+      userId,
+      key: 'legacy_fact',
+      value: 'written before profiles',
+      tokenCount: 2,
+    });
+
+    const own = await methods.getUserMemories({ userId });
+    expect(own).toHaveLength(1);
+    expect(own[0].value).toBe('written before profiles');
+
+    const father = await methods.getUserMemories({ userId, profileId: fatherId });
+    expect(father).toHaveLength(0);
+  });
+
+  it('keeps a legacy row out of a named profile even after that profile is written to', async () => {
+    await MemoryEntry.create({ userId, key: 'legacy_fact', value: 'written before profiles' });
+    await methods.setMemory({
+      userId,
+      key: 'father_fact',
+      value: 'amlodipine',
+      profileId: fatherId,
+    });
+
+    const father = await methods.getUserMemories({ userId, profileId: fatherId });
+    expect(father).toHaveLength(1);
+    expect(father[0].key).toBe('father_fact');
+
+    const own = await methods.getUserMemories({ userId });
+    expect(own).toHaveLength(1);
+    expect(own[0].key).toBe('legacy_fact');
+  });
+
+  it('scopes update-by-id to the profile, so a fact cannot be moved between people', async () => {
+    await methods.setMemory({
+      userId,
+      key: 'note',
+      value: 'father: chest pain reported',
+      profileId: fatherId,
+    });
+    const [entry] = await methods.getUserMemories({ userId, profileId: fatherId });
+
+    /** Addressing it as if it were the user's own finds nothing. */
+    const wrongPartition = await methods.setMemoryById({
+      userId,
+      id: String(entry._id),
+      value: 'rewritten as self',
+    });
+    expect(wrongPartition.ok).toBe(false);
+
+    const rightPartition = await methods.setMemoryById({
+      userId,
+      id: String(entry._id),
+      value: 'father: chest pain, resolved',
+      profileId: fatherId,
+    });
+    expect(rightPartition.ok).toBe(true);
+  });
+
+  it('counts formatted memories per profile, so the token budget is per person', async () => {
+    await methods.setMemory({ userId, key: 'a', value: 'aaaa', tokenCount: 10 });
+    await methods.setMemory({
+      userId,
+      key: 'b',
+      value: 'bbbb',
+      tokenCount: 5,
+      profileId: fatherId,
+    });
+
+    const own = await methods.getFormattedMemories({ userId });
+    expect(own.totalTokens).toBe(10);
+    expect(own.withKeys).toContain('aaaa');
+    expect(own.withKeys).not.toContain('bbbb');
+
+    const father = await methods.getFormattedMemories({ userId, profileId: fatherId });
+    expect(father.totalTokens).toBe(5);
+    expect(father.withKeys).toContain('bbbb');
+  });
+});

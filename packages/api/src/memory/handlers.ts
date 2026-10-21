@@ -16,6 +16,7 @@ interface MemoryUpdateBody {
 
 interface MemoryQuery {
   agentId?: string | string[];
+  profileId?: string | string[];
 }
 
 interface MemoryRequestConfig {
@@ -114,6 +115,7 @@ export function createMemoryManagementHandlers(deps: MemoryManagementHandlersDep
         value,
         tokenCount: deps.countTokens(value),
         agentId: getAgentId(req.query.agentId),
+        profileId: getAgentId(req.query.profileId),
       });
       if (result.conflict) {
         return res.status(409).json({ error: 'Memory with this key already exists.' });
@@ -140,6 +142,7 @@ export function createMemoryManagementHandlers(deps: MemoryManagementHandlersDep
         userId,
         id: req.params.id,
         agentId: getAgentId(req.query.agentId),
+        profileId: getAgentId(req.query.profileId),
       });
       if (!result.ok) {
         return res.status(404).json({ error: 'Memory not found.' });

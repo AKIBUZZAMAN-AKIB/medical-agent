@@ -180,6 +180,10 @@ export type TUserMemory = {
   agentId?: string;
   /** Display name of the partition's agent, resolved server-side when available */
   agentName?: string;
+  /** Person this memory is about; absent = the user themselves */
+  profileId?: string;
+  /** Display name of that person, resolved server-side when available */
+  profileName?: string;
   /** Current policy removed one or more memory content fields from this response. */
   contentFilterBlocked?: boolean;
 };
@@ -189,6 +193,25 @@ export type MemoriesResponse = {
   totalTokens: number;
   tokenLimit: number | null;
   usagePercentage: number | null;
+};
+
+export type TMemoryProfile = {
+  /** Absent for the user's own record, which has no addressable id. */
+  profileId?: string;
+  name: string;
+  relationship?: string;
+  isSelf: boolean;
+  factCount: number;
+  tokenCount: number;
+};
+
+export type MemoryProfilesResponse = {
+  profiles: TMemoryProfile[];
+};
+
+export type DeleteMemoryProfileResponse = {
+  deleted: boolean;
+  deletedMemories: number;
 };
 
 export type UpdateMemoryResponse = {

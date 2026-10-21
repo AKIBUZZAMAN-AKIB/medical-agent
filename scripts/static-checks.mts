@@ -134,6 +134,7 @@ const PACKAGE_JSON_FILES = [
   'packages/client/package.json',
   'packages/data-provider/package.json',
   'packages/data-schemas/package.json',
+  'packages/mcp-medical/package.json',
 ];
 
 const I18N_FILE = 'client/src/locales/en/translation.json';
@@ -813,6 +814,11 @@ const TYPECHECK_PROJECTS = [
       '!**.md',
     ],
     requires: ['build:data-provider'],
+  },
+  {
+    project: 'packages/mcp-medical/tsconfig.json',
+    paths: ['packages/mcp-medical/**', ...ROOT_MANIFESTS, BACKEND_REVIEW, '!**.md'],
+    requires: [],
   },
   {
     project: 'client/tsconfig.json',

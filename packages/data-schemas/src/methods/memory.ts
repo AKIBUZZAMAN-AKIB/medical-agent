@@ -10,8 +10,17 @@ const formatDate = (date: Date): string => {
 };
 
 /** Partition filter: `agentId: null` matches both null and missing fields,
- *  so pre-partition entries remain part of the shared personal pool. */
-const partitionFilter = (agentId?: string) => ({ agentId: agentId ?? null });
+ *  so pre-partition entries remain part of the shared personal pool.
+ *
+ *  The same trick gives `profileId` a free migration: a row written before
+ *  profiles existed has no `profileId` field, and a `{ profileId: null }`
+ *  filter matches it. So existing memories stay in the user's own partition
+ *  with no backfill, while a filter for any named profile can never match
+ *  them — the isolation holds without a single row being rewritten. */
+const partitionFilter = (agentId?: string, profileId?: string) => ({
+  agentId: agentId ?? null,
+  profileId: profileId ?? null,
+});
 
 // Factory function that takes mongoose instance and returns the methods
 export function createMemoryMethods(mongoose: typeof import('mongoose')): {
@@ -21,6 +30,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     value,
     tokenCount,
     agentId,
+    profileId,
   }: t.SetMemoryParams) => Promise<t.MemoryResult>;
   createMemory: ({
     userId,
@@ -28,16 +38,28 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     value,
     tokenCount,
     agentId,
+    profileId,
   }: t.SetMemoryParams) => Promise<t.MemoryResult>;
-  deleteMemory: ({ userId, key, agentId }: t.DeleteMemoryParams) => Promise<t.MemoryResult>;
+  deleteMemory: ({
+    userId,
+    key,
+    agentId,
+    profileId,
+  }: t.DeleteMemoryParams) => Promise<t.MemoryResult>;
   setMemoryById: (params: t.SetMemoryByIdParams) => Promise<t.SetMemoryByIdResult>;
   deleteMemoryById: (params: t.MemoryByIdParams) => Promise<t.MemoryResult>;
   getAllUserMemories: (userId: string | Types.ObjectId) => Promise<t.IMemoryEntryLean[]>;
-  getUserMemories: ({ userId, agentId }: t.GetUserMemoriesParams) => Promise<t.IMemoryEntryLean[]>;
+  getUserMemories: ({
+    userId,
+    agentId,
+    profileId,
+  }: t.GetUserMemoriesParams) => Promise<t.IMemoryEntryLean[]>;
   getFormattedMemories: ({
     userId,
     agentId,
+    profileId,
   }: t.GetFormattedMemoriesParams) => Promise<t.FormattedMemoriesResult>;
+  deleteMemoriesByProfile: (params: t.DeleteMemoriesByProfileParams) => Promise<number>;
   deleteAllUserMemories: (userId: string | Types.ObjectId) => Promise<number>;
 } {
   /**
@@ -50,6 +72,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     value,
     tokenCount = 0,
     agentId,
+    profileId,
   }: t.SetMemoryParams): Promise<t.MemoryResult> {
     try {
       if (key?.toLowerCase() === 'nothing') {
@@ -60,7 +83,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
       const existingMemory = await MemoryEntry.findOne({
         userId,
         key,
-        ...partitionFilter(agentId),
+        ...partitionFilter(agentId, profileId),
       });
       if (existingMemory) {
         throw new Error('Memory with this key already exists');
@@ -72,6 +95,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
         value,
         tokenCount,
         ...(agentId ? { agentId } : {}),
+        ...(profileId ? { profileId } : {}),
         updated_at: new Date(),
       });
 
@@ -92,6 +116,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     value,
     tokenCount = 0,
     agentId,
+    profileId,
   }: t.SetMemoryParams): Promise<t.MemoryResult> {
     try {
       if (key?.toLowerCase() === 'nothing') {
@@ -100,11 +125,12 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
 
       const MemoryEntry = mongoose.models.MemoryEntry;
       await MemoryEntry.findOneAndUpdate(
-        { userId, key, ...partitionFilter(agentId) },
+        { userId, key, ...partitionFilter(agentId, profileId) },
         {
           value,
           tokenCount,
           ...(agentId ? { agentId } : {}),
+          ...(profileId ? { profileId } : {}),
           updated_at: new Date(),
         },
         {
@@ -128,13 +154,14 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     userId,
     key,
     agentId,
+    profileId,
   }: t.DeleteMemoryParams): Promise<t.MemoryResult> {
     try {
       const MemoryEntry = mongoose.models.MemoryEntry;
       const result = await MemoryEntry.findOneAndDelete({
         userId,
         key,
-        ...partitionFilter(agentId),
+        ...partitionFilter(agentId, profileId),
       });
       return { ok: !!result };
     } catch (error) {
@@ -152,6 +179,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     value,
     tokenCount = 0,
     agentId,
+    profileId,
   }: t.SetMemoryByIdParams): Promise<t.SetMemoryByIdResult> {
     try {
       if (!mongoose.Types.ObjectId.isValid(id) || key?.toLowerCase() === 'nothing') {
@@ -159,7 +187,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
       }
 
       const MemoryEntry = mongoose.models.MemoryEntry;
-      const recordFilter = { _id: id, userId, ...partitionFilter(agentId) };
+      const recordFilter = { _id: id, userId, ...partitionFilter(agentId, profileId) };
       const existingMemory = (await MemoryEntry.findOne(
         recordFilter,
       ).lean()) as t.IMemoryEntryLean | null;
@@ -171,7 +199,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
         const duplicate = await MemoryEntry.exists({
           userId,
           key,
-          ...partitionFilter(agentId),
+          ...partitionFilter(agentId, profileId),
           _id: { $ne: existingMemory._id },
         });
         if (duplicate) {
@@ -203,6 +231,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     userId,
     id,
     agentId,
+    profileId,
   }: t.MemoryByIdParams): Promise<t.MemoryResult> {
     try {
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -213,7 +242,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
       const result = await MemoryEntry.findOneAndDelete({
         _id: id,
         userId,
-        ...partitionFilter(agentId),
+        ...partitionFilter(agentId, profileId),
       });
       return { ok: !!result };
     } catch (error) {
@@ -241,17 +270,19 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
 
   /**
    * Gets a user's memory entries for a single partition
-   * (the shared personal pool when `agentId` is omitted)
+   * (the shared personal pool when `agentId` is omitted, the user themselves
+   * when `profileId` is omitted)
    */
   async function getUserMemories({
     userId,
     agentId,
+    profileId,
   }: t.GetUserMemoriesParams): Promise<t.IMemoryEntryLean[]> {
     try {
       const MemoryEntry = mongoose.models.MemoryEntry;
       return (await MemoryEntry.find({
         userId,
-        ...partitionFilter(agentId),
+        ...partitionFilter(agentId, profileId),
       }).lean()) as t.IMemoryEntryLean[];
     } catch (error) {
       throw new Error(
@@ -266,9 +297,10 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
   async function getFormattedMemories({
     userId,
     agentId,
+    profileId,
   }: t.GetFormattedMemoriesParams): Promise<t.FormattedMemoriesResult> {
     try {
-      const memories = await getUserMemories({ userId, agentId });
+      const memories = await getUserMemories({ userId, agentId, profileId });
 
       if (!memories || memories.length === 0) {
         return {
@@ -335,6 +367,30 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     }
   }
 
+  /**
+   * Deletes every memory row for one subject, leaving the user's other profiles
+   * intact. Used when a profile is deleted: the point of a profile is that
+   * removing it removes that person's record and nothing else.
+   */
+  async function deleteMemoriesByProfile({
+    userId,
+    profileId,
+    agentId,
+  }: t.DeleteMemoriesByProfileParams): Promise<number> {
+    try {
+      const MemoryEntry = mongoose.models.MemoryEntry;
+      const result = await MemoryEntry.deleteMany({
+        userId,
+        ...partitionFilter(agentId, profileId),
+      });
+      return result.deletedCount;
+    } catch (error) {
+      throw new Error(
+        `Failed to delete profile memories: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
   return {
     setMemory,
     createMemory,
@@ -345,6 +401,7 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
     getUserMemories,
     getFormattedMemories,
     deleteAllUserMemories,
+    deleteMemoriesByProfile,
   };
 }
 

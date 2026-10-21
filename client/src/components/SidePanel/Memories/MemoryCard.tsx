@@ -19,6 +19,7 @@ const formatDate = (dateString: string): string => {
 export default function MemoryCard({ memory, hasUpdateAccess }: MemoryCardProps) {
   const localize = useLocalize();
   const displayKey = memory.key || localize('com_ui_memory');
+  const displayName = memory.profileName ?? memory.profileId ?? '';
 
   return (
     <div
@@ -28,7 +29,7 @@ export default function MemoryCard({ memory, hasUpdateAccess }: MemoryCardProps)
         'hover:bg-surface-secondary',
       )}
     >
-      {/* Row 1: Key + Agent badge + Token count + Actions */}
+      {/* Row 1: Key + Agent badge + Person badge + Token count + Actions */}
       <div className="flex items-center gap-2">
         <span className="truncate text-sm font-semibold text-text-primary">{displayKey}</span>
         {memory.agentId != null && (
@@ -37,6 +38,16 @@ export default function MemoryCard({ memory, hasUpdateAccess }: MemoryCardProps)
             title={localize('com_ui_memory_agent_badge')}
           >
             {memory.agentName ?? memory.agentId}
+          </span>
+        )}
+        {/* Whom the fact is about. A fact stored against a relative is not the
+            user's own, and reading it as their own is the mistake this prevents. */}
+        {memory.profileId != null && (
+          <span
+            className="shrink-0 truncate rounded-full border border-border-light px-2 py-0.5 text-xs text-text-secondary"
+            title={localize('com_ui_memory_profile_badge', { name: displayName })}
+          >
+            {displayName}
           </span>
         )}
         {memory.tokenCount !== undefined && (

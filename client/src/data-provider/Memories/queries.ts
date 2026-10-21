@@ -2,11 +2,16 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { QueryKeys, MutationKeys, dataService } from 'librechat-data-provider';
 import type {
+  TUserMemory,
+  MemoriesResponse,
+  UpdateMemoryResponse,
+  MemoryProfilesResponse,
+} from 'librechat-data-provider';
+import type {
   UseQueryOptions,
   UseMutationOptions,
   QueryObserverResult,
 } from '@tanstack/react-query';
-import type { TUserMemory, MemoriesResponse, UpdateMemoryResponse } from 'librechat-data-provider';
 
 export const useMemoriesQuery = (
   config?: UseQueryOptions<MemoriesResponse>,
@@ -19,16 +24,21 @@ export const useMemoriesQuery = (
   });
 };
 
-export type DeleteMemoryParams = { key?: string; id?: string; agentId?: string };
+export type DeleteMemoryParams = {
+  key?: string;
+  id?: string;
+  agentId?: string;
+  profileId?: string;
+};
 export const useDeleteMemoryMutation = () => {
   const queryClient = useQueryClient();
   return useMutation(
-    ({ key, id, agentId }: DeleteMemoryParams) => {
+    ({ key, id, agentId, profileId }: DeleteMemoryParams) => {
       if (id) {
-        return dataService.deleteMemoryById(id, agentId);
+        return dataService.deleteMemoryById(id, agentId, profileId);
       }
       if (key) {
-        return dataService.deleteMemory(key, agentId);
+        return dataService.deleteMemory(key, agentId, profileId);
       }
       throw new Error('Memory address is required.');
     },
@@ -40,24 +50,55 @@ export const useDeleteMemoryMutation = () => {
   );
 };
 
+export const useMemoryProfilesQuery = (
+  config?: UseQueryOptions<MemoryProfilesResponse>,
+): QueryObserverResult<MemoryProfilesResponse> => {
+  return useQuery<MemoryProfilesResponse>(
+    [QueryKeys.memoryProfiles],
+    () => dataService.getMemoryProfiles(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      ...config,
+    },
+  );
+};
+
+/**
+ * Removing a person removes every fact stored about them, so the profile list
+ * and the memory list are invalidated together: leaving the other stale would
+ * show a record that no longer exists next to facts that are already gone.
+ */
+export const useDeleteMemoryProfileMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation((profileId: string) => dataService.deleteMemoryProfile(profileId), {
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.memoryProfiles]);
+      queryClient.invalidateQueries([QueryKeys.memories]);
+    },
+  });
+};
+
 export type UpdateMemoryParams = {
   key?: string;
   id?: string;
   value: string;
   originalKey?: string;
   agentId?: string;
+  profileId?: string;
 };
 export const useUpdateMemoryMutation = (
   options?: UseMutationOptions<UpdateMemoryResponse, Error, UpdateMemoryParams>,
 ) => {
   const queryClient = useQueryClient();
   return useMutation(
-    ({ key, id, value, originalKey, agentId }: UpdateMemoryParams) => {
+    ({ key, id, value, originalKey, agentId, profileId }: UpdateMemoryParams) => {
       if (id) {
-        return dataService.updateMemoryById(id, value, key, agentId);
+        return dataService.updateMemoryById(id, value, key, agentId, profileId);
       }
       if (key) {
-        return dataService.updateMemory(key, value, originalKey, agentId);
+        return dataService.updateMemory(key, value, originalKey, agentId, profileId);
       }
       throw new Error('Memory address is required.');
     },
@@ -99,7 +140,12 @@ export const useUpdateMemoryPreferencesMutation = (
   );
 };
 
-export type CreateMemoryParams = { key: string; value: string; agentId?: string };
+export type CreateMemoryParams = {
+  key: string;
+  value: string;
+  agentId?: string;
+  profileId?: string;
+};
 export type CreateMemoryResponse = { created: boolean; memory: TUserMemory };
 
 export const useCreateMemoryMutation = (
@@ -107,8 +153,8 @@ export const useCreateMemoryMutation = (
 ) => {
   const queryClient = useQueryClient();
   return useMutation<CreateMemoryResponse, Error, CreateMemoryParams>(
-    ({ key, value, agentId }: CreateMemoryParams) =>
-      dataService.createMemory({ key, value, agentId }),
+    ({ key, value, agentId, profileId }: CreateMemoryParams) =>
+      dataService.createMemory({ key, value, agentId, profileId }),
     {
       ...options,
       onSuccess: (data, variables, context) => {

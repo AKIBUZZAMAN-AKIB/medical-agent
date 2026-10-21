@@ -46,6 +46,20 @@ export function getMemoryAgentIdParam(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
 }
 
+/**
+ * Extracts the per-person partition from a request.
+ *
+ * Unlike `agentId`, this needs no access check: `profileId` selects among the
+ * caller's own memory partitions, every query is scoped by `userId`, and a
+ * record only exists there if that user consented to it. Naming a partition
+ * grants nothing — a wrong or hostile value resolves to a filter that matches
+ * nothing the caller does not already own, which is why it is read here rather
+ * than validated against the profile registry on every request.
+ */
+export function getMemoryProfileIdParam(value: unknown): string | undefined {
+  return getMemoryAgentIdParam(value);
+}
+
 export async function getAgentMemoryPartitionAccess({
   req,
   user,

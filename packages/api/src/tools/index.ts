@@ -1,5 +1,7 @@
 export * from './format';
 export * from './discovery';
+export * from './history';
+export * from './profiles';
 export * from './protection';
 export * from './registry';
 export * from './toolkits';

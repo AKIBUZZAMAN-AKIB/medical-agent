@@ -22,6 +22,8 @@ jest.mock('~/models', () => ({
   deleteMemory: jest.fn(),
   setMemory: jest.fn(),
   getAgents: jest.fn(),
+  getUserProfiles: jest.fn(),
+  deleteProfile: jest.fn(),
 }));
 
 jest.mock('~/server/services/PermissionService', () => ({
@@ -160,6 +162,102 @@ describe('memories routes', () => {
       expect(setMemory).toHaveBeenCalledWith(
         expect.objectContaining({ userId: 'user-1', key: 'my_key' }),
       );
+    });
+  });
+
+  describe('per-person records', () => {
+    const { getUserProfiles, deleteProfile, deleteMemory } = require('~/models');
+
+    it('lists the people on file with what each record holds', async () => {
+      getUserProfiles.mockResolvedValue([
+        { profileId: undefined, name: 'Danny', isSelf: true, factCount: 3, tokenCount: 30 },
+        {
+          profileId: 'father',
+          name: 'father',
+          relationship: 'parent',
+          factCount: 1,
+          tokenCount: 8,
+        },
+      ]);
+
+      const response = await request(app).get('/api/memories/profiles');
+
+      expect(response.status).toBe(200);
+      expect(response.body.profiles).toHaveLength(2);
+      expect(response.body.profiles[0]).toEqual(
+        expect.objectContaining({ isSelf: true, factCount: 3 }),
+      );
+      expect(getUserProfiles).toHaveBeenCalledWith('user-1');
+    });
+
+    it("deletes a person's record and reports how much went with it", async () => {
+      deleteProfile.mockResolvedValue({ ok: true, deletedMemories: 4 });
+
+      const response = await request(app).delete('/api/memories/profiles/father');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ deleted: true, deletedMemories: 4 });
+      expect(deleteProfile).toHaveBeenCalledWith({ userId: 'user-1', profileId: 'father' });
+    });
+
+    it('answers 404 for a record that does not exist rather than reporting success', async () => {
+      deleteProfile.mockResolvedValue({ ok: false });
+
+      const response = await request(app).delete('/api/memories/profiles/nobody');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Profile not found.');
+    });
+
+    it("scopes a write to the person it names, so it cannot land in the user's own record", async () => {
+      getUserMemories.mockResolvedValue([]);
+      createMemory.mockResolvedValue({ ok: true });
+
+      await request(app)
+        .post('/api/memories')
+        .send({ key: 'condition', value: 'Has asthma', profileId: 'father' });
+
+      expect(createMemory).toHaveBeenCalledWith(expect.objectContaining({ profileId: 'father' }));
+      expect(getUserMemories).toHaveBeenCalledWith(
+        expect.objectContaining({ profileId: 'father' }),
+      );
+    });
+
+    it('scopes a delete to the person it names', async () => {
+      deleteMemory.mockResolvedValue({ ok: true });
+
+      await request(app).delete('/api/memories/condition?profileId=father');
+
+      expect(deleteMemory).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-1', key: 'condition', profileId: 'father' }),
+      );
+    });
+
+    it('leaves the personal partition alone when no person is named', async () => {
+      deleteMemory.mockResolvedValue({ ok: true });
+
+      await request(app).delete('/api/memories/condition');
+
+      expect(deleteMemory).toHaveBeenCalledWith(expect.objectContaining({ profileId: undefined }));
+    });
+
+    it('labels each fact with the person it is about', async () => {
+      const { getAllUserMemories } = require('~/models');
+      getAllUserMemories.mockResolvedValue([
+        { key: 'condition', value: 'Has asthma', profileId: 'father', tokenCount: 5 },
+        { key: 'allergy', value: 'Penicillin', tokenCount: 4 },
+      ]);
+      getUserProfiles.mockResolvedValue([{ profileId: 'father', name: 'My father' }]);
+
+      const response = await request(app).get('/api/memories');
+
+      expect(response.status).toBe(200);
+      const byKey = Object.fromEntries(
+        response.body.memories.map((memory) => [memory.key, memory]),
+      );
+      expect(byKey.condition.profileName).toBe('My father');
+      /** The user's own facts carry no name, so the UI never implies a third party. */
+      expect(byKey.allergy.profileName).toBeUndefined();
     });
   });
 });

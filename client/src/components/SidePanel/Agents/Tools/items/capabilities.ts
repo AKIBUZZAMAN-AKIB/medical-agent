@@ -33,6 +33,16 @@ export type FileBackedCapability = (typeof FILE_BACKED_CAPABILITIES)[number];
 const FLAG_ONLY_CAPABILITIES = [
   { capability: AgentCapabilities.web_search, tool: Tools.web_search },
   { capability: AgentCapabilities.memory, tool: Tools.memory },
+  {
+    capability: AgentCapabilities.conversation_history,
+    tool: Tools.conversation_history,
+    /**
+     * One capability, two tool names. The transcript tool is granted with the
+     * listing tool, so ticking this off has to clear both from `agent.tools`
+     * or the agent would keep a reader with no way to find anything to read.
+     */
+    companionTools: [Tools.conversation_transcript],
+  },
 ] as const;
 
 /**

@@ -571,6 +571,31 @@ actions:
 #       - "mcp-obsidian"
 #       - /path/to/obsidian/vault
 
+#   # Medical agent tool layer: 26 read-only tools over live, keyless public
+#   # biomedical APIs (PubMed, openFDA, RxNorm, DailyMed, ChEMBL, PubChem,
+#   # ClinVar, ClinicalTrials.gov, Open Targets, Monarch, UniProt, EBI OLS,
+#   # WHO GHO, NPPES). Ships in this repo; no API key is required to run it.
+#   # Build it first — `npm run build --workspace @librechat/mcp-medical` —
+#   # then provision the agent itself: `npm run seed-medical-agent`.
+#   # Paths are resolved from the backend process working directory (the repo
+#   # root in development); use an absolute path in a container.
+#   medical:
+#     type: stdio
+#     command: node
+#     args:
+#       - packages/mcp-medical/dist/index.js
+#     env:
+#       # All optional. The server works with none of them set.
+#       NCBI_API_KEY: '${NCBI_API_KEY}'      # 3 -> 10 req/s on E-utilities
+#       OPENFDA_API_KEY: '${OPENFDA_API_KEY}' # 1,000 -> 100,000 requests/day
+#       MEDICAL_CONTACT_EMAIL: '${MEDICAL_CONTACT_EMAIL}'
+#       # Narrow the catalogue for small models; omit for all 26 tools.
+#       # MEDICAL_TOOL_GROUPS: 'literature,drugs,conditions,trials'
+#     timeout: 60000
+#     # toolConfiguration:
+#     #   drug_interaction_check:
+#     #     displayName: Check two drugs against each other
+
 # Definition of custom endpoints
 endpoints:
   # assistants:
@@ -665,7 +690,13 @@ endpoints:
   #   # (optional) Agent Capabilities available to all users. Omit the ones you wish to exclude. Defaults to list below.
   #   capabilities: ["deferred_tools", "execute_code", "file_search", "web_search", "artifacts", "subagents", "actions", "context", "skills", "memory", "ask_user_question", "tools", "chain", "ocr"]
   #   # The following capabilities are opt-in and must be added explicitly:
-  #   # "programmatic_tools", "stateful_code_sessions", "run_in_background", "tool_intents"
+  #   # "programmatic_tools", "stateful_code_sessions", "run_in_background", "tool_intents",
+  #   # "conversation_history"
+  #   # "conversation_history" grants an agent read-only recall of the signed-in
+  #   # user's own past conversations (`conversation_history` lists sessions by
+  #   # date, `conversation_transcript` returns one session's messages). It is
+  #   # opt-in because it hands a model the user's message history; every read
+  #   # is scoped to the authenticated user, so it cannot cross accounts.
   #   # "stateful_code_sessions" is highly experimental and may change substantially.
   #   # (optional) Limit the workspace scopes users may select. Omit to allow all three.
   #   statefulCodeSessions:
@@ -869,6 +900,29 @@ endpoints:
   #     #     deploymentName: claude-3-5-haiku@20241022  # Override for this model
 
   custom:
+    # OpenRouter free-tier models. The medical agent is pinned to one of these
+    # (`agent/agent.json`), and every id ends in `:free` so the deployment costs
+    # nothing. The roster rotates as providers add and drop free hosting — refresh
+    # the live list with:
+    #   curl -s https://openrouter.ai/api/v1/models \
+    #     | jq -r '.data[] | select(.id|endswith(":free")) \
+    #             | select(.supported_parameters|index("tools")) | .id'
+    - name: 'OpenRouter (Free)'
+      apiKey: '${OPENROUTER_KEY}'
+      baseURL: 'https://openrouter.ai/api/v1'
+      models:
+        default:
+          - 'nvidia/nemotron-3-ultra-550b-a55b:free'
+          - 'nvidia/nemotron-3-super-120b-a12b:free'
+          - 'qwen/qwen3.8-27b:free'
+          - 'google/gemma-4-31b-it:free'
+        # Pin the list above: `fetch: true` would pull every OpenRouter model,
+        # paid included, and quietly turn a free deployment into a billable one.
+        fetch: false
+      titleConvo: true
+      titleModel: 'nvidia/nemotron-3-super-120b-a12b:free'
+      modelDisplayLabel: 'OpenRouter (free)'
+
     # Anthropic-compatible Example (native `/v1/messages` API)
     # Set `provider: anthropic` to use the native Anthropic client instead of the
     # default OpenAI-compatible one — for Anthropic itself or Anthropic-compatible
@@ -1325,6 +1379,32 @@ endpoints:
 #     # instructions: "You are a memory management assistant. Store and manage user information accurately."
 #     # model_parameters:
 #     #   temperature: 0.1
+#
+# Presence of this block is what enables memory. Two consequences are easy to miss:
+#   - `tokenLimit` is the ONLY cap on total stored memory. Left unset there is
+#     no ceiling: writes are refused only when it is set, and every stored
+#     entry is injected into the prompt on every request.
+#   - There is no expiry. Entries persist until the user or the agent deletes
+#     them, so a long-lived clinical fact should be one the user can see and
+#     correct in Settings -> Data -> Memories.
+# Every injected memory carries its own write date as a [YYYY-MM-DD] prefix, so
+#   the model can tell a current fact from a year-old one without being told
+#   which is which.
+# An individual agent can narrow how memory behaves for itself (these are agent
+#   document fields, set in the builder's advanced settings or by the seed
+#   script, not in this block):
+#   - `memory_scope: 'agent'` partitions its memories per (user, agent) instead
+#     of sharing the personal pool.
+#   - `memory_policy: 'proactive'` lets it store a durable fact without being
+#     asked; the default stores only on explicit request.
+#   - `memory_profiles: true` keeps one record per person. The prompt then
+#     carries only the names on file and a count each, and the facts are
+#     fetched per person on demand, so a conversation about a parent's
+#     medication cannot surface the user's own. `tokenLimit` applies per
+#     person. Reach for it whenever one user asks about several people at
+#     once, which is the normal case in a medical or family context. The
+#     person it describes can be removed, with every fact about them, from
+#     Settings -> Data -> Memories.
 
 # Apply opt-in content filters to source-classified submitted and reusable content.
 # `filters` is base-config-only: database overrides and tombstones cannot add,

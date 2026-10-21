@@ -571,11 +571,25 @@ export const verifyTwoFactorTemp = () => `${BASE_URL}/api/auth/2fa/verify-temp`;
 
 /* Memories */
 export const memories = () => `${BASE_URL}/api/memories`;
-export const memory = (key: string, agentId?: string) =>
-  `${memories()}/${encodeURIComponent(key)}${agentId ? `?agentId=${encodeURIComponent(agentId)}` : ''}`;
-export const memoryById = (id: string, agentId?: string) =>
-  `${memories()}/id/${encodeURIComponent(id)}${agentId ? `?agentId=${encodeURIComponent(agentId)}` : ''}`;
+/** `profileId` is an optional second partition alongside `agentId`; a memory
+ *  about a relative lives in that person's partition, not in the user's own. */
+const memoryPartition = (agentId?: string, profileId?: string): string => {
+  /** Encoded per value rather than through URLSearchParams, which would spell a
+   *  space as `+` and silently change the shape of every existing memory URL. */
+  const parts = [
+    agentId ? `agentId=${encodeURIComponent(agentId)}` : undefined,
+    profileId ? `profileId=${encodeURIComponent(profileId)}` : undefined,
+  ].filter(Boolean);
+  return parts.length > 0 ? `?${parts.join('&')}` : '';
+};
+export const memory = (key: string, agentId?: string, profileId?: string) =>
+  `${memories()}/${encodeURIComponent(key)}${memoryPartition(agentId, profileId)}`;
+export const memoryById = (id: string, agentId?: string, profileId?: string) =>
+  `${memories()}/id/${encodeURIComponent(id)}${memoryPartition(agentId, profileId)}`;
 export const memoryPreferences = () => `${memories()}/preferences`;
+export const memoryProfiles = () => `${memories()}/profiles`;
+export const memoryProfile = (profileId: string) =>
+  `${memories()}/profiles/${encodeURIComponent(profileId)}`;
 
 export const searchPrincipals = (params: q.PrincipalSearchParams) => {
   const { q: query, limit, types } = params;

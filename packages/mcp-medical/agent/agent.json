@@ -1,0 +1,26 @@
+{
+  "id": "medical_research_agent",
+  "name": "Medical Research Assistant",
+  "description": "Live lookups across PubMed, openFDA, RxNorm, DailyMed, ChEMBL, PubChem, ClinVar, ClinicalTrials.gov, Open Targets, Monarch, UniProt, EBI OLS, WHO GHO and the NPI Registry. Cites every claim from a retrieved record, remembers the patient's own dated history between sessions, and never diagnoses, prescribes, or clears a drug combination.",
+  "instructionsFile": "instructions.md",
+  "mcpServer": "medical",
+  "model": {
+    "provider": "OpenRouter (Free)",
+    "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "note": "Any OpenRouter model ending in `:free` that advertises the `tools` parameter works. The free roster rotates as providers add and drop hosting, so refresh it with: curl -s https://openrouter.ai/api/v1/models | jq -r '.data[] | select(.id|endswith(\":free\")) | select(.supported_parameters|index(\"tools\")) | .id' and update this file plus the endpoint in librechat.yaml. Small models degrade with a 25-tool catalogue; see MEDICAL_TOOL_GROUPS in the package README."
+  },
+  "modelParameters": {
+    "temperature": 0.1,
+    "max_tokens": 4096
+  },
+  "recursion_limit": 40,
+  "category": "general",
+  "conversationStarters": [
+    "My father is choking and cannot speak — what do I do right now?",
+    "Compare the label dosing guidance for warfarin and apixaban, with sources.",
+    "What is the evidence base for semaglutide in type 2 diabetes? Cite the trials.",
+    "Is there an interaction between clarithromycin and simvastatin according to their labels?",
+    "What does ClinVar say about the BRCA1 c.68_69delAG variant, and how confident is that classification?",
+    "Which trials are recruiting for non-small cell lung cancer with a PD-1 inhibitor?"
+  ]
+}

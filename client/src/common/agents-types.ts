@@ -5,6 +5,7 @@ import type {
   AgentToolOptions,
   SupportContact,
   AgentProvider,
+  MemoryPolicy,
   MemoryScope,
   SkillsScope,
   StatefulCodeEnvironment,
@@ -48,6 +49,10 @@ export type AgentForm = {
   skills_scope?: SkillsScope;
   /** Memory partition: 'agent' isolates memories per (user, agent); default shared pool */
   memory_scope?: MemoryScope;
+  /** When the inline memory tools may write unasked; absent means 'explicit' */
+  memory_policy?: MemoryPolicy;
+  /** Keep a separate memory record per person instead of one pool */
+  memory_profiles?: boolean;
   /** Sharing scope for stateful Code API workspaces. */
   stateful_code_environment?: StatefulCodeEnvironment;
   /** Operator-configured managed or attached execution environment. */

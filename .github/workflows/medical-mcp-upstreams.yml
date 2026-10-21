@@ -1,0 +1,79 @@
+name: Medical MCP Upstreams
+
+# The medical agent's whole value is that it reads live public databases rather
+# than reciting them. That makes it the one part of this repository whose
+# correctness depends on hosts nobody here controls: NCBI, openFDA, Europe PMC,
+# OpenAlex, ChEMBL and RxNav do not version their responses, and a renamed field
+# or a retired endpoint fails silently — a tool that returns a confident,
+# well-formatted, wrong answer rather than an error.
+#
+# Unit tests cannot see this. They assert against fixtures captured on a day when
+# the upstreams were healthy, so they keep passing while the live path rots. This
+# workflow is the only thing that notices, which is why it runs on a schedule and
+# not only on pull requests.
+
+on:
+  schedule:
+    # Off the hour, and not on the hour: the upstream APIs are busiest on the
+    # hour, and a timeout here would read as a medical failure when it is load.
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+    inputs:
+      group:
+        description: 'Tool group to smoke (blank = all)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Live smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Optional, and deliberately not required. Every upstream here works
+      # without a key; the keys only raise rate limits. A run that fails because
+      # a secret is missing is a run nobody trusts, so the job must be green on
+      # the free tier or it is not a signal.
+      - name: Configure upstream keys
+        env:
+          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+          OPENFDA_API_KEY: ${{ secrets.OPENFDA_API_KEY }}
+          MEDICAL_CONTACT_EMAIL: ${{ secrets.MEDICAL_CONTACT_EMAIL }}
+        run: |
+          {
+            echo "NCBI_API_KEY=$NCBI_API_KEY"
+            echo "OPENFDA_API_KEY=$OPENFDA_API_KEY"
+            echo "MEDICAL_CONTACT_EMAIL=${MEDICAL_CONTACT_EMAIL:-librechat-upstreams@users.noreply.github.com}"
+          } >> "$GITHUB_ENV"
+
+      - run: npm ci
+
+      - name: Build workspace packages and medical MCP server
+        run: |
+          npm run build:data-provider
+          npm run build:data-schemas
+          npm run build:api
+          npm run build --workspace @librechat/mcp-medical
+
+      - name: Call every tool against the real upstreams
+        run: |
+          node packages/mcp-medical/scripts/smoke.mjs ${{ inputs.group }}
+
+      - name: Fail if the seeded agent no longer matches the package
+        # The seed hard-codes a tool list. A tool added here and not there ships
+        # an agent that cannot call it, and nothing else in CI notices.
+        run: node config/seed-medical-agent.js --dry-run

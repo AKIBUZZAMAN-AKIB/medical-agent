@@ -106,18 +106,20 @@ import {
   isFatalAgentInitializationError,
 } from './errors';
 import { extractAgentContent, extractSkillContent } from '../protection/adapters/submissions';
+import { registerMemoryTools, getMemoryToolUsageGuard, profileUsageGuard } from './memory';
 import { createConfiguredContentInspector, inspectContent } from '../protection/runtime';
 import { assertAgentAttachmentLimits, isModelBoundAttachmentFile } from './attachments';
 import { resolveAttachedWorkspaceCommandTimeoutMax } from '~/code/command';
 import { assertModelBoundContent } from '../middleware/modelBoundContent';
 import { isImplicitStatefulCodeRouteAvailable } from '../code/config';
-import { registerMemoryTools, memoryToolUsageGuard } from './memory';
 import { applyIntentLabels, sanitizeIntentLabels } from './intent';
+import { registerConversationHistoryTools } from '~/tools/history';
 import { ContentFilterError } from '../middleware/contentFilter';
 import { resolveToolRoleGrants } from '~/tools/rolePermissions';
 import { createRequestAgentExecutionContext } from './runtime';
 import { resolveTurnDeliveryRouting } from './files/delivery';
 import { filterFilesByEndpointRuntimeConfig } from '~/files';
+import { registerProfileTools } from '~/tools/profiles';
 import { hasActiveFileFieldPolicy } from '~/protection';
 import { PARTIAL_RESOLVED_CONVERSATION } from './guard';
 import { applyBackgroundToolCalls } from './background';
@@ -2106,19 +2108,58 @@ export async function initializeAgent(
    */
   const agentRequestsMemory = (agent.tools ?? []).includes(Tools.memory);
   const inlineMemoryRegistered = params.memoryAvailable === true && agentRequestsMemory;
+  /** Per-person memory is a refinement of the same capability, so it only
+   *  matters once the pair is registered at all. */
+  const agentUsesProfiles = inlineMemoryRegistered && agent.memory_profiles === true;
   if (inlineMemoryRegistered) {
     const memoryResult = registerMemoryTools({
       toolRegistry,
       toolDefinitions,
       validKeys: appConfig?.memory?.validKeys,
+      profilesEnabled: agentUsesProfiles,
     });
     toolDefinitions = memoryResult.toolDefinitions;
     recordCapabilityToolNames(AgentCapabilities.memory, memoryResult.toolNames);
-    appendAdditionalInstructions(agent, memoryToolUsageGuard);
+    appendAdditionalInstructions(agent, getMemoryToolUsageGuard(agent.memory_policy));
+    if (agentUsesProfiles) {
+      /** The recall pair rides the memory capability rather than a new one: the
+       *  tools exist to read what the memory tools write, and an agent without
+       *  memory has nothing to partition. */
+      const profileResult = registerProfileTools({ toolRegistry, toolDefinitions });
+      toolDefinitions = profileResult.toolDefinitions;
+      recordCapabilityToolNames(AgentCapabilities.memory, profileResult.toolNames);
+      appendAdditionalInstructions(agent, profileUsageGuard);
+    }
   } else if (agentRequestsMemory) {
     logger.debug(
       `[initializeAgent] Agent "${agent.id}" requests memory but memoryAvailable=${String(params.memoryAvailable)}; skipping set_memory + delete_memory registration.`,
     );
+  }
+
+  /**
+   * Expand the `conversation_history` capability marker into the listing and
+   * transcript pair. Both are read-only over the signed-in user's own rows and
+   * are off unless the admin enabled the capability, so an agent that asks for
+   * them on a deployment that has not opted in loses them here with a trace
+   * rather than silently running without recall.
+   */
+  const agentTools = agent.tools ?? [];
+  const agentRequestsSessionRecall =
+    agentTools.includes(Tools.conversation_history) ||
+    agentTools.includes(Tools.conversation_transcript);
+  const sessionRecallEnabled =
+    appConfig?.endpoints?.agents?.capabilities?.includes(AgentCapabilities.conversation_history) ===
+    true;
+  if (agentRequestsSessionRecall) {
+    if (sessionRecallEnabled) {
+      const recallResult = registerConversationHistoryTools({ toolRegistry, toolDefinitions });
+      toolDefinitions = recallResult.toolDefinitions;
+      recordCapabilityToolNames(AgentCapabilities.conversation_history, recallResult.toolNames);
+    } else {
+      logger.debug(
+        `[initializeAgent] Agent "${agent.id}" requests past-session recall but the conversation_history capability is not enabled; skipping registration.`,
+      );
+    }
   }
 
   if (skillAuthoringAvailable) {

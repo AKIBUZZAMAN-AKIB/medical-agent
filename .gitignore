@@ -59,6 +59,7 @@ client/node_modules/
 bower_components/
 *.d.ts
 !vite-env.d.ts
+!packages/mcp-medical/eval/harness.d.ts
 
 # api/ is JS and resolves the `~` alias through api/jsconfig.json; a tsconfig.json
 # here shadows it (tooling sometimes creates an empty one) and breaks e2e resolution
@@ -69,6 +70,7 @@ api/tsconfig.json
 .cursor
 .aider*
 .bg-shell/
+.kilo/
 
 # Floobits
 .floo

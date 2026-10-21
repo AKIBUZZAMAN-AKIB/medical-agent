@@ -1,7 +1,13 @@
 import { Types } from 'mongoose';
 import { Run, Providers, GraphEvents } from '@librechat/agents';
 import { AIMessage, HumanMessage } from '@librechat/agents/langchain/messages';
-import { Tools, MemoryScope, EModelEndpoint, AgentCapabilities } from 'librechat-data-provider';
+import {
+  Tools,
+  MemoryPolicy,
+  MemoryScope,
+  EModelEndpoint,
+  AgentCapabilities,
+} from 'librechat-data-provider';
 import type { FiltersConfig } from 'librechat-data-provider';
 import type { RuntimeProviderName } from '@librechat/agents';
 import type { IUser } from '@librechat/data-schemas';
@@ -18,6 +24,10 @@ import {
   invalidateRequestMemories,
   agentHasInlineMemoryTools,
   buildInlineMemoryContext,
+  getMemoryToolUsageGuard,
+  getMemoryToolDefinitions,
+  profileUsageGuard,
+  memoryToolUsageGuard,
 } from './memory';
 import { GenerationJobManager } from '~/stream/GenerationJobManager';
 
@@ -934,6 +944,155 @@ describe('buildInlineMemoryContext', () => {
   });
 });
 
+describe('buildInlineMemoryContext with per-person records', () => {
+  const profileAgent = {
+    id: 'agent_medical',
+    memory_scope: MemoryScope.agent,
+    memory_profiles: true,
+    memoryToolsRegistered: true,
+  };
+
+  it('injects the index of who is on file without any facts', async () => {
+    const getFormattedMemories = jest.fn();
+    const getUserProfiles = jest.fn().mockResolvedValue([
+      { profileId: undefined, name: 'Danny', isSelf: true, factCount: 3 },
+      { profileId: 'father', name: 'father', relationship: 'parent', factCount: 1 },
+    ]);
+    const ensureSelfProfile = jest.fn().mockResolvedValue(undefined);
+
+    const context = await buildInlineMemoryContext({
+      agent: profileAgent,
+      req: {} as never,
+      userId: 'user-1',
+      memoryAvailable: true,
+      getFormattedMemories,
+      getUserProfiles,
+      ensureSelfProfile,
+    });
+
+    expect(context).toContain('People on file:');
+    expect(context).toContain('self: Danny (the user themselves) — 3 stored facts');
+    expect(context).toContain('father: father, parent — 1 stored fact');
+    expect(context).toContain('read_profile');
+    /** The facts of a person are never sent unless the model asks for them. */
+    expect(getFormattedMemories).not.toHaveBeenCalled();
+    expect(ensureSelfProfile).toHaveBeenCalledWith('user-1');
+  });
+
+  it('still withholds every fact when nobody is on file yet', async () => {
+    const getFormattedMemories = jest.fn().mockResolvedValue({
+      withKeys: 'legacy_key: legacy value',
+      totalTokens: 3,
+    });
+    const context = await buildInlineMemoryContext({
+      agent: profileAgent,
+      req: {} as never,
+      userId: 'user-1',
+      memoryAvailable: true,
+      getFormattedMemories,
+      getUserProfiles: jest.fn().mockResolvedValue([]),
+      ensureSelfProfile: jest.fn().mockResolvedValue(undefined),
+    });
+
+    expect(context).toContain('No records have been created yet.');
+    expect(context).not.toContain('legacy_key');
+    expect(getFormattedMemories).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the pooled context when profile methods are absent', async () => {
+    const getFormattedMemories = jest.fn().mockResolvedValue({
+      withKeys: 'preferred_name: Danny',
+      totalTokens: 4,
+    });
+    const context = await buildInlineMemoryContext({
+      agent: { ...profileAgent, memory_profiles: undefined },
+      req: {} as never,
+      userId: 'user-1',
+      memoryAvailable: true,
+      getFormattedMemories,
+    });
+
+    expect(context).toContain('preferred_name: Danny');
+  });
+});
+
+describe('createMemoryTool with per-person records', () => {
+  const setMemory = jest.fn().mockResolvedValue({ ok: true });
+
+  beforeEach(() => {
+    setMemory.mockClear();
+  });
+
+  it('writes a named person to their own partition and says the record was opened', async () => {
+    const memoryTool = createMemoryTool({
+      userId: 'user-1',
+      setMemory,
+      profilesEnabled: true,
+      resolveProfileTarget: async (profile) => ({
+        profileId: profile === 'father' ? 'father' : undefined,
+        ...(profile === 'father' ? { created: 'father' } : {}),
+      }),
+    });
+
+    const result = await memoryTool.func({
+      key: 'condition',
+      value: 'Has asthma',
+      profile: 'father',
+    });
+
+    expect(setMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ profileId: 'father', userId: 'user-1' }),
+    );
+    expect(result[0]).toContain('Opened a new record for "father"');
+  });
+
+  it("omits the profile argument entirely for a user's own facts", async () => {
+    const memoryTool = createMemoryTool({
+      userId: 'user-1',
+      setMemory,
+      profilesEnabled: true,
+      resolveProfileTarget: async () => ({}),
+    });
+
+    await memoryTool.func({ key: 'allergy', value: 'Penicillin' });
+
+    expect(setMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ profileId: undefined, key: 'allergy' }),
+    );
+  });
+
+  it('exposes the profile argument only when records are partitioned', async () => {
+    const plain = getMemoryToolDefinitions(['allergy']);
+    expect(JSON.stringify(plain)).not.toContain('profile');
+
+    const partitioned = getMemoryToolDefinitions(['allergy'], true);
+    expect(JSON.stringify(partitioned)).toContain('profile');
+  });
+
+  it('measures the token limit per person rather than across the pool', async () => {
+    const getProfileTokenUsage = jest
+      .fn()
+      .mockResolvedValue({ withKeys: '', withoutKeys: '', totalTokens: 0 });
+    const memoryTool = createMemoryTool({
+      userId: 'user-1',
+      setMemory,
+      tokenLimit: 20,
+      profilesEnabled: true,
+      getProfileTokenUsage,
+      resolveProfileTarget: async (profile) => ({ profileId: profile }),
+    });
+
+    await memoryTool.func({ key: 'a', value: 'x'.repeat(40), profile: 'father' });
+    await memoryTool.func({ key: 'b', value: 'x'.repeat(40), profile: 'father' });
+
+    /** The second write to the same person sees that person's first write. */
+    expect(getProfileTokenUsage).toHaveBeenCalledTimes(1);
+    expect(getProfileTokenUsage).toHaveBeenCalledWith({ profileId: 'father' });
+    const second = setMemory.mock.calls[1][0] as { key: string };
+    expect(second.key).toBe('b');
+  });
+});
+
 describe('getRequestMemories caching', () => {
   it('memoizes per request, then re-fetches after invalidation', async () => {
     const getFormattedMemories = jest
@@ -1140,5 +1299,37 @@ describe('memory model-bound content preflight', () => {
     ).rejects.toThrow('database unavailable');
     expect(getUserMemories).toHaveBeenCalledTimes(1);
     expect(Run.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('getMemoryToolUsageGuard', () => {
+  it('keeps the conservative explicit-request guard when no policy is set', () => {
+    expect(getMemoryToolUsageGuard()).toBe(memoryToolUsageGuard);
+    expect(getMemoryToolUsageGuard(undefined)).toBe(memoryToolUsageGuard);
+    expect(getMemoryToolUsageGuard(MemoryPolicy.explicit)).toBe(memoryToolUsageGuard);
+  });
+
+  it('admits durable-fact storage for a proactive continuity agent', () => {
+    const guard = getMemoryToolUsageGuard(MemoryPolicy.proactive);
+    expect(guard).not.toBe(memoryToolUsageGuard);
+    expect(guard).toContain('set_memory');
+    /** Proactive still has to refuse the things that make memory a liability. */
+    expect(guard).toMatch(/date every time-bound fact/i);
+    expect(guard).toMatch(/identifier/i);
+    expect(guard).toMatch(/not verified/i);
+  });
+});
+
+describe('profileUsageGuard', () => {
+  it('requires consent before a record is opened for anyone but the user', () => {
+    expect(profileUsageGuard).toMatch(/ask the user once/i);
+    /** A mention is the case the guard exists for, and it must say so. */
+    expect(profileUsageGuard).toMatch(
+      /a mention, a question about them, or your own assumption is not consent/i,
+    );
+  });
+
+  it('never lets a memory write hold back emergency triage', () => {
+    expect(profileUsageGuard).toMatch(/triage first/i);
   });
 });

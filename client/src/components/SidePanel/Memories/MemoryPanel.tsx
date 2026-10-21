@@ -21,6 +21,7 @@ import { useLocalize, useAuthContext, useHasAccess } from '~/hooks';
 import { PanelFooter, PanelContent } from '~/components/ui';
 import MemoryCardSkeleton from './MemoryCardSkeleton';
 import MemoryCreateDialog from './MemoryCreateDialog';
+import MemoryProfileList from './MemoryProfileList';
 import MemoryUsageBadge from './MemoryUsageBadge';
 import AdminSettings from './AdminSettings';
 import MemoryList from './MemoryList';
@@ -246,6 +247,7 @@ export default function MemoryPanel() {
           hasUpdateAccess={hasUpdateAccess}
           isFiltered={searchQuery.length > 0}
         />
+        {hasUpdateAccess && <MemoryProfileList />}
       </PanelContent>
 
       {user?.role === SystemRoles.ADMIN && (

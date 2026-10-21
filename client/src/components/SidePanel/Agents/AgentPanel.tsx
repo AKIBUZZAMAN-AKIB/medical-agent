@@ -103,6 +103,8 @@ export function composeAgentUpdatePayload(
     skill_authoring_enabled,
     skills_scope,
     memory_scope,
+    memory_policy,
+    memory_profiles,
     avatar_action: avatarActionState,
   } = data;
 
@@ -177,6 +179,18 @@ export function composeAgentUpdatePayload(
       /** A hidden stale 'agent' scope must not survive disabling memory —
        *  runtime partitioning keys off memory_scope alone. */
       memory_scope: data.memory === true ? memory_scope : MemoryScope.user,
+      /**
+       * The builder has no control for the memory policy, so it is passed
+       * through untouched: dropping it on an unrelated save would silently
+       * demote a proactive continuity agent back to storing on request only.
+       */
+      memory_policy,
+      /**
+       * Likewise passed through: the builder exposes no control for per-person
+       * records, and dropping the flag on an unrelated save would merge every
+       * profile this user has back into one pool.
+       */
+      memory_profiles,
       ...(shouldResetAvatar ? { avatar: null } : {}),
     },
     provider,

@@ -1555,12 +1555,30 @@ export const getMemories = (): Promise<q.MemoriesResponse> => {
   return request.get(endpoints.memories());
 };
 
-export const deleteMemory = (key: string, agentId?: string): Promise<q.DeleteMemoryResponse> => {
-  return request.delete(endpoints.memory(key, agentId));
+/** The people this user keeps a separate memory record for, with what each holds. */
+export const getMemoryProfiles = (): Promise<q.MemoryProfilesResponse> => {
+  return request.get(endpoints.memoryProfiles());
 };
 
-export const deleteMemoryById = (id: string, agentId?: string): Promise<q.DeleteMemoryResponse> => {
-  return request.delete(endpoints.memoryById(id, agentId));
+/** Removes one person's record and every fact stored under it. */
+export const deleteMemoryProfile = (profileId: string): Promise<q.DeleteMemoryProfileResponse> => {
+  return request.delete(endpoints.memoryProfile(profileId));
+};
+
+export const deleteMemory = (
+  key: string,
+  agentId?: string,
+  profileId?: string,
+): Promise<q.DeleteMemoryResponse> => {
+  return request.delete(endpoints.memory(key, agentId, profileId));
+};
+
+export const deleteMemoryById = (
+  id: string,
+  agentId?: string,
+  profileId?: string,
+): Promise<q.DeleteMemoryResponse> => {
+  return request.delete(endpoints.memoryById(id, agentId, profileId));
 };
 
 export const updateMemory = (
@@ -1568,8 +1586,9 @@ export const updateMemory = (
   value: string,
   originalKey?: string,
   agentId?: string,
+  profileId?: string,
 ): Promise<q.UpdateMemoryResponse> => {
-  return request.patch(endpoints.memory(originalKey || key, agentId), {
+  return request.patch(endpoints.memory(originalKey || key, agentId, profileId), {
     key,
     value,
   });
@@ -1580,8 +1599,9 @@ export const updateMemoryById = (
   value: string,
   key?: string,
   agentId?: string,
+  profileId?: string,
 ): Promise<q.UpdateMemoryResponse> => {
-  return request.patch(endpoints.memoryById(id, agentId), {
+  return request.patch(endpoints.memoryById(id, agentId, profileId), {
     value,
     ...(key ? { key } : {}),
   });
@@ -1597,6 +1617,7 @@ export const createMemory = (data: {
   key: string;
   value: string;
   agentId?: string;
+  profileId?: string;
 }): Promise<{ created: boolean; memory: q.TUserMemory }> => {
   return request.post(endpoints.memories(), data);
 };

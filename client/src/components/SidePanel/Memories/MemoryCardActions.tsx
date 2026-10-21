@@ -46,7 +46,7 @@ export default function MemoryCardActions({ memory }: MemoryCardActionsProps) {
       return;
     }
     deleteMemory(
-      { ...memoryAddress, agentId: memory.agentId },
+      { ...memoryAddress, agentId: memory.agentId, profileId: memory.profileId },
       {
         onSuccess: () => {
           showToast({ message: localize('com_ui_deleted'), status: 'success' });

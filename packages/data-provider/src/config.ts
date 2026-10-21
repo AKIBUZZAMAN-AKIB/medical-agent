@@ -656,6 +656,13 @@ export enum AgentCapabilities {
   context = 'context',
   skills = 'skills',
   memory = 'memory',
+  /**
+   * Read-only recall of the signed-in user's own past sessions: lists sessions by
+   * date and returns a session's messages verbatim. Opt-in because it hands a
+   * model the user's conversation history; every read is scoped to the
+   * authenticated user, so it can never cross accounts.
+   */
+  conversation_history = 'conversation_history',
   ask_user_question = 'ask_user_question',
   tools = 'tools',
   chain = 'chain',

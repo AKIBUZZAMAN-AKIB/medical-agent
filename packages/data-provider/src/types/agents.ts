@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { z } from 'zod';
-import type { TAttachment, TPlugin, AgentProvider, MemoryScope, SkillsScope } from 'src/schemas';
+import type {
+  TAttachment,
+  TPlugin,
+  AgentProvider,
+  MemoryPolicy,
+  MemoryScope,
+  SkillsScope,
+} from 'src/schemas';
 import type { TTokenUsageEvent, TContextUsageEvent, TPendingSteer } from './runs';
 import type { FunctionTool, ToolResources, AgentToolOptions } from './tools';
 import type { StatefulCodeEnvironment } from '../stateful-code';
@@ -1050,6 +1057,10 @@ export type Agent = {
   subagents?: AgentSubagentsConfig;
   /** Memory partition: `agent` isolates memories per (user, agent); default shared pool */
   memory_scope?: MemoryScope;
+  /** When the inline memory tools may write unasked; absent means `explicit` */
+  memory_policy?: MemoryPolicy;
+  /** Keep a separate memory record per person instead of one pool */
+  memory_profiles?: boolean;
 };
 
 export type TAgentsMap = Record<string, Agent | undefined>;
@@ -1087,6 +1098,8 @@ export type AgentCreateParams = {
   | 'skills_scope'
   | 'subagents'
   | 'memory_scope'
+  | 'memory_policy'
+  | 'memory_profiles'
 >;
 
 export type AgentUpdateParams = {
@@ -1123,6 +1136,8 @@ export type AgentUpdateParams = {
   | 'skills_scope'
   | 'subagents'
   | 'memory_scope'
+  | 'memory_policy'
+  | 'memory_profiles'
 >;
 
 export type AgentListParams = {

@@ -57,3 +57,34 @@ describe('opaque memory management', () => {
     );
   });
 });
+
+describe('per-person memory records', () => {
+  it('addresses a fact by the person it is about as well as its agent partition', async () => {
+    mockedAxios.delete.mockResolvedValueOnce({ data: { deleted: true } });
+
+    await _dataService.deleteMemoryById('memory-id', 'agent-id', 'father');
+
+    expect(mockedAxios.delete).toHaveBeenCalledWith(
+      '/api/memories/id/memory-id?agentId=agent-id&profileId=father',
+    );
+  });
+
+  it("omits the person entirely for the user's own facts", async () => {
+    mockedAxios.delete.mockResolvedValueOnce({ data: { deleted: true } });
+
+    await _dataService.deleteMemoryById('memory-id');
+
+    expect(mockedAxios.delete).toHaveBeenCalledWith('/api/memories/id/memory-id');
+  });
+
+  it('lists and removes records through the profile endpoints', async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { profiles: [] } });
+    mockedAxios.delete.mockResolvedValueOnce({ data: { deleted: true, deletedMemories: 2 } });
+
+    await _dataService.getMemoryProfiles();
+    await _dataService.deleteMemoryProfile('my father');
+
+    expect(mockedAxios.get).toHaveBeenCalledWith('/api/memories/profiles', expect.any(Object));
+    expect(mockedAxios.delete).toHaveBeenCalledWith('/api/memories/profiles/my%20father');
+  });
+});

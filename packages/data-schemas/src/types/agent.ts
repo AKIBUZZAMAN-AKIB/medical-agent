@@ -1,6 +1,7 @@
 import { Document, Types } from 'mongoose';
 import type {
   GraphEdge,
+  MemoryPolicy,
   MemoryScope,
   SkillsScope,
   AgentToolOptions,
@@ -63,5 +64,9 @@ export interface IAgent extends Omit<Document, 'model'> {
   subagents?: AgentSubagentsConfig;
   /** Memory partition: 'agent' isolates memories per (user, agent); default shared pool */
   memory_scope?: MemoryScope;
+  /** When the inline memory tools may write unasked; absent means 'explicit' */
+  memory_policy?: MemoryPolicy;
+  /** Keep a separate memory record per person instead of one pool */
+  memory_profiles?: boolean;
   tenantId?: string;
 }

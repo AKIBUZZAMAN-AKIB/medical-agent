@@ -30,6 +30,7 @@ COPY packages/data-provider/package*.json ./packages/data-provider/
 COPY packages/api/package*.json ./packages/api/
 COPY packages/data-schemas/package*.json ./packages/data-schemas/
 COPY packages/client/package*.json ./packages/client/
+COPY packages/mcp-medical/package*.json ./packages/mcp-medical/
 COPY client/package*.json ./client/
 COPY api/package*.json ./api/
 
@@ -78,6 +79,12 @@ COPY packages/client ./
 COPY --from=data-provider-build /app/packages/data-provider/dist /app/packages/data-provider/dist
 RUN npm run build
 
+# Build `mcp-medical` package
+FROM base AS mcp-medical-build
+WORKDIR /app/packages/mcp-medical
+COPY packages/mcp-medical ./
+RUN npm run build
+
 # Client build
 FROM base AS client-build
 WORKDIR /app/client
@@ -117,6 +124,8 @@ COPY skill ./skill
 COPY --from=data-provider-build /app/packages/data-provider/dist ./packages/data-provider/dist
 COPY --from=data-schemas-build /app/packages/data-schemas/dist ./packages/data-schemas/dist
 COPY --from=api-package-build /app/packages/api/dist ./packages/api/dist
+COPY --from=mcp-medical-build /app/packages/mcp-medical/dist ./packages/mcp-medical/dist
+COPY --from=mcp-medical-build /app/packages/mcp-medical/agent ./packages/mcp-medical/agent
 COPY --from=client-build /app/client/dist ./client/dist
 # Propagate build metadata into runtime env so /api/config can expose it.
 # Declared here (after the heavy install/copy steps) so that commit/date

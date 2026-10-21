@@ -127,6 +127,7 @@ export default function MemoryEditDialog({
       ...updateAddress,
       value: value.trim(),
       agentId: memory.agentId,
+      profileId: memory.profileId,
     });
   };
 

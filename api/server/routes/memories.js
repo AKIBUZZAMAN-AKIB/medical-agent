@@ -4,6 +4,7 @@ const {
   Tokenizer,
   generateCheckAccess,
   getMemoryAgentIdParam,
+  getMemoryProfileIdParam,
   createAgentMemoryPartitionMiddleware,
   blockFilteredMemoryContent,
   projectStoredMemories,
@@ -29,6 +30,8 @@ const {
   deleteMemoryById,
   getAgent,
   getAgents,
+  getUserProfiles,
+  deleteProfile,
 } = require('~/models');
 const { requireJwtAuth, configMiddleware } = require('~/server/middleware');
 
@@ -130,6 +133,30 @@ const withAgentNames = async (memories, user) => {
 };
 
 /**
+ * Attaches the name of the person each memory is about, so the panel can group
+ * a shared list by person instead of asking the user to infer it from key
+ * names. Every lookup is scoped to the requesting user, and a name is only ever
+ * used to label a row the user already owns.
+ */
+const withProfileNames = async (memories, userId) => {
+  const profileIds = [...new Set(memories.map((m) => m.profileId).filter(Boolean))];
+  if (profileIds.length === 0) {
+    return memories;
+  }
+  try {
+    const profiles = await getUserProfiles(userId);
+    const namesById = new Map(profiles.map((profile) => [profile.profileId, profile.name]));
+    return memories.map((memory) =>
+      memory.profileId
+        ? { ...memory, profileName: namesById.get(memory.profileId) ?? memory.profileId }
+        : memory,
+    );
+  } catch (_error) {
+    return memories;
+  }
+};
+
+/**
  * GET /memories
  * Returns all memories for the authenticated user, sorted by updated_at (newest first).
  * Also includes memory usage percentage based on token limit.
@@ -139,9 +166,9 @@ router.get('/', checkMemoryRead, configMiddleware, async (req, res) => {
     const memories = await getAllUserMemories(req.user.id);
     const projectedMemories = projectStoredMemories(memories, req.config?.filters);
 
-    const sortedMemories = (await withAgentNames(projectedMemories, req.user)).sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-    );
+    const sortedMemories = (
+      await withProfileNames(await withAgentNames(projectedMemories, req.user), req.user.id)
+    ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
     /** Usage totals reflect the shared personal pool only — `tokenLimit`
      *  applies per partition, matching the inline tools' enforcement. */
@@ -180,6 +207,7 @@ router.get('/', checkMemoryRead, configMiddleware, async (req, res) => {
 router.post('/', createMemoryMiddleware, async (req, res) => {
   const { key, value } = req.body;
   const agentId = getMemoryAgentIdParam(req.body.agentId);
+  const profileId = getMemoryProfileIdParam(req.body.profileId);
 
   if (typeof key !== 'string' || key.trim() === '') {
     return res.status(400).json({ error: 'Key is required and must be a non-empty string.' });
@@ -219,7 +247,7 @@ router.post('/', createMemoryMiddleware, async (req, res) => {
   try {
     const tokenCount = Tokenizer.getTokenCount(value, 'o200k_base');
 
-    const memories = await getUserMemories({ userId: req.user.id, agentId });
+    const memories = await getUserMemories({ userId: req.user.id, agentId, profileId });
 
     const appConfig = req.config;
     const memoryConfig = appConfig?.memory;
@@ -243,6 +271,7 @@ router.post('/', createMemoryMiddleware, async (req, res) => {
       value: value.trim(),
       tokenCount,
       agentId,
+      profileId,
     });
 
     if (!result.ok) {
@@ -308,6 +337,58 @@ router.delete(
 );
 
 /**
+ * GET /memories/profiles
+ * The people this user keeps a separate memory record for, with what each
+ * record holds. A record for anyone other than the user exists because an agent
+ * asked and they said yes, so being able to see the list — and what deleting
+ * one would remove — is the whole basis for that consent being meaningful.
+ * Declared before `/id/:id` and `/:key` so neither shadows it.
+ */
+router.get('/profiles', checkMemoryRead, async (req, res) => {
+  try {
+    const profiles = await getUserProfiles(req.user.id);
+    res.json({
+      profiles: profiles.map((profile) => ({
+        profileId: profile.profileId,
+        name: profile.name,
+        relationship: profile.relationship,
+        isSelf: profile.isSelf === true,
+        factCount: profile.factCount,
+        tokenCount: profile.tokenCount,
+      })),
+    });
+  } catch (_error) {
+    res.status(500).json({ error: 'Failed to retrieve memory profiles.' });
+  }
+});
+
+/**
+ * DELETE /memories/profiles/:profileId
+ * Removes one person's record and every fact stored under it. This is the
+ * revocation path: without it, agreeing to a record once is the only way it can
+ * ever end, and the person it describes has no say in that at all.
+ * The user's own record is not addressable here at all — it has no `profileId`
+ * in the URL space, so a request for one can only ever match a relative's — and
+ * `DELETE /memories/` remains the way to clear the user's own facts.
+ */
+router.delete('/profiles/:profileId', checkMemoryDelete, async (req, res) => {
+  const { profileId } = req.params;
+  if (typeof profileId !== 'string' || profileId.trim() === '') {
+    return res.status(400).json({ error: 'Profile id is required.' });
+  }
+
+  try {
+    const result = await deleteProfile({ userId: req.user.id, profileId: profileId.trim() });
+    if (!result.ok) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+    res.json({ deleted: true, deletedMemories: result.deletedMemories ?? 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * PATCH /memories/:key
  * Updates the value of an existing memory entry for the authenticated user.
  * Body: { key?: string, value: string }
@@ -317,6 +398,7 @@ router.patch('/:key', updateMemoryMiddleware, async (req, res) => {
   const { key: urlKey } = req.params;
   const { key: bodyKey, value } = req.body || {};
   const agentId = getMemoryAgentIdParam(req.query.agentId);
+  const profileId = getMemoryProfileIdParam(req.query.profileId);
 
   if (typeof value !== 'string' || value.trim() === '') {
     return res.status(400).json({ error: 'Value is required and must be a non-empty string.' });
@@ -357,7 +439,7 @@ router.patch('/:key', updateMemoryMiddleware, async (req, res) => {
   try {
     const tokenCount = Tokenizer.getTokenCount(value, 'o200k_base');
 
-    const memories = await getUserMemories({ userId: req.user.id, agentId });
+    const memories = await getUserMemories({ userId: req.user.id, agentId, profileId });
     const existingMemory = memories.find((m) => m.key === urlKey);
 
     if (!existingMemory) {
@@ -376,13 +458,19 @@ router.patch('/:key', updateMemoryMiddleware, async (req, res) => {
         value,
         tokenCount,
         agentId,
+        profileId,
       });
 
       if (!createResult.ok) {
         return res.status(500).json({ error: 'Failed to create new memory.' });
       }
 
-      const deleteResult = await deleteMemory({ userId: req.user.id, key: urlKey, agentId });
+      const deleteResult = await deleteMemory({
+        userId: req.user.id,
+        key: urlKey,
+        agentId,
+        profileId,
+      });
       if (!deleteResult.ok) {
         return res.status(500).json({ error: 'Failed to delete old memory.' });
       }
@@ -393,6 +481,7 @@ router.patch('/:key', updateMemoryMiddleware, async (req, res) => {
         value,
         tokenCount,
         agentId,
+        profileId,
       });
 
       if (!result.ok) {
@@ -400,7 +489,7 @@ router.patch('/:key', updateMemoryMiddleware, async (req, res) => {
       }
     }
 
-    const updatedMemories = await getUserMemories({ userId: req.user.id, agentId });
+    const updatedMemories = await getUserMemories({ userId: req.user.id, agentId, profileId });
     const updatedMemory = updatedMemories.find((m) => m.key === newKey);
 
     res.json({ updated: true, memory: updatedMemory });
@@ -417,9 +506,10 @@ router.patch('/:key', updateMemoryMiddleware, async (req, res) => {
 router.delete('/:key', checkMemoryDelete, validateDeletedAgentPartition, async (req, res) => {
   const { key } = req.params;
   const agentId = getMemoryAgentIdParam(req.query.agentId);
+  const profileId = getMemoryProfileIdParam(req.query.profileId);
 
   try {
-    const result = await deleteMemory({ userId: req.user.id, key, agentId });
+    const result = await deleteMemory({ userId: req.user.id, key, agentId, profileId });
 
     if (!result.ok) {
       return res.status(404).json({ error: 'Memory not found.' });

@@ -15,6 +15,10 @@ const {
   findShadowedServerNames,
   isNormalizationSensitiveName,
   buildInlineMemoryTool,
+  buildConversationHistoryTools,
+  buildProfileTools,
+  LIST_PROFILES_TOOL_NAME,
+  READ_PROFILE_TOOL_NAME,
   getCodeApiAuthHeaders,
   buildImageToolContext,
   SET_MEMORY_TOOL_NAME,
@@ -68,7 +72,19 @@ const { getUserPluginAuthValue } = require('~/server/services/PluginService');
 const { loadAuthValues } = require('~/server/services/Tools/credentials');
 const { getMCPServerTools, checkCapability } = require('~/server/services/Config');
 const { getMCPServersRegistry } = require('~/config');
-const { getRoleByName, setMemory, deleteMemory, getFormattedMemories } = require('~/models');
+const {
+  getRoleByName,
+  setMemory,
+  deleteMemory,
+  getFormattedMemories,
+  getUserMemories,
+  getUserProfiles,
+  ensureSelfProfile,
+  createProfile,
+  getConvosByCursor,
+  getConvo,
+  getMessages,
+} = require('~/models');
 
 /**
  * Validates the availability and authentication of tools for a user based on environment variables or user-specific plugin authentication values.
@@ -481,6 +497,16 @@ const loadTools = async ({
       requestedTools[tool] = async () => createAskUserQuestionTool();
       continue;
     } else if (tool === SET_MEMORY_TOOL_NAME || tool === DELETE_MEMORY_TOOL_NAME) {
+      /**
+       * A profile-aware agent keeps one record per person, so its memory tools
+       * carry a `profile` argument and its context is the profile index instead
+       * of the facts. `agent.memory_profiles` is the only switch: an agent
+       * without it never learns that another person is on file.
+       */
+      const profileMethods =
+        agent?.memory_profiles === true
+          ? { getUserProfiles, ensureSelfProfile, createProfile }
+          : undefined;
       requestedTools[tool] = () =>
         buildInlineMemoryTool({
           toolName: tool,
@@ -489,7 +515,34 @@ const loadTools = async ({
           userId: user,
           memoryMethods: { setMemory, deleteMemory, getFormattedMemories },
           getRoleByName,
+          profileMethods,
         });
+      continue;
+    } else if (tool === LIST_PROFILES_TOOL_NAME || tool === READ_PROFILE_TOOL_NAME) {
+      requestedTools[tool] = () =>
+        buildProfileTools({
+          userId: user,
+          methods: {
+            getUserProfiles,
+            ensureSelfProfile,
+            createProfile,
+            getFormattedMemories,
+            getUserMemories,
+          },
+        })[tool];
+      continue;
+    } else if (tool === Tools.conversation_history || tool === Tools.conversation_transcript) {
+      /**
+       * Both recall tools are built together and bound to `user`, the
+       * authenticated principal for this request, so neither can be pointed at
+       * another account's history. The capability gate already ran in
+       * `loadAgentTools`; this only supplies the per-user data methods.
+       */
+      requestedTools[tool] = () =>
+        buildConversationHistoryTools({
+          userId: user,
+          methods: { getConvosByCursor, getConvo, getMessages },
+        })[tool];
       continue;
     } else if (tool && mcpToolPattern.test(tool)) {
       if (!canUseMCP) {

@@ -11,6 +11,8 @@ export enum Tools {
   retrieval = 'retrieval',
   function = 'function',
   memory = 'memory',
+  conversation_history = 'conversation_history',
+  conversation_transcript = 'conversation_transcript',
   ui_resources = 'ui_resources',
   skill = 'skill',
   read_file = 'read_file',

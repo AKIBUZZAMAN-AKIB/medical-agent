@@ -19,6 +19,7 @@ import { createRoleMethods, RoleConflictError } from './role';
 import { createKeyMethods, type KeyMethods } from './key';
 /* Memories */
 import { createMemoryMethods, type MemoryMethods } from './memory';
+import { createProfileMethods, type ProfileMethods } from './profile';
 /* Tool Favorites */
 import {
   createToolFavoriteMethods,
@@ -83,6 +84,7 @@ import {
   type ParentSubagentThreadRecord,
 } from './conversation';
 import { createChatProjectMethods, type ChatProjectMethods } from './chatProject';
+export type { ProfileMethods } from './profile';
 export type {
   AssignConversationToProjectResult,
   ChatProjectSortBy,
@@ -229,6 +231,7 @@ export type AllMethods = UserMethods &
   KeyMethods &
   FileMethods &
   MemoryMethods &
+  ProfileMethods &
   ToolFavoriteMethods &
   AgentCategoryMethods &
   AgentApiKeyMethods &
@@ -446,6 +449,13 @@ export function createMethods(
     isExternalSkillId: deps.isExternalSkillId,
   };
   const agentMethods = createAgentMethods(mongoose, agentDeps);
+  /** Profile deletion has to cascade into exactly one memory partition, so the
+   *  memory methods are built first and handed to the profile methods rather
+   *  than reaching for the model from inside the cascade. */
+  const memoryMethods = createMemoryMethods(mongoose);
+  const profileMethods = createProfileMethods(mongoose, {
+    deleteMemoriesByProfile: memoryMethods.deleteMemoriesByProfile,
+  });
   return {
     ...createUserMethods(mongoose, { getCache: deps.getCache }),
     ...createSessionMethods(mongoose),
@@ -455,7 +465,8 @@ export function createMethods(
     ...roleMethods,
     ...createKeyMethods(mongoose),
     ...createFileMethods(mongoose),
-    ...createMemoryMethods(mongoose),
+    ...memoryMethods,
+    ...profileMethods,
     ...createToolFavoriteMethods(mongoose),
     ...createAgentCategoryMethods(mongoose),
     ...createAgentApiKeyMethods(mongoose),

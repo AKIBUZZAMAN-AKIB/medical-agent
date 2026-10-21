@@ -1437,6 +1437,74 @@ describe('initializeAgent — stable and dynamic instruction fields', () => {
   });
 });
 
+describe('initializeAgent — per-person memory records', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  async function initMemoryAgent(agentOverrides: Partial<Agent>, memoryAvailable = true) {
+    const { agent, req, res, loadTools, db } = createMocks();
+    Object.assign(agent, { tools: [Tools.memory], ...agentOverrides });
+    const result = await initializeAgent(
+      {
+        req,
+        res,
+        agent,
+        loadTools,
+        endpointOption: { endpoint: EModelEndpoint.agents },
+        allowedProviders: new Set([Providers.OPENAI]),
+        isInitialAgent: true,
+        memoryAvailable,
+      },
+      db,
+    );
+    return result;
+  }
+
+  const names = (result: { toolDefinitions?: Array<{ name: string }> }) =>
+    result.toolDefinitions?.map((toolDefinition) => toolDefinition.name) ?? [];
+
+  it('registers the recall pair and the consent guard for a profile-aware agent', async () => {
+    const result = await initMemoryAgent({ memory_profiles: true } as Partial<Agent>);
+
+    expect(names(result)).toEqual(
+      expect.arrayContaining(['set_memory', 'delete_memory', 'list_profiles', 'read_profile']),
+    );
+    expect(result.additional_instructions).toContain('keep a record');
+    expect(result.additional_instructions).toContain('Triage first');
+  });
+
+  it('leaves an ordinary memory agent with the pair and nothing else', async () => {
+    const result = await initMemoryAgent({} as Partial<Agent>);
+
+    expect(names(result)).toEqual(expect.arrayContaining(['set_memory', 'delete_memory']));
+    expect(names(result)).not.toContain('list_profiles');
+    expect(names(result)).not.toContain('read_profile');
+    expect(result.additional_instructions).not.toContain('keep a record');
+  });
+
+  it('adds the profile argument to the memory tools only for a profile-aware agent', async () => {
+    const partitioned = await initMemoryAgent({ memory_profiles: true } as Partial<Agent>);
+    const plain = await initMemoryAgent({} as Partial<Agent>);
+
+    const schema = (result: { toolDefinitions?: Array<{ name: string; parameters?: unknown }> }) =>
+      JSON.stringify(
+        result.toolDefinitions?.find((toolDefinition) => toolDefinition.name === 'set_memory')
+          ?.parameters,
+      );
+
+    expect(schema(partitioned)).toContain('profile');
+    expect(schema(plain)).not.toContain('profile');
+  });
+
+  it('registers nothing when the deployment has memory turned off', async () => {
+    const result = await initMemoryAgent({ memory_profiles: true } as Partial<Agent>, false);
+
+    expect(names(result)).not.toContain('set_memory');
+    expect(names(result)).not.toContain('list_profiles');
+  });
+});
+
 describe('initializeAgent — attachment scoping', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -1133,6 +1133,11 @@ const executeOpenAIChatCompletion = async (envelope, { req, res }) => {
             userId,
             memoryAvailable,
             getFormattedMemories: db.getFormattedMemories,
+            /** A per-person agent gets the index of who is on file, not the
+             *  facts; the facts arrive only if the model asks for them. */
+            ...(runAgent.memory_profiles === true
+              ? { getUserProfiles: db.getUserProfiles, ensureSelfProfile: db.ensureSelfProfile }
+              : {}),
           });
           return applyContextToAgent({
             agent: runAgent,

@@ -162,6 +162,29 @@ const agentSchema: Schema<IAgent> = new Schema<IAgent>(
       enum: ['user', 'agent'],
       default: undefined,
     },
+    /**
+     * When the inline memory tools may write without being asked.
+     * 'explicit' (the default, expressed as an absent value) keeps the
+     * conservative guard: store only on request. 'proactive' admits a
+     * continuity agent that stores durable facts — dated conditions,
+     * medicines, allergies — because a user who has to repeat their history
+     * at every session gets worse care, not better.
+     */
+    memory_policy: {
+      type: String,
+      enum: ['explicit', 'proactive'],
+      default: undefined,
+    },
+    /**
+     * Keep a separate record per person the user asks about (a parent, a
+     * dependent) instead of one pool. Off by default: it changes both the
+     * prompt the model receives and the memory writes it may make, so it is
+     * opt-in per agent rather than a deployment-wide setting.
+     */
+    memory_profiles: {
+      type: Boolean,
+      default: undefined,
+    },
     tenantId: {
       type: String,
       index: true,

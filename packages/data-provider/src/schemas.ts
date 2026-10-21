@@ -991,6 +991,17 @@ export enum MemoryScope {
   agent = 'agent',
 }
 
+/**
+ * When an agent's inline memory tools may write without being asked.
+ * `explicit` (the default, expressed as an absent value) stores only on
+ * request. `proactive` admits a continuity agent that also stores durable facts
+ * — dated conditions, current medicines, allergies — on its own judgement.
+ */
+export enum MemoryPolicy {
+  explicit = 'explicit',
+  proactive = 'proactive',
+}
+
 /** Catalog exposure for a persisted agent with skills enabled. */
 export enum SkillsScope {
   all = 'all',

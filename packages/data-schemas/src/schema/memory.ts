@@ -31,6 +31,17 @@ const MemoryEntrySchema: Schema<IMemoryEntry> = new Schema({
     type: String,
     default: undefined,
   },
+  /**
+   * Subject partition — whose fact this is about, when the user is not the
+   * subject. Absent means the user themselves, which is why this is optional
+   * rather than defaulting to a string: every row written before profiles
+   * existed has no `profileId`, and Mongo's `null`-matches-absent semantics
+   * keep those rows in the self partition without a backfill.
+   */
+  profileId: {
+    type: String,
+    default: undefined,
+  },
   tokenCount: {
     type: Number,
     default: 0,
@@ -45,6 +56,6 @@ const MemoryEntrySchema: Schema<IMemoryEntry> = new Schema({
   },
 });
 
-MemoryEntrySchema.index({ userId: 1, agentId: 1, key: 1 });
+MemoryEntrySchema.index({ userId: 1, agentId: 1, profileId: 1, key: 1 });
 
 export default MemoryEntrySchema;
