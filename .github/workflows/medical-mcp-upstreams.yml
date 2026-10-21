@@ -13,6 +13,13 @@ name: Medical MCP Upstreams
 # not only on pull requests.
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/mcp-medical/**'
+      - 'config/seed-medical-agent.js'
+      - '.github/workflows/medical-mcp-upstreams.yml'
   schedule:
     # Off the hour, and not on the hour: the upstream APIs are busiest on the
     # hour, and a timeout here would read as a medical failure when it is load.
@@ -39,9 +46,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '24.16.0'
           cache: npm
 
       # Optional, and deliberately not required. Every upstream here works
@@ -68,6 +75,9 @@ jobs:
           npm run build:data-schemas
           npm run build:api
           npm run build --workspace @librechat/mcp-medical
+
+      - name: Run typecheck and unit/eval suite
+        run: npm run verify --workspace @librechat/mcp-medical
 
       - name: Call every tool against the real upstreams
         run: |

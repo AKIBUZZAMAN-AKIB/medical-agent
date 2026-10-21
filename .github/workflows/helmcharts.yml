@@ -66,6 +66,8 @@ jobs:
       
       - name: Build Subchart Deps
         run: |
+          helm repo add meilisearch https://meilisearch.github.io/meilisearch-kubernetes
+          helm repo update
           cd helm/librechat-rag-api
           helm dependency build
           cd ../librechat

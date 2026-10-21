@@ -40,7 +40,7 @@ jobs:
       contents: write
     env:
       BASE_REF: refs/remotes/origin/main
-      BACKFILL_FROM_VERSION: 1.9.0
+      BACKFILL_FROM_VERSION: 2.0.13
       CHART_PATH: helm/librechat/Chart.yaml
       DEFAULT_BRANCH: main
       DISPATCH_WORKFLOW: helmcharts.yml

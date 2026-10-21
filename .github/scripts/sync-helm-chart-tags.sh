@@ -225,6 +225,18 @@ while IFS="$(printf '\t')" read -r tag commit; do
     continue
   fi
 
+  token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  if [ -n "$token" ] && [ -n "${GITHUB_REPOSITORY:-}" ] && command -v gh >/dev/null; then
+    if GH_TOKEN="$token" gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+      -X POST \
+      -f "ref=refs/tags/${tag}" \
+      -f "sha=${commit}" >/dev/null; then
+      printf 'Created %s at %s via GitHub Refs API.\n' "$tag" "$short_commit"
+      dispatch_release "$tag"
+      continue
+    fi
+  fi
+
   if git_with_auth ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
     printf 'Remote tag %s was created concurrently; dispatching release workflow.\n' "$tag"
     dispatch_release "$tag"

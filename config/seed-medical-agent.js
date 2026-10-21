@@ -1,7 +1,17 @@
 const fs = require('fs');
 const path = require('path');
-const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
+
+const sdkPaths = [
+  __dirname,
+  path.resolve(__dirname, '..', 'packages', 'mcp-medical'),
+  path.resolve(__dirname, '..', 'api'),
+];
+const { Client } = require(
+  require.resolve('@modelcontextprotocol/sdk/client/index.js', { paths: sdkPaths }),
+);
+const { StdioClientTransport } = require(
+  require.resolve('@modelcontextprotocol/sdk/client/stdio.js', { paths: sdkPaths }),
+);
 const {
   AccessRoleIds,
   Constants,
