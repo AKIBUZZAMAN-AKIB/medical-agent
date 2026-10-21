@@ -224,7 +224,7 @@ async function main() {
   }
 
   for (const grant of grants) {
-    await grantPermission({ ...grant, grantedBy: author._id });
+    await grantPermission({ ...grant, resourceId: agent._id, grantedBy: author._id });
   }
 
   logger.info('[seed-medical-agent] agent ready', {
