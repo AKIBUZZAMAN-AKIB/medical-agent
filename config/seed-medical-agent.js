@@ -23,11 +23,6 @@ const {
 } = require('librechat-data-provider');
 const { logger } = require('@librechat/data-schemas');
 
-require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
-const connect = require('./connect');
-const { grantPermission } = require('~/server/services/PermissionService');
-const { Agent } = require('~/db/models');
-
 const AGENT_DIR = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'agent');
 const SERVER_ENTRY = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'dist', 'index.js');
 
@@ -143,6 +138,11 @@ async function main() {
     log(`dry run, nothing written. Tools: ${allTools.join(', ')}`);
     process.exit(0);
   }
+
+  require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
+  const connect = require('./connect');
+  const { grantPermission } = require('~/server/services/PermissionService');
+  const { Agent } = require('~/db/models');
 
   await connect();
   const mongoose = require('mongoose');
