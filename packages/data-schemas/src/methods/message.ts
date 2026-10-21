@@ -481,6 +481,7 @@ export const CLIENT_MESSAGE_SELECT: string = [
 ].join(' ');
 
 interface MessageQueryOptions {
+  skip?: number;
   limit?: number;
   sort?: Record<string, 1 | -1> | false;
 }
@@ -2407,6 +2408,9 @@ export function createMessageMethods(mongoose: typeof import('mongoose')): Messa
       }
       if (options.sort !== false) {
         query.sort(options.sort ?? { createdAt: 1 });
+      }
+      if (options.skip != null && options.skip > 0) {
+        query.skip(options.skip);
       }
       if (options.limit != null && options.limit > 0) {
         query.limit(options.limit);

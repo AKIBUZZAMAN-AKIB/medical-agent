@@ -379,9 +379,16 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
   }: t.DeleteMemoriesByProfileParams): Promise<number> {
     try {
       const MemoryEntry = mongoose.models.MemoryEntry;
+      /**
+       * When `agentId` is omitted (e.g. revoking a person's profile from
+       * Settings), remove that person's facts across every agent partition so
+       * isolated agents do not retain orphaned health records. When `agentId`
+       * is supplied explicitly, restrict deletion to that single partition.
+       */
       const result = await MemoryEntry.deleteMany({
         userId,
-        ...partitionFilter(agentId, profileId),
+        profileId: profileId ?? null,
+        ...(agentId !== undefined ? { agentId: agentId ?? null } : {}),
       });
       return result.deletedCount;
     } catch (error) {

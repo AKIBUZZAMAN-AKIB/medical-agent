@@ -6,7 +6,7 @@ dose table, no interaction matrix, no review abstracts. Every fact in an answer
 came back from an upstream API during the conversation, with a link to the
 record it came from.
 
-26 read-only tools, no API keys required.
+27 read-only tools, no API keys required.
 
 ## What it is for
 
@@ -253,7 +253,7 @@ node packages/mcp-medical/scripts/smoke.mjs drugs         # one group
 ```
 
 The smoke script starts the built server over stdio as a real MCP client and
-calls all 26 tools against the live upstreams. Run it after an upstream moves
+calls all 27 tools against the live upstreams. Run it after an upstream moves
 an endpoint, which public APIs do without notice.
 
 ## Why these upstreams

@@ -241,6 +241,38 @@ describe('conversation_transcript', () => {
     expect(output).toContain('offset 1');
   });
 
+  it('forwards offset as skip to getMessages and reports out-of-range offsets cleanly', async () => {
+    const allRows = [
+      message({ messageId: 'm1', text: 'first turn' }),
+      message({ messageId: 'm2', text: 'second turn' }),
+      message({ messageId: 'm3', text: 'third turn' }),
+    ];
+    const getMessages = jest.fn(async (_filter, _select, options = {}) => {
+      const start = options.skip ?? 0;
+      const limit = options.limit ?? allRows.length;
+      return allRows.slice(start, start + limit);
+    });
+    const tool = createConversationTranscriptTool({
+      ...deps({ getConvo: jest.fn().mockResolvedValue(convo()), getMessages }),
+      userId: USER,
+    });
+
+    const secondPage = await tool.invoke({ conversation_id: 'c1', offset: 2, limit: 2 });
+    expect(getMessages).toHaveBeenCalledWith(
+      expect.objectContaining({ user: USER, conversationId: 'c1' }),
+      expect.any(String),
+      { sort: { createdAt: 1 }, skip: 2, limit: 3 },
+    );
+    expect(secondPage).toContain('Messages 3-3 of 3');
+    expect(secondPage).toContain('[3]');
+    expect(secondPage).toContain('third turn');
+    expect(secondPage).not.toContain('first turn');
+    expect(secondPage).toContain('End of session.');
+
+    const pastEnd = await tool.invoke({ conversation_id: 'c1', offset: 10, limit: 2 });
+    expect(pastEnd).toContain('No messages at or after offset 10 in conversation "c1".');
+  });
+
   it('marks a tool-call-only turn instead of rendering it as empty text', async () => {
     const getMessages = jest
       .fn()

@@ -278,7 +278,11 @@ router.post('/', createMemoryMiddleware, async (req, res) => {
       return res.status(500).json({ error: 'Failed to create memory.' });
     }
 
-    const updatedMemories = await getUserMemories({ userId: req.user.id, agentId });
+    const updatedMemories = await getUserMemories({
+      userId: req.user.id,
+      agentId,
+      profileId,
+    });
     const newMemory = updatedMemories.find((m) => m.key === key.trim());
 
     res.status(201).json({ created: true, memory: newMemory });

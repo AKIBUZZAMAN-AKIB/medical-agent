@@ -168,20 +168,84 @@ describe('profile listing with counts', () => {
     const mother = list.find((profile) => profile.profileId === 'mother');
     expect(mother).toMatchObject({ factCount: 1, tokenCount: 3 });
   });
+
+  it('scopes fact and token counts to an agent partition when requested', async () => {
+    await profiles.ensureSelfProfile(userId, 'Rahim');
+    await profiles.createProfile({ userId, name: 'Father' });
+
+    await memories.setMemory({
+      userId,
+      key: 'shared_pref',
+      value: 'Prefers metric units',
+      tokenCount: 5,
+    });
+    await memories.setMemory({
+      userId,
+      agentId: 'agent_medical_research',
+      key: 'allergy',
+      value: 'Penicillin rash',
+      tokenCount: 8,
+    });
+    await memories.setMemory({
+      userId,
+      agentId: 'agent_medical_research',
+      profileId: 'father',
+      key: 'bp',
+      value: '2026-10-01 Hypertension on amlodipine',
+      tokenCount: 12,
+    });
+
+    const allPartitions = await profiles.getUserProfiles(userId);
+    expect(allPartitions.find((p) => p.isSelf)).toMatchObject({ factCount: 2, tokenCount: 13 });
+    expect(allPartitions.find((p) => p.profileId === 'father')).toMatchObject({
+      factCount: 1,
+      tokenCount: 12,
+    });
+
+    const medicalOnly = await profiles.getUserProfiles(userId, {
+      agentId: 'agent_medical_research',
+    });
+    expect(medicalOnly.find((p) => p.isSelf)).toMatchObject({ factCount: 1, tokenCount: 8 });
+    expect(medicalOnly.find((p) => p.profileId === 'father')).toMatchObject({
+      factCount: 1,
+      tokenCount: 12,
+    });
+
+    const sharedOnly = await profiles.getUserProfiles(userId, { agentId: undefined });
+    expect(sharedOnly.find((p) => p.isSelf)).toMatchObject({ factCount: 1, tokenCount: 5 });
+    expect(sharedOnly.find((p) => p.profileId === 'father')).toMatchObject({
+      factCount: 0,
+      tokenCount: 0,
+    });
+  });
 });
 
 describe('deleting a profile', () => {
-  it('removes that person`s facts and leaves every other profile intact', async () => {
+  it('removes that person`s facts across all agent partitions and leaves every other profile intact', async () => {
     await profiles.createProfile({ userId, name: 'Father' });
     await profiles.createProfile({ userId, name: 'Mother' });
     await memories.setMemory({ userId, key: 'diabetes', value: 'self: type 2' });
     await memories.setMemory({ userId, key: 'bp', value: 'father: 150/95', profileId: 'father' });
+    await memories.setMemory({
+      userId,
+      agentId: 'agent_medical_research',
+      key: 'anticoagulant',
+      value: '2026-10-01 Taking apixaban 5 mg twice daily',
+      profileId: 'father',
+    });
     await memories.setMemory({ userId, key: 'bp', value: 'mother: 122/80', profileId: 'mother' });
 
     const result = await profiles.deleteProfile({ userId, profileId: 'father' });
 
     expect(result.ok).toBe(true);
-    expect(result.deletedMemories).toBe(1);
+    expect(result.deletedMemories).toBe(2);
+    expect(
+      await memories.getUserMemories({
+        userId,
+        agentId: 'agent_medical_research',
+        profileId: 'father',
+      }),
+    ).toHaveLength(0);
     expect(await memories.getUserMemories({ userId })).toHaveLength(1);
     expect(await memories.getUserMemories({ userId, profileId: 'mother' })).toHaveLength(1);
     expect(await Profile.countDocuments({ userId })).toBe(1);

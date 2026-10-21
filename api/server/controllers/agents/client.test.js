@@ -1965,6 +1965,7 @@ jest.mock('~/server/services/MCP', () => ({
 
 jest.mock('~/models', () => ({
   bulkInsertTransactions: jest.fn(),
+  ensureSelfProfile: jest.fn(),
   getCacheMultiplier: jest.fn(),
   getAgent: jest.fn(),
   getMultiplier: jest.fn(),
@@ -1972,6 +1973,7 @@ jest.mock('~/models', () => ({
   getMessages: jest.fn(),
   getRoleByName: jest.fn(),
   getUserMemories: jest.fn(),
+  getUserProfiles: jest.fn(),
   getFormattedMemories: jest.fn(),
   isAgentTriggerPrincipalActive: jest.fn().mockResolvedValue(true),
   spendStructuredTokens: jest.fn(),
@@ -10254,5 +10256,89 @@ describe('seedContextMeta', () => {
 
     client.seedContextMeta(undefined);
     expect(client.contextMeta).toBeUndefined();
+  });
+});
+
+describe('AgentClient memory_profiles isolation', () => {
+  it('injects only the per-person profile index and skips background processMemory for memory_profiles agents', async () => {
+    const db = require('~/models');
+    const { checkAccess } = require('@librechat/api');
+    checkAccess.mockResolvedValue(true);
+    db.ensureSelfProfile.mockResolvedValue({ name: 'Rahim', isSelf: true });
+    db.getUserProfiles.mockResolvedValue([
+      { name: 'Rahim', isSelf: true, factCount: 2, tokenCount: 18 },
+      { profileId: 'father', name: 'Father', relationship: 'parent', factCount: 1, tokenCount: 9 },
+    ]);
+    db.getFormattedMemories.mockClear();
+
+    const medicalAgent = {
+      id: 'agent_medical_research',
+      provider: 'openAI',
+      model: 'gpt-4o-mini',
+      instructions: 'Medical agent instructions.',
+      memory_scope: 'agent',
+      memory_profiles: true,
+      memoryToolsRegistered: true,
+      tools: ['set_memory', 'delete_memory', 'list_profiles', 'read_profile'],
+    };
+
+    const client = Object.create(AgentClient.prototype);
+    client.sender = 'Medical Research Assistant';
+    client.agentConfigs = new Map();
+    client.contentParts = [];
+    client.collectedUsage = [];
+    client.artifactPromises = [];
+    client.options = {
+      endpoint: EModelEndpoint.agents,
+      agent: medicalAgent,
+      req: {
+        user: { id: 'user-1', personalization: { memories: true } },
+        body: {},
+        config: {
+          memory: {
+            disabled: false,
+            agent: { provider: 'openAI', model: 'gpt-4o-mini' },
+          },
+          endpoints: {
+            [EModelEndpoint.agents]: { capabilities: ['memory'] },
+          },
+        },
+      },
+      res: {},
+    };
+
+    const gate = await client.useMemory();
+    expect(gate).toEqual({ withKeys: '', withoutKeys: '' });
+    expect(client.processMemory).toBeUndefined();
+    expect(db.getFormattedMemories).not.toHaveBeenCalled();
+
+    client.useMemory = jest.fn().mockResolvedValue(gate);
+    await client.buildMessages(
+      [
+        {
+          messageId: 'msg-1',
+          parentMessageId: null,
+          sender: 'User',
+          text: 'Check my father`s blood pressure medication.',
+          isCreatedByUser: true,
+        },
+      ],
+      'msg-1',
+      {},
+    );
+
+    expect(db.ensureSelfProfile).toHaveBeenCalledWith('user-1');
+    expect(db.getUserProfiles).toHaveBeenCalledWith('user-1', {
+      agentId: 'agent_medical_research',
+    });
+    expect(db.getFormattedMemories).not.toHaveBeenCalled();
+    expect(medicalAgent.additional_instructions).toContain('People on file:');
+    expect(medicalAgent.additional_instructions).toContain(
+      '- self: Rahim (the user themselves) — 2 stored facts',
+    );
+    expect(medicalAgent.additional_instructions).toContain(
+      '- father: Father, parent — 1 stored fact',
+    );
+    expect(medicalAgent.additional_instructions).not.toContain('# Existing memory about the user:');
   });
 });

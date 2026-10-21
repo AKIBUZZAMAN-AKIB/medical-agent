@@ -159,7 +159,7 @@ export const useCreateMemoryMutation = (
       ...options,
       onSuccess: (data, variables, context) => {
         queryClient.setQueryData<MemoriesResponse>([QueryKeys.memories], (oldData) => {
-          if (!oldData) return oldData;
+          if (!oldData || !data.memory) return oldData;
 
           const newMemories = [...oldData.memories, data.memory];
           /** Usage totals track the shared personal pool only */

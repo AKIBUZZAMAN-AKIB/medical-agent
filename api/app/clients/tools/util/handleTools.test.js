@@ -951,4 +951,125 @@ describe('Tool Handlers', () => {
       expect(mockCreateSearchTool).not.toHaveBeenCalled();
     });
   });
+
+  describe('agent-scoped profile & transcript recall tools end to end', () => {
+    it('round-trips set_memory -> list_profiles -> read_profile within an agent-scoped medical partition', async () => {
+      const { Role, Conversation, Message } = require('~/db/models');
+      await Role.findOneAndUpdate(
+        { name: 'USER' },
+        {
+          name: 'USER',
+          permissions: {
+            MEMORIES: { USE: true, CREATE: true, UPDATE: true, READ: true },
+          },
+        },
+        { upsert: true },
+      );
+
+      const medicalAgent = {
+        id: 'agent_medical_research',
+        memory_scope: 'agent',
+        memory_profiles: true,
+        memoryToolsRegistered: true,
+        tools: [
+          'set_memory',
+          'delete_memory',
+          'list_profiles',
+          'read_profile',
+          Tools.conversation_transcript,
+        ],
+      };
+
+      const req = {
+        user: { id: fakeUser._id.toString(), role: 'USER', personalization: { memories: true } },
+        config: {
+          memory: { disabled: false, tokenLimit: 2000 },
+          endpoints: { agents: { capabilities: ['memory'] } },
+        },
+      };
+
+      const toolMap = await loadTools({
+        user: fakeUser._id.toString(),
+        agent: medicalAgent,
+        tools: ['set_memory', 'list_profiles', 'read_profile', Tools.conversation_transcript],
+        returnMap: true,
+        options: { req },
+      });
+
+      const { Tokenizer } = require('@librechat/api');
+      jest
+        .spyOn(Tokenizer, 'getTokenCount')
+        .mockImplementation((text) => Math.ceil(String(text).length / 4));
+
+      const setMemoryTool = await toolMap.set_memory();
+      const listProfilesTool = await toolMap.list_profiles();
+      const readProfileTool = await toolMap.read_profile();
+      const transcriptTool = await toolMap[Tools.conversation_transcript]();
+
+      await setMemoryTool.invoke({
+        key: 'allergy',
+        value: '2026-10-21 Penicillin causes hives.',
+      });
+      await setMemoryTool.invoke({
+        key: 'bp_regimen',
+        value: '2026-10-21 Takes amlodipine 5 mg once daily.',
+        profile: 'father',
+      });
+
+      const listed = await listProfilesTool.invoke({});
+      expect(listed).toContain('self: Me (the user themselves) — 1 stored fact');
+      expect(listed).toContain('father: father — 1 stored fact');
+
+      const fatherFacts = await readProfileTool.invoke({ profile: 'father' });
+      expect(fatherFacts).toContain('bp_regimen');
+      expect(fatherFacts).toContain('Takes amlodipine 5 mg once daily.');
+      expect(fatherFacts).not.toContain('Penicillin');
+
+      /** Shared-pool agents must NOT see isolated medical-agent facts. */
+      const sharedMap = await loadTools({
+        user: fakeUser._id.toString(),
+        agent: {
+          id: 'general_assistant',
+          memory_profiles: true,
+          memoryToolsRegistered: true,
+          tools: ['list_profiles', 'read_profile'],
+        },
+        tools: ['list_profiles', 'read_profile'],
+        returnMap: true,
+        options: { req },
+      });
+      const sharedFather = await (await sharedMap.read_profile()).invoke({ profile: 'father' });
+      expect(sharedFather).toContain('No facts are stored about father yet');
+
+      /** Real MongoDB end-to-end pagination check for conversation_transcript */
+      const convoId = 'medical-session-pagination-1';
+      await Conversation.create({
+        conversationId: convoId,
+        user: fakeUser._id.toString(),
+        endpoint: 'agents',
+        title: 'Hypertension follow-up',
+      });
+      for (let i = 1; i <= 3; i++) {
+        await Message.create({
+          messageId: `med-msg-${i}`,
+          conversationId: convoId,
+          user: fakeUser._id.toString(),
+          isCreatedByUser: i % 2 === 1,
+          text: `Clinical exchange message #${i}`,
+          createdAt: new Date(Date.UTC(2026, 9, 21, 12, 0, i)),
+        });
+      }
+
+      const page1 = await transcriptTool.invoke({ conversation_id: convoId, offset: 0, limit: 2 });
+      expect(page1).toContain('Messages 1-2 of at least 3');
+      expect(page1).toContain('Clinical exchange message #1');
+      expect(page1).not.toContain('Clinical exchange message #3');
+
+      const page2 = await transcriptTool.invoke({ conversation_id: convoId, offset: 2, limit: 2 });
+      expect(page2).toContain('Messages 3-3 of 3');
+      expect(page2).toContain('Clinical exchange message #3');
+      expect(page2).not.toContain('Clinical exchange message #1');
+      expect(page2).toContain('End of session.');
+    });
+  });
 });

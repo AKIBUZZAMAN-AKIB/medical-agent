@@ -15,6 +15,7 @@ const {
   findShadowedServerNames,
   isNormalizationSensitiveName,
   buildInlineMemoryTool,
+  getMemoryAgentId,
   buildConversationHistoryTools,
   buildProfileTools,
   LIST_PROFILES_TOOL_NAME,
@@ -522,6 +523,7 @@ const loadTools = async ({
       requestedTools[tool] = () =>
         buildProfileTools({
           userId: user,
+          agentId: getMemoryAgentId(agent),
           methods: {
             getUserProfiles,
             ensureSelfProfile,

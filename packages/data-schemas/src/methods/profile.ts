@@ -12,19 +12,31 @@ export interface UserProfileWithCounts extends t.IProfileLean {
   tokenCount: number;
 }
 
+export interface GetUserProfilesOptions {
+  /**
+   * Scope counts to one agent partition (`null`/`undefined` value = shared
+   * personal pool). Omit `options` completely to count across every partition
+   * owned by the user (matching what `deleteProfile` removes).
+   */
+  agentId?: string | null;
+}
+
 /**
  * Registry of the people a user keeps memory about.
  *
  * Every read is keyed on `userId`, and the cascade on delete is a
- * `deleteMemoriesByProfile` for exactly one partition — deleting a profile must
- * remove that person's record and nothing else, so the self partition is
- * refused outright rather than special-cased.
+ * `deleteMemoriesByProfile` for that person across partitions — deleting a
+ * profile must remove that person's record completely and nothing else, so the
+ * self partition is refused outright rather than special-cased.
  */
 export function createProfileMethods(
   mongoose: typeof import('mongoose'),
   deps: ProfileMethodDeps,
 ): {
-  getUserProfiles: (userId: string | Types.ObjectId) => Promise<UserProfileWithCounts[]>;
+  getUserProfiles: (
+    userId: string | Types.ObjectId,
+    options?: GetUserProfilesOptions,
+  ) => Promise<UserProfileWithCounts[]>;
   getUserProfile: (
     userId: string | Types.ObjectId,
     profileId: string,
@@ -88,14 +100,18 @@ export function createProfileMethods(
    */
   async function getUserProfiles(
     userId: string | Types.ObjectId,
+    options?: GetUserProfilesOptions,
   ): Promise<UserProfileWithCounts[]> {
     const Profile = getModel();
     const MemoryEntry = mongoose.models.MemoryEntry;
+    const memoryFilter =
+      options === undefined ? { userId } : { userId, agentId: options.agentId ?? null };
     const [profiles, memories] = await Promise.all([
       Profile.find({ userId }).lean() as unknown as Promise<t.IProfileLean[]>,
-      MemoryEntry.find({ userId }, { profileId: 1, tokenCount: 1 }).lean() as unknown as Promise<
-        Array<{ profileId?: string; tokenCount?: number }>
-      >,
+      MemoryEntry.find(memoryFilter, {
+        profileId: 1,
+        tokenCount: 1,
+      }).lean() as unknown as Promise<Array<{ profileId?: string; tokenCount?: number }>>,
     ]);
 
     const counts = new Map<string, { factCount: number; tokenCount: number }>();

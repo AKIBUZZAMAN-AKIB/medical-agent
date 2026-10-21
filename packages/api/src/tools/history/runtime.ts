@@ -268,10 +268,12 @@ export function createConversationTranscriptTool({
       const messages = await getMessages(
         { user: userId, conversationId: conversation_id },
         'messageId text content isCreatedByUser createdAt endpoint model parentMessageId thread_id',
-        { sort: { createdAt: 1 }, limit: pageSize + 1 },
+        { sort: { createdAt: 1 }, ...(start > 0 ? { skip: start } : {}), limit: pageSize + 1 },
       );
       if (!Array.isArray(messages) || messages.length === 0) {
-        return `Conversation "${conversation_id}" has no readable messages.`;
+        return start > 0
+          ? `No messages at or after offset ${start} in conversation "${conversation_id}".`
+          : `Conversation "${conversation_id}" has no readable messages.`;
       }
 
       const hasMore = messages.length > pageSize;
@@ -290,7 +292,7 @@ export function createConversationTranscriptTool({
         .join('\n\n');
 
       const header = `Messages ${start + 1}-${start + page.length} of ${
-        hasMore ? `at least ${start + page.length + 1}` : page.length
+        hasMore ? `at least ${start + page.length + 1}` : start + page.length
       } from "${conversation.title?.trim() || '(untitled)'}", last active ${formatDate(
         conversation.updatedAt ?? conversation.createdAt,
       )}:`;

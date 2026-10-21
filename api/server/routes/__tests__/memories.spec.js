@@ -209,18 +209,41 @@ describe('memories routes', () => {
       expect(response.body.error).toBe('Profile not found.');
     });
 
-    it("scopes a write to the person it names, so it cannot land in the user's own record", async () => {
-      getUserMemories.mockResolvedValue([]);
-      createMemory.mockResolvedValue({ ok: true });
+    it("scopes a write to the person it names and returns that person's created memory", async () => {
+      let stored = [];
+      getUserMemories.mockImplementation(async ({ profileId }) =>
+        profileId === 'father' ? stored : [{ key: 'condition', value: 'Wrong partition!' }],
+      );
+      createMemory.mockImplementation(async (doc) => {
+        stored = [
+          {
+            key: doc.key,
+            value: doc.value,
+            profileId: doc.profileId,
+            agentId: doc.agentId,
+            tokenCount: doc.tokenCount,
+          },
+        ];
+        return { ok: true };
+      });
 
-      await request(app)
+      const response = await request(app)
         .post('/api/memories')
         .send({ key: 'condition', value: 'Has asthma', profileId: 'father' });
 
+      expect(response.status).toBe(201);
       expect(createMemory).toHaveBeenCalledWith(expect.objectContaining({ profileId: 'father' }));
-      expect(getUserMemories).toHaveBeenCalledWith(
-        expect.objectContaining({ profileId: 'father' }),
+      expect(getUserMemories).toHaveBeenLastCalledWith(
+        expect.objectContaining({ userId: 'user-1', profileId: 'father' }),
       );
+      expect(response.body).toEqual({
+        created: true,
+        memory: expect.objectContaining({
+          key: 'condition',
+          value: 'Has asthma',
+          profileId: 'father',
+        }),
+      });
     });
 
     it('scopes a delete to the person it names', async () => {

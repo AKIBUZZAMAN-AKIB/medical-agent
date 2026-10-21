@@ -7,7 +7,7 @@
   "model": {
     "provider": "OpenRouter (Free)",
     "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "note": "Any OpenRouter model ending in `:free` that advertises the `tools` parameter works. The free roster rotates as providers add and drop hosting, so refresh it with: curl -s https://openrouter.ai/api/v1/models | jq -r '.data[] | select(.id|endswith(\":free\")) | select(.supported_parameters|index(\"tools\")) | .id' and update this file plus the endpoint in librechat.yaml. Small models degrade with a 25-tool catalogue; see MEDICAL_TOOL_GROUPS in the package README."
+    "note": "Any OpenRouter model ending in `:free` that advertises the `tools` parameter works. The free roster rotates as providers add and drop hosting, so refresh it with: curl -s https://openrouter.ai/api/v1/models | jq -r '.data[] | select(.id|endswith(\":free\")) | select(.supported_parameters|index(\"tools\")) | .id' and update this file plus the endpoint in librechat.yaml. Small models degrade with a 27-tool catalogue; see MEDICAL_TOOL_GROUPS in the package README."
   },
   "modelParameters": {
     "temperature": 0.1,

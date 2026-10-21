@@ -1333,3 +1333,37 @@ describe('profileUsageGuard', () => {
     expect(profileUsageGuard).toMatch(/triage first/i);
   });
 });
+
+describe('buildInlineMemoryContext with profiles', () => {
+  it('scopes profile index counts to the agent memory partition without reading fact rows', async () => {
+    const getFormattedMemories = jest.fn();
+    const ensureSelfProfile = jest.fn().mockResolvedValue({ name: 'Rahim', isSelf: true });
+    const getUserProfiles = jest.fn().mockResolvedValue([
+      { name: 'Rahim', isSelf: true, factCount: 2 },
+      { profileId: 'father', name: 'Father', relationship: 'parent', factCount: 1 },
+    ]);
+
+    const context = await buildInlineMemoryContext({
+      agent: {
+        id: 'agent_medical_research',
+        memory_scope: MemoryScope.agent,
+        memory_profiles: true,
+        memoryToolsRegistered: true,
+      },
+      req: {} as never,
+      userId: 'user-1',
+      memoryAvailable: true,
+      getFormattedMemories,
+      getUserProfiles,
+      ensureSelfProfile,
+    });
+
+    expect(ensureSelfProfile).toHaveBeenCalledWith('user-1');
+    expect(getUserProfiles).toHaveBeenCalledWith('user-1', {
+      agentId: 'agent_medical_research',
+    });
+    expect(getFormattedMemories).not.toHaveBeenCalled();
+    expect(context).toContain('- self: Rahim (the user themselves) — 2 stored facts');
+    expect(context).toContain('- father: Father, parent — 1 stored fact');
+  });
+});

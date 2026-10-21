@@ -130,10 +130,31 @@ describe('buildProfileTools', () => {
 });
 
 describe('createListProfilesTool', () => {
-  it('reports who is on file with a fact count for each', async () => {
-    const tool = createListProfilesTool({ userId: 'user-1', ...deps() });
+  it('reports who is on file with a fact count for each, preserving self factCount and agentId scope', async () => {
+    const methods = deps({
+      /** Real `ensureSelfProfile` returns the raw Profile lean doc without `factCount`. */
+      ensureSelfProfile: jest.fn().mockResolvedValue({ name: 'Danny', isSelf: true }),
+      getUserProfiles: jest.fn().mockResolvedValue([
+        { name: 'Danny', isSelf: true, factCount: 3, tokenCount: 24 },
+        {
+          profileId: 'father',
+          name: 'father',
+          relationship: 'parent',
+          factCount: 1,
+          tokenCount: 9,
+        },
+      ]),
+    });
+    const tool = createListProfilesTool({
+      userId: 'user-1',
+      agentId: 'agent_medical_research',
+      ...methods,
+    });
     const output = await tool.func({});
-    expect(output).toContain('Danny (the user themselves)');
+    expect(methods.getUserProfiles).toHaveBeenCalledWith('user-1', {
+      agentId: 'agent_medical_research',
+    });
+    expect(output).toContain('self: Danny (the user themselves) — 3 stored facts');
     expect(output).toContain('father, parent — 1 stored fact');
     expect(output).not.toContain('Has asthma');
   });
@@ -156,6 +177,26 @@ describe('createReadProfileTool', () => {
     await tool.func({ profile: 'father' });
     expect(methods.getFormattedMemories).toHaveBeenCalledWith({
       userId: 'user-1',
+      profileId: 'father',
+    });
+  });
+
+  it('includes agentId when reading from an agent-scoped memory partition', async () => {
+    const methods = deps();
+    const built = buildProfileTools({
+      userId: 'user-1',
+      agentId: 'agent_medical_research',
+      methods,
+    });
+    await built.read_profile.func({ profile: 'father' });
+    expect(methods.getFormattedMemories).toHaveBeenCalledWith({
+      userId: 'user-1',
+      agentId: 'agent_medical_research',
+      profileId: 'father',
+    });
+    expect(methods.getUserMemories).toHaveBeenCalledWith({
+      userId: 'user-1',
+      agentId: 'agent_medical_research',
       profileId: 'father',
     });
   });

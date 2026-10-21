@@ -5043,5 +5043,27 @@ describe('Message Operations', () => {
         }),
       ).resolves.toEqual({ status: 'not_found' });
     });
+
+    it('honors skip and limit together in getMessages pagination', async () => {
+      const conversationId = uuidv4();
+      for (let i = 1; i <= 5; i++) {
+        await Message.create({
+          messageId: `page-msg-${i}`,
+          conversationId,
+          user: 'user123',
+          isCreatedByUser: i % 2 === 1,
+          text: `turn-${i}`,
+          createdAt: new Date(Date.UTC(2026, 9, 21, 10, 0, i)),
+        });
+      }
+
+      const page = await getMessages(
+        { user: 'user123', conversationId },
+        'messageId text createdAt',
+        { sort: { createdAt: 1 }, skip: 2, limit: 2 },
+      );
+
+      expect(page.map((m) => m.text)).toEqual(['turn-3', 'turn-4']);
+    });
   });
 });

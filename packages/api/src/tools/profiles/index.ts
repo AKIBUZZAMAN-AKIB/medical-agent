@@ -52,16 +52,18 @@ export function registerProfileTools({
   return { toolDefinitions: [...inputDefinitions, ...newDefs], registered, toolNames };
 }
 
-/** Builds the runtime pair, bound to the authenticated user. */
+/** Builds the runtime pair, bound to the authenticated user and optional agent partition. */
 export function buildProfileTools({
   userId,
+  agentId,
   methods,
 }: {
   userId: string;
+  agentId?: string;
   methods: ProfileToolMethods;
 }): Record<string, ReturnType<typeof createListProfilesTool>> {
   return {
-    [LIST_PROFILES_TOOL_NAME]: createListProfilesTool({ userId, ...methods }),
-    [READ_PROFILE_TOOL_NAME]: createReadProfileTool({ userId, ...methods }),
+    [LIST_PROFILES_TOOL_NAME]: createListProfilesTool({ userId, agentId, ...methods }),
+    [READ_PROFILE_TOOL_NAME]: createReadProfileTool({ userId, agentId, ...methods }),
   };
 }

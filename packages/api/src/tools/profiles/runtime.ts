@@ -61,14 +61,16 @@ function formatProfileLine(profile: IProfileLean & { factCount?: number }): stri
 
 export function createListProfilesTool({
   userId,
+  agentId,
   getUserProfiles,
   ensureSelfProfile,
-}: ProfileToolDeps & { userId: string }): DynamicStructuredTool {
+}: ProfileToolDeps & { userId: string; agentId?: string }): DynamicStructuredTool {
   return tool(
     async () => {
       const self = await ensureSelfProfile(userId);
-      const profiles = await getUserProfiles(userId);
-      const ordered = [self, ...profiles.filter((profile) => profile.isSelf !== true)];
+      const profiles = await getUserProfiles(userId, { agentId });
+      const selfEntry = profiles.find((profile) => profile.isSelf === true) ?? self;
+      const ordered = [selfEntry, ...profiles.filter((profile) => profile.isSelf !== true)];
       if (ordered.length === 0) {
         return 'No records are being kept for anyone yet.';
       }
@@ -91,19 +93,25 @@ export function createListProfilesTool({
 
 export function createReadProfileTool({
   userId,
+  agentId,
   getFormattedMemories,
   getUserMemories,
   ensureSelfProfile,
-}: ProfileToolDeps & { userId: string }): DynamicStructuredTool {
+}: ProfileToolDeps & { userId: string; agentId?: string }): DynamicStructuredTool {
   return tool(
     async ({ profile }) => {
       const target = resolveProfileName(profile);
       if (target.isSelf) {
         await ensureSelfProfile(userId);
       }
+      const partition = {
+        userId,
+        profileId: target.profileId,
+        ...(agentId !== undefined ? { agentId } : {}),
+      };
       const [formatted, entries] = await Promise.all([
-        getFormattedMemories({ userId, profileId: target.profileId }),
-        getUserMemories({ userId, profileId: target.profileId }),
+        getFormattedMemories(partition),
+        getUserMemories(partition),
       ]);
       if (entries.length === 0) {
         return `No facts are stored about ${target.label} yet. Answer from what the user tells you in this conversation, and do not describe an empty record as a known history.`;

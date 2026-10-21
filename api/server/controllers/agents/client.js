@@ -18,6 +18,7 @@ const {
   omitTitleOptions,
   getProviderConfig,
   memoryInstructions,
+  buildInlineMemoryContext,
   createCachedTokenCounter,
   applyContextToAgent,
   isMemoryAgentEnabled,
@@ -2997,7 +2998,22 @@ class AgentClient extends BaseClient {
       const agentRunContextParts = [sharedRunContext];
       const agentMemoryContexts = [];
       const agentHasMemory = agentHasInlineMemoryTools(agent);
-      if (agentId === this.options.agent.id || memoryAgentEnabled || agentHasMemory) {
+      if (agent.memory_profiles === true && agentHasMemory) {
+        if (memories) {
+          const profileContext = await buildInlineMemoryContext({
+            agent,
+            req: this.options.req,
+            userId: this.options.req.user.id + '',
+            memoryAvailable: true,
+            getFormattedMemories: db.getFormattedMemories,
+            getUserProfiles: db.getUserProfiles,
+            ensureSelfProfile: db.ensureSelfProfile,
+          });
+          if (profileContext) {
+            agentRunContextParts.push(profileContext);
+          }
+        }
+      } else if (agentId === this.options.agent.id || memoryAgentEnabled || agentHasMemory) {
         const partitionMemories = await getAgentPartitionMemories(agent);
         const canonicalMemories =
           partitionMemories != null ? await getCanonicalAgentMemories(agent) : undefined;
@@ -3239,6 +3255,17 @@ class AgentClient extends BaseClient {
     /** Memory partition of the primary agent; undefined = shared personal pool */
     const memoryAgentId = getMemoryAgentId(this.options.agent);
     this.processMemory = undefined;
+
+    /** Profile-aware inline-memory agents keep one record per person with an
+     *  explicit consent boundary: neither raw self facts nor a background
+     *  memory agent (which has no `profile` parameter or consent check) belong
+     *  in the run. Return an empty marker so run-level gates pass cleanly. */
+    if (
+      this.options.agent?.memory_profiles === true &&
+      agentHasInlineMemoryTools(this.options.agent)
+    ) {
+      return { withKeys: '', withoutKeys: '' };
+    }
 
     if (!isMemoryAgentEnabled(memoryConfig)) {
       try {

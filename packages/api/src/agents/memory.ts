@@ -736,13 +736,17 @@ export async function buildInlineMemoryContext({
   memoryAvailable: boolean;
   getFormattedMemories: MemoryMethods['getFormattedMemories'];
   /** Supplied only for a profile-aware agent; its presence selects index mode */
-  getUserProfiles?: (userId: string | ObjectId) => Promise<ProfileIndexEntry[]>;
+  getUserProfiles?: (
+    userId: string | ObjectId,
+    options?: { agentId?: string | null },
+  ) => Promise<ProfileIndexEntry[]>;
   ensureSelfProfile?: (userId: string | ObjectId, name?: string) => Promise<unknown>;
 }): Promise<string> {
   if (!memoryAvailable || !agentHasInlineMemoryTools(agent)) {
     return '';
   }
   try {
+    const memoryAgentId = getMemoryAgentId(agent);
     /**
      * Profile mode: hand over names and counts, not content. The fact query is
      * never issued here, so a person the user has not asked about costs zero
@@ -752,14 +756,14 @@ export async function buildInlineMemoryContext({
       if (ensureSelfProfile != null) {
         await ensureSelfProfile(userId);
       }
-      const profiles = await getUserProfiles(userId);
+      const profiles = await getUserProfiles(userId, { agentId: memoryAgentId });
       return formatProfileIndex(profiles);
     }
 
     const memories = await getRequestMemories({
       req,
       userId,
-      agentId: getMemoryAgentId(agent),
+      agentId: memoryAgentId,
       getFormattedMemories,
     });
     return memories.withKeys
