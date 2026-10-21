@@ -1,4 +1,4 @@
-import { parsePubmedArticles, decodeEntities } from '../pubmed-xml.js';
+import { parsePubmedArticles, parsePubmedBookArticles, decodeEntities } from '../pubmed-xml.js';
 import { extractSplSections, findSplSection, normalizeSectionName } from '../spl-xml.js';
 import { parseFullTextMetadata, parseFullTextSections, parseFullTextTables } from '../jats-xml.js';
 
@@ -198,5 +198,30 @@ describe('parseFullTextSections', () => {
 
   it('returns nothing rather than throwing on a document with no body', () => {
     expect(parseFullTextSections('<article><front/></article>')).toEqual([]);
+  });
+});
+
+describe('parsePubmedBookArticles', () => {
+  const LACTMED_XML = `<?xml version="1.0"?>
+  <PubmedArticleSet>
+    <PubmedBookArticle>
+      <BookDocument>
+        <PMID Version="1">30000250</PMID>
+        <ArticleIdList><ArticleId IdType="bookaccession">NBK501191</ArticleId></ArticleIdList>
+        <Book><BookTitle book="lactmed">Drugs and Lactation Database (LactMed&#xae;)</BookTitle></Book>
+        <ArticleTitle book="lactmed" part="LM328">Sertraline</ArticleTitle>
+        <Abstract><AbstractText>Low levels of sertraline appear in breastmilk.</AbstractText></Abstract>
+        <ContributionDate><Year>2026</Year><Month>8</Month><Day>15</Day></ContributionDate>
+      </BookDocument>
+    </PubmedBookArticle>
+  </PubmedArticleSet>`;
+
+  it('extracts the Bookshelf accession, title, year, and lactation summary', () => {
+    const [book] = parsePubmedBookArticles(LACTMED_XML);
+    expect(book?.pmid).toBe('30000250');
+    expect(book?.bookId).toBe('NBK501191');
+    expect(book?.title).toBe('Sertraline');
+    expect(book?.year).toBe('2026');
+    expect(book?.abstractText).toContain('Low levels of sertraline');
   });
 });

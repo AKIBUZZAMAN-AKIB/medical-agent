@@ -16,7 +16,7 @@ import type { Upstream } from '../http.js';
 import { defineTool } from '../types.js';
 import type { ToolContext, ToolSpec } from '../types.js';
 
-const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+export const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 const EPMC = 'https://www.ebi.ac.uk/europepmc/webservices/rest';
 
 /** NCBI asks for 3 requests/second without a key and 10 with one. */
@@ -29,7 +29,7 @@ export function ncbiUpstream(env: ServerEnv, service: string, cacheTtlMs?: numbe
   };
 }
 
-function ncbiParams(env: ServerEnv, extra: Record<string, string | number | undefined>) {
+export function ncbiParams(env: ServerEnv, extra: Record<string, string | number | undefined>) {
   return {
     tool: 'librechat-mcp-medical',
     email: env.contactEmail,
@@ -611,16 +611,25 @@ const europePmcSearch = defineTool({
       service: 'Europe PMC',
       minIntervalMs: 200,
       cacheTtlMs: env.cacheTtlMs,
+      maxAttempts: 2,
     };
-    const response = await http.getJson<EpmcSearchResponse>(`${EPMC}/search`, upstream, {
-      query: {
-        query,
-        format: 'json',
-        pageSize: maxResults,
-        resultType: 'core',
-        ...sortParam,
-      },
-    });
+    let response: EpmcSearchResponse;
+    try {
+      response = await http.getJson<EpmcSearchResponse>(`${EPMC}/search`, upstream, {
+        query: {
+          query,
+          format: 'json',
+          pageSize: maxResults,
+          resultType: 'core',
+          ...sortParam,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof EmptyResultError)) {
+        return composeOpenAlexSearch(args, { env, http, cause: error });
+      }
+      throw error;
+    }
 
     const results = response.resultList?.result ?? [];
     if (results.length === 0) {
@@ -699,9 +708,173 @@ interface OpenAlexWork {
   title?: string | null;
   publication_year?: number | null;
   cited_by_count?: number | null;
+  type?: string | null;
+  open_access?: { is_oa?: boolean | null } | null;
+  authorships?: Array<{ author?: { display_name?: string | null } | null }>;
+  abstract_inverted_index?: Record<string, number[]> | null;
   ids?: { pmid?: string | null; doi?: string | null; pmcid?: string | null };
   referenced_works?: string[];
   primary_location?: { source?: { display_name?: string | null } | null } | null;
+}
+
+function reconstructInvertedAbstract(
+  index: Record<string, number[]> | null | undefined,
+): string | undefined {
+  if (index == null) {
+    return undefined;
+  }
+  const positioned: Array<[number, string]> = [];
+  for (const [word, offsets] of Object.entries(index)) {
+    for (const pos of offsets) {
+      positioned.push([pos, word]);
+    }
+  }
+  if (positioned.length === 0) {
+    return undefined;
+  }
+  positioned.sort((a, b) => a[0] - b[0]);
+  return positioned.map((entry) => entry[1]).join(' ');
+}
+
+function parseOpenAlexFallbackQuery(raw: string): { search: string; yearFilter?: string } {
+  const yearRange = /\bPUB_YEAR\s*:\s*\[\s*(\d{4})\s+TO\s+(\d{4})\s*\]/i.exec(raw);
+  const yearSingle = /\bPUB_YEAR\s*:\s*(\d{4})\b/i.exec(raw);
+  let yearFilter: string | undefined;
+  if (yearRange != null) {
+    yearFilter = `publication_year:${yearRange[1]}-${yearRange[2]}`;
+  } else if (yearSingle != null) {
+    yearFilter = `publication_year:${yearSingle[1]}`;
+  }
+
+  const cleaned = raw
+    .replace(/\bPUB_YEAR\s*:\s*(?:\[\s*\d{4}\s+TO\s+\d{4}\s*\]|\d{4})/gi, ' ')
+    .replace(/\b(?:SRC|OPEN_ACCESS|HAS_FT|IN_EPMC|IN_PMC)\s*:\s*[^\s)]+/gi, ' ')
+    .replace(/\b(?:TITLE|ABSTRACT|AUTH|JOURNAL|KW)\s*:/gi, ' ')
+    .replace(/[()]/g, ' ')
+    .replace(/\b(?:AND|OR|NOT)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return { search: cleaned.length > 0 ? cleaned : raw.trim(), yearFilter };
+}
+
+/**
+ * Answers `europe_pmc_search` through OpenAlex when EMBL-EBI's Solr search
+ * cluster sheds load with HTTP 503 ("Search service is temporarily unavailable").
+ * OpenAlex indexes PubMed, Europe PMC, and preprints with citation counts,
+ * open-access status, and inverted-index abstracts, and the notice states
+ * explicitly which upstream served the results.
+ */
+async function composeOpenAlexSearch(
+  args: {
+    query: string;
+    max_results?: number;
+    sort?: 'relevance' | 'most_cited' | 'most_recent';
+    open_access_only?: boolean;
+  },
+  { env, http, cause }: ToolContext & { cause: unknown },
+): Promise<ToolOutput> {
+  const maxResults = clampInt(args.max_results, 1, 25, 8);
+  const { search, yearFilter } = parseOpenAlexFallbackQuery(args.query);
+  const filters: string[] = [];
+  if (args.open_access_only === true) {
+    filters.push('is_oa:true');
+  }
+  if (yearFilter != null) {
+    filters.push(yearFilter);
+  }
+  const sortByMode: Record<string, string | undefined> = {
+    most_cited: 'cited_by_count:desc',
+    most_recent: 'publication_date:desc',
+  };
+  const upstream: Upstream = {
+    service: 'OpenAlex',
+    minIntervalMs: 150,
+    cacheTtlMs: env.cacheTtlMs,
+  };
+  const mailto = env.contactEmail != null ? { mailto: env.contactEmail } : {};
+  const response = await http.getJson<{ meta?: { count?: number }; results?: OpenAlexWork[] }>(
+    OPENALEX,
+    upstream,
+    {
+      query: {
+        search,
+        per_page: maxResults,
+        select:
+          'id,doi,title,publication_year,cited_by_count,type,open_access,authorships,abstract_inverted_index,ids,primary_location',
+        ...(filters.length > 0 ? { filter: filters.join(',') } : {}),
+        ...(args.sort != null && sortByMode[args.sort] != null
+          ? { sort: sortByMode[args.sort] }
+          : {}),
+        ...mailto,
+      },
+    },
+  );
+
+  const results = response.results ?? [];
+  if (results.length === 0) {
+    throw new EmptyResultError(
+      'OpenAlex (Europe PMC fallback)',
+      'Europe PMC was temporarily unavailable and OpenAlex matched no records for that query. Broaden the search terms.',
+    );
+  }
+
+  const body = results
+    .map((work) => {
+      const pmid = shortId(work.ids?.pmid);
+      const idLabel = pmid != null ? `PMID ${pmid}` : (openAlexId(work) ?? 'record');
+      const authors = (work.authorships ?? [])
+        .map((entry) => entry.author?.display_name)
+        .filter((name): name is string => !!name)
+        .slice(0, 6)
+        .join(', ');
+      const doi = work.doi?.replace(/^https?:\/\/doi\.org\//, '') ?? shortId(work.ids?.doi);
+      const abstract = reconstructInvertedAbstract(work.abstract_inverted_index);
+      const journal = work.primary_location?.source?.display_name ?? '';
+      return [
+        heading(`${idLabel}${work.title != null ? ` — ${work.title}` : ''}`),
+        definitionList([
+          ['Authors', authors],
+          [
+            'Journal',
+            `${journal}${work.publication_year != null ? ` (${work.publication_year})` : ''}`,
+          ],
+          ['Source', pmid != null ? 'MED (via OpenAlex)' : 'OpenAlex'],
+          ['Type', work.type ?? undefined],
+          ['Cited by', work.cited_by_count ?? undefined],
+          ['Open access', work.open_access?.is_oa === true ? 'yes' : 'no'],
+          ['DOI', doi],
+        ]),
+        abstract != null ? `Abstract: ${excerpt(abstract, 2_500)}` : '',
+      ]
+        .filter((part) => part.length > 0)
+        .join('\n');
+    })
+    .join('\n\n');
+
+  const reason = cause instanceof Error ? cause.message : 'upstream unreachable';
+  return composeResult({
+    headline: `Europe PMC (via OpenAlex fallback): ${(response.meta?.count ?? results.length).toLocaleString('en-US')} record(s) match; showing ${results.length}.`,
+    sections: [body],
+    sources: [
+      {
+        name: 'OpenAlex works search',
+        url: `https://openalex.org/works?page=1&filter=default.search:${encodeURIComponent(search)}`,
+      },
+      ...results
+        .map((work) => {
+          const id = openAlexId(work);
+          return id != null ? openAlexLink(work, id) : null;
+        })
+        .filter((entry): entry is SourceRef => entry != null),
+    ],
+    notices: [
+      `Europe PMC search could not be reached (${reason}), so this search ran against OpenAlex (which indexes PubMed, Europe PMC, and preprints).`,
+      'Preprints are indexed here as well (`type: posted-content` / `preprint`) and are not peer reviewed; label them as such.',
+      'A high citation count reflects attention, not validity.',
+    ],
+    env,
+  });
 }
 
 function openAlexId(work: OpenAlexWork): string | undefined {

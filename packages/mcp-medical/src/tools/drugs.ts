@@ -12,9 +12,11 @@ import {
 import type { ToolOutput } from '../format.js';
 import type { ServerEnv } from '../env.js';
 import type { HttpClient, Upstream } from '../http.js';
+import { parsePubmedBookArticles } from '../pubmed-xml.js';
 import { defineTool } from '../types.js';
 import type { ToolContext, ToolSpec } from '../types.js';
 import { extractSplSections, findSplSection } from '../spl-xml.js';
+import { EUTILS, ncbiParams, ncbiUpstream } from './literature.js';
 
 const RXNAV = 'https://rxnav.nlm.nih.gov/REST';
 const OPENFDA = 'https://api.fda.gov';
@@ -1370,6 +1372,65 @@ function lactMedKey(value: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+/**
+ * Queries NLM/NICHD LactMed directly via NCBI Entrez (`db=pubmed`) when Europe
+ * PMC's Solr search is shedding load (HTTP 503). Every LactMed substance
+ * monograph is published in `db=pubmed` as a `<PubmedBookArticle>` with its
+ * NCBI Bookshelf accession (`NBK...`) and full peer-reviewed lactation summary.
+ */
+async function fetchLactMedFromNcbi(
+  requested: string,
+  { env, http }: ToolContext,
+): Promise<LactMedRecord[]> {
+  const clean = requested
+    .replace(/["[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const baseToken = clean.split(/[\s-]+/)[0] ?? clean;
+  const titleClause =
+    baseToken.toLowerCase() !== clean.toLowerCase() && baseToken.length >= 3
+      ? `("${clean}"[Title] OR "${baseToken}"[Title])`
+      : `"${clean}"[Title]`;
+  const upstream = ncbiUpstream(env, 'NCBI Entrez (LactMed)');
+  const search = await http.getJson<{ esearchresult?: { idlist?: string[] } }>(
+    `${EUTILS}/esearch.fcgi`,
+    upstream,
+    {
+      query: ncbiParams(env, {
+        db: 'pubmed',
+        term: `${titleClause} AND Drugs and Lactation Database`,
+        retmax: 15,
+        retmode: 'json',
+      }),
+    },
+  );
+  const ids = search.esearchresult?.idlist ?? [];
+  if (ids.length === 0) {
+    return [];
+  }
+  const xml = await http.getText(
+    `${EUTILS}/efetch.fcgi`,
+    upstream,
+    {
+      query: ncbiParams(env, {
+        db: 'pubmed',
+        id: ids.join(','),
+        retmode: 'xml',
+      }),
+    },
+    'application/xml, text/xml;q=0.9',
+  );
+  return parsePubmedBookArticles(xml).map((book) => ({
+    id: book.pmid,
+    pmid: book.pmid,
+    title: book.title,
+    abstractText: book.abstractText,
+    hasBook: book.bookId != null ? 'Y' : 'N',
+    bookid: book.bookId,
+    pubYear: book.year,
+  }));
+}
+
 const drugLactation = defineTool({
   name: 'drug_lactation',
   group: 'drugs',
@@ -1390,6 +1451,7 @@ const drugLactation = defineTool({
       service: 'Europe PMC (LactMed via NCBI Bookshelf)',
       minIntervalMs: 200,
       cacheTtlMs: env.cacheTtlMs,
+      maxAttempts: 2,
     };
 
     /**
@@ -1401,18 +1463,30 @@ const drugLactation = defineTool({
      * metformin when asked about LactMed would be a confident answer to the
      * wrong question, which is the failure this package treats as worst.
      */
-    const response = await http.getJson<{
-      resultList?: { result?: LactMedRecord[] };
-    }>(`${EPMC}/search`, upstream, {
-      query: {
-        query: `TITLE:"${requested.replace(/"/g, '')}" AND SRC:MED`,
-        format: 'json',
-        pageSize: 25,
-        resultType: 'core',
-      },
-    });
+    let rawResults: LactMedRecord[];
+    let fallbackNotice: string | undefined;
+    try {
+      const response = await http.getJson<{
+        resultList?: { result?: LactMedRecord[] };
+      }>(`${EPMC}/search`, upstream, {
+        query: {
+          query: `TITLE:"${requested.replace(/"/g, '')}" AND SRC:MED`,
+          format: 'json',
+          pageSize: 25,
+          resultType: 'core',
+        },
+      });
+      rawResults = response.resultList?.result ?? [];
+    } catch (error) {
+      if (error instanceof EmptyResultError) {
+        throw error;
+      }
+      const reason = error instanceof Error ? error.message : 'upstream unreachable';
+      rawResults = await fetchLactMedFromNcbi(requested, { env, http });
+      fallbackNotice = `Europe PMC search could not be reached (${reason}), so this LactMed monograph was retrieved directly from NCBI Entrez Bookshelf.`;
+    }
 
-    const candidates = (response.resultList?.result ?? []).filter(
+    const candidates = rawResults.filter(
       (record) => record.hasBook === 'Y' && (record.bookid ?? '').startsWith('NBK'),
     );
     const exact = candidates.find((record) => lactMedKey(record.title ?? '') === key);
@@ -1457,6 +1531,7 @@ const drugLactation = defineTool({
         },
       ],
       notices: [
+        ...(fallbackNotice != null ? [fallbackNotice] : []),
         'LactMed is a peer-reviewed database maintained by NLM with NICHD, built from the published literature and reviewed by experts; the summary above is its conclusion on the evidence, not a recommendation for this person.',
         "The measured levels, the studies behind them, and the record's last revision date are on the full record — read them there before reporting how much of a drug reaches milk as a precise figure.",
         'A "compatible with breastfeeding" summary is not a clearance for a specific infant. Weight, prematurity, postnatal age, the mother\'s dose, and the indication all change the decision, and that decision belongs to the prescriber and pharmacist.',

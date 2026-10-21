@@ -28,6 +28,10 @@ function fakeHttp(responder: Responder): { http: HttpClient; calls: Call[] } {
       calls.push({ url: base, method: 'GET', query: options.query });
       return responder(buildUrl(base, options.query)).body as never;
     },
+    async getText(base: string, _upstream: Upstream, options: RequestOptions = {}) {
+      calls.push({ url: base, method: 'GET', query: options.query });
+      return String(responder(buildUrl(base, options.query)).body);
+    },
     async postJson(base: string, _upstream: Upstream, body: unknown, options: RequestOptions = {}) {
       calls.push({ url: base, method: 'POST', query: options.query, body });
       return responder(buildUrl(base, options.query), body).body as never;
@@ -526,5 +530,73 @@ describe('drug_lactation', () => {
       .catch((thrown: unknown) => thrown);
     expect(error).toBeInstanceOf(EmptyResultError);
     expect((error as Error).message).toContain('resolve the generic name');
+  });
+
+  it('falls back to NCBI Entrez LactMed Bookshelf records when Europe PMC returns 503', async () => {
+    const { http } = fakeHttp((url) => {
+      if (url.includes('europepmc')) {
+        throw new UpstreamError('Europe PMC', 'is temporarily unavailable', { status: 503 });
+      }
+      if (url.includes('esearch.fcgi')) {
+        return { body: { esearchresult: { idlist: ['30000250'] } } };
+      }
+      return {
+        body: `<PubmedArticleSet><PubmedBookArticle><BookDocument>
+          <PMID>30000250</PMID>
+          <ArticleIdList><ArticleId IdType="bookaccession">NBK501191</ArticleId></ArticleIdList>
+          <ArticleTitle>Sertraline</ArticleTitle>
+          <Abstract><AbstractText>Low levels of sertraline in breastmilk are usually not detected in infant serum.</AbstractText></Abstract>
+        </BookDocument></PubmedBookArticle></PubmedArticleSet>`,
+      };
+    });
+
+    const result = await tool('drug_lactation').handler({ drug: 'sertraline' }, context(http));
+
+    expect(result.text).toContain('LactMed: Sertraline.');
+    expect(result.text).toContain('not detected in infant serum');
+    expect(result.text).toContain('https://www.ncbi.nlm.nih.gov/books/NBK501191/');
+    expect(result.text).toContain('Europe PMC search could not be reached');
+  });
+});
+
+describe('europe_pmc_search', () => {
+  it('falls back to OpenAlex with reconstructed abstract and explicit notice when Europe PMC returns 503', async () => {
+    const { http, calls } = fakeHttp((url) => {
+      if (url.includes('europepmc')) {
+        throw new UpstreamError('Europe PMC', 'is temporarily unavailable', { status: 503 });
+      }
+      return {
+        body: {
+          meta: { count: 42 },
+          results: [
+            {
+              id: 'https://openalex.org/W3182424616',
+              doi: 'https://doi.org/10.1056/NEJMoa2032183',
+              title: 'Once-Weekly Semaglutide in Adults with Overweight or Obesity',
+              publication_year: 2021,
+              cited_by_count: 4200,
+              type: 'article',
+              open_access: { is_oa: true },
+              ids: { pmid: 'https://pubmed.ncbi.nlm.nih.gov/33567185' },
+              primary_location: { source: { display_name: 'N Engl J Med' } },
+              authorships: [{ author: { display_name: 'Wilding JPH' } }],
+              abstract_inverted_index: { Semaglutide: [0], reduced: [1], body: [2], weight: [3] },
+            },
+          ],
+        },
+      };
+    });
+
+    const result = await tool('europe_pmc_search').handler(
+      { query: 'semaglutide AND SRC:MED', max_results: 3, open_access_only: true },
+      context(http),
+    );
+
+    const oaCall = calls.find((call) => call.url.includes('openalex.org'));
+    expect(oaCall?.query?.search).toBe('semaglutide');
+    expect(oaCall?.query?.filter).toBe('is_oa:true');
+    expect(result.text).toContain('PMID 33567185');
+    expect(result.text).toContain('Semaglutide reduced body weight');
+    expect(result.text).toContain('Europe PMC search could not be reached');
   });
 });

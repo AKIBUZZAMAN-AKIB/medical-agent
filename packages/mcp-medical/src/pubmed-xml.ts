@@ -166,7 +166,9 @@ function findTaggedValue(
   attributeName: string,
   attributeValue: string,
 ): string | undefined {
-  for (const match of xml.matchAll(new RegExp(`<${tag}([^>]*)>([\\s\\S]*?)</${tag}>`, 'g'))) {
+  for (const match of xml.matchAll(
+    new RegExp(`<${tag}((?:\\s[^>]*)?)>([\\s\\S]*?)</${tag}>`, 'g'),
+  )) {
     if (attribute(match[1] ?? '', attributeName) === attributeValue) {
       const value = stripTags(match[2] ?? '');
       if (value.length > 0) {
@@ -187,4 +189,48 @@ export function parsePubmedArticles(xml: string): ParsedPubmedArticle[] {
     }
   }
   return articles;
+}
+
+export interface ParsedPubmedBookArticle {
+  pmid: string;
+  bookId?: string;
+  bookTitle?: string;
+  title?: string;
+  year?: string;
+  abstractText?: string;
+}
+
+/**
+ * Parses `<PubmedBookArticle>` monographs returned by `efetch.fcgi?db=pubmed`
+ * (such as NLM/NICHD LactMed records on NCBI Bookshelf).
+ */
+export function parsePubmedBookArticles(xml: string): ParsedPubmedBookArticle[] {
+  const records: ParsedPubmedBookArticle[] = [];
+  for (const match of xml.matchAll(
+    /<PubmedBookArticle(?:\s[^>]*)?>([\s\S]*?)<\/PubmedBookArticle>/g,
+  )) {
+    const inner = match[1] ?? '';
+    const doc = /<BookDocument(?:\s[^>]*)?>([\s\S]*?)<\/BookDocument>/.exec(inner)?.[1] ?? inner;
+    const pmid = firstTagValue(doc, 'PMID');
+    if (pmid == null || pmid.length === 0) {
+      continue;
+    }
+    const contribDate = /<ContributionDate(?:\s[^>]*)?>([\s\S]*?)<\/ContributionDate>/.exec(
+      doc,
+    )?.[1];
+    const pubDate = /<PubDate(?:\s[^>]*)?>([\s\S]*?)<\/PubDate>/.exec(doc)?.[1];
+    const sections = parseAbstract(doc);
+    records.push({
+      pmid,
+      bookId: findTaggedValue(doc, 'ArticleId', 'IdType', 'bookaccession'),
+      bookTitle: firstTagValue(doc, 'BookTitle'),
+      title: firstTagValue(doc, 'ArticleTitle'),
+      year:
+        (contribDate != null ? firstTagValue(contribDate, 'Year') : undefined) ??
+        (pubDate != null ? firstTagValue(pubDate, 'Year') : undefined),
+      abstractText:
+        sections.length > 0 ? sections.map((entry) => entry.text).join('\n\n') : undefined,
+    });
+  }
+  return records;
 }
