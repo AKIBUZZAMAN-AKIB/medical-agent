@@ -142,9 +142,11 @@ async function main() {
   require('module-alias')({ base: path.resolve(__dirname, '..', 'api') });
   const connect = require('./connect');
   const { grantPermission } = require('~/server/services/PermissionService');
+  const { seedDatabase } = require('~/models');
   const { Agent } = require('~/db/models');
 
   await connect();
+  await seedDatabase();
   const mongoose = require('mongoose');
   const { createModels } = require('@librechat/data-schemas');
   const { User } = createModels(mongoose);
