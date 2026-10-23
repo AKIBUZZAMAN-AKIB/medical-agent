@@ -2040,6 +2040,16 @@
               "agent"
             ]
           },
+          "memory_policy": {
+            "type": "string",
+            "enum": [
+              "explicit",
+              "proactive"
+            ]
+          },
+          "memory_profiles": {
+            "type": "boolean"
+          },
           "agent_ids": {
             "type": "array",
             "items": {
@@ -2473,6 +2483,16 @@
               "user",
               "agent"
             ]
+          },
+          "memory_policy": {
+            "type": "string",
+            "enum": [
+              "explicit",
+              "proactive"
+            ]
+          },
+          "memory_profiles": {
+            "type": "boolean"
           },
           "agent_ids": {
             "type": "array",
@@ -2937,6 +2957,16 @@
               "user",
               "agent"
             ]
+          },
+          "memory_policy": {
+            "type": "string",
+            "enum": [
+              "explicit",
+              "proactive"
+            ]
+          },
+          "memory_profiles": {
+            "type": "boolean"
           },
           "agent_ids": {
             "type": "array",

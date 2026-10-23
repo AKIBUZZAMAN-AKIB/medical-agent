@@ -24,6 +24,8 @@ jest.mock('@librechat/api', () => ({
   blockFilteredMemoryContent: jest.fn(() => false),
   getMemoryAgentIdParam: (value) =>
     typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined,
+  getMemoryProfileIdParam: (value) =>
+    typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined,
   createAgentMemoryPartitionMiddleware:
     ({ source, allowMissingAgent = false }) =>
     async (req, res, next) => {
