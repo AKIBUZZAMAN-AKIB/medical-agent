@@ -26,6 +26,108 @@ const { logger } = require('@librechat/data-schemas');
 const AGENT_DIR = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'agent');
 const SERVER_ENTRY = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'dist', 'index.js');
 
+const SPECIALIST_SUBAGENT_SPECS = [
+  {
+    id: 'agent_sub_emergency_triage',
+    name: 'Emergency & Red-Flag Triage Sub-Agent',
+    description:
+      'Screens symptoms for immediate life-threatening red flags (airway/choking, stroke, ACS, sepsis, GI bleed, anaphylaxis, crisis) and checks urgent safety recalls.',
+    toolNames: [
+      'safety_recalls',
+      'drug_adverse_event_summary',
+      'condition_lookup',
+      'plain_language_summary',
+    ],
+    focusPrompt:
+      'Focus strictly on life-threatening red flags, time-critical escalation windows, bystander rescue steps, and urgent device/drug recalls.',
+  },
+  {
+    id: 'agent_sub_pharmacology_ddi',
+    name: 'Clinical Pharmacology, DDI & Brand Mapper Sub-Agent',
+    description:
+      'Resolves local/Bangladeshi & international brand medicines to generic active ingredients and verifies FDA/DailyMed labels, boxed warnings, renal/hepatic dosing, and drug-drug interactions.',
+    toolNames: [
+      'drug_lookup',
+      'drug_label',
+      'drug_interaction_check',
+      'drug_safety_actions',
+      'drug_adverse_event_summary',
+      'drug_class_atc',
+      'drug_bioactivity',
+      'compound_properties',
+    ],
+    focusPrompt:
+      'Resolve every brand name to active generic ingredients first, verify current FDA/DailyMed label sections and boxed warnings, and report all clinically significant drug-drug or disease-drug interactions.',
+  },
+  {
+    id: 'agent_sub_cardio_nephro_endo',
+    name: 'Cardiology, Nephrology & Endocrinology Sub-Agent',
+    description:
+      'Evaluates cardiovascular, CKD/eGFR renal dosing, hypertension, heart failure GDMT, diabetes trials, and ICD-10-CM classifications.',
+    toolNames: [
+      'drug_label',
+      'drug_interaction_check',
+      'pubmed_search',
+      'pubmed_article',
+      'clinical_trials',
+      'icd10cm_code',
+      'condition_lookup',
+    ],
+    focusPrompt:
+      'Focus on organ-function thresholds (eGFR/CrCl, LVEF, HbA1c, INR), label renal/hepatic adjustments, landmark cardiovascular/renal outcome trials, and accurate ICD-10-CM coding.',
+  },
+  {
+    id: 'agent_sub_maternal_peds',
+    name: 'Maternal-Fetal, Lactation & Pediatric Safety Sub-Agent',
+    description:
+      'Retrieves NLM LactMed breastfeeding records, current FDA PLLR pregnancy narratives (never retired A/B/C/D/X letters), and pediatric safety warnings.',
+    toolNames: [
+      'drug_lactation',
+      'drug_label',
+      'drug_lookup',
+      'drug_adverse_event_summary',
+      'pubmed_search',
+    ],
+    focusPrompt:
+      'Retrieve NLM LactMed and FDA PLLR Pregnancy/Lactation narrative sections verbatim, state infant age/weight/prematurity caveats, and never report retired FDA pregnancy letter categories.',
+  },
+  {
+    id: 'agent_sub_oncology_genomics',
+    name: 'Precision Oncology, Genomics & Rare Disease Sub-Agent',
+    description:
+      'Analyzes ClinVar variant pathogenicity & review stars, MyGene/UniProt molecular biology, Monarch phenotypes, and Open Targets drug pipelines.',
+    toolNames: [
+      'variant_clinical_significance',
+      'gene_lookup',
+      'protein_lookup',
+      'condition_lookup',
+      'condition_targets_and_drugs',
+      'ontology_search',
+      'clinical_trials',
+    ],
+    focusPrompt:
+      'Report exact ClinVar pathogenicity classifications with review status stars, gene/protein biology, target-disease evidence, and recruiting precision oncology or rare-disease trials.',
+  },
+  {
+    id: 'agent_sub_evidence_trials',
+    name: 'Systematic Evidence, Full-Text & Trials Sub-Agent',
+    description:
+      'Executes PubMed, PMC JATS full-text, Europe PMC citation graph, ClinicalTrials.gov v2, and WHO GHO epidemiological syntheses.',
+    toolNames: [
+      'pubmed_search',
+      'pubmed_article',
+      'read_full_text',
+      'europe_pmc_search',
+      'literature_citations',
+      'clinical_trials',
+      'health_statistics',
+      'plain_language_summary',
+    ],
+    focusPrompt:
+      'Prioritize systematic reviews, meta-analyses, randomized controlled trials, and full-text methods/results via read_full_text, citing exact PMID, PMCID, DOI, and NCT identifiers.',
+  },
+];
+
 /**
  * Reads the tool list from the MCP server itself rather than from a copy kept
  * in this script. Agent tool ids are namespaced by server name, so a stale list
@@ -98,6 +200,42 @@ async function resolveAuthor(User, identifier) {
   return admin;
 }
 
+async function upsertAndGrantAgent({ Agent, grantPermission, author, shareWithRole, data }) {
+  const existing = await Agent.findOne({ id: data.id }).select('_id').lean();
+  const saved =
+    existing != null
+      ? await Agent.findOneAndUpdate({ id: data.id }, data, { new: true })
+      : await Agent.create(data);
+
+  const grants = [
+    {
+      resourceType: ResourceType.AGENT,
+      accessRoleId: AccessRoleIds.AGENT_OWNER,
+      principalType: PrincipalType.USER,
+      principalId: author._id,
+    },
+    {
+      resourceType: ResourceType.REMOTE_AGENT,
+      accessRoleId: AccessRoleIds.REMOTE_AGENT_OWNER,
+      principalType: PrincipalType.USER,
+      principalId: author._id,
+    },
+  ];
+  if (shareWithRole != null) {
+    grants.push({
+      resourceType: ResourceType.AGENT,
+      accessRoleId: AccessRoleIds.AGENT_VIEWER,
+      principalType: PrincipalType.ROLE,
+      principalId: shareWithRole,
+    });
+  }
+
+  for (const grant of grants) {
+    await grantPermission({ ...grant, resourceId: saved._id, grantedBy: author._id });
+  }
+  return saved;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const definition = JSON.parse(fs.readFileSync(path.join(AGENT_DIR, 'agent.json'), 'utf8'));
@@ -114,17 +252,6 @@ async function main() {
     );
   }
 
-  /**
-   * Continuity is part of the product, not an extra: a clinician who cannot see
-   * last week's conversation re-asks questions the patient already answered.
-   * These are LibreChat built-ins rather than MCP tools, because a stdio MCP
-   * server is never told which user called it — see the note in
-   * `packages/api/src/tools/history/runtime.ts`. Both are gated on the
-   * deployment: `memory` needs a `memory:` block in librechat.yaml, and
-   * `conversation_history` needs that opt-in capability. Asking for them here
-   * means an agent that cannot have them is visibly incomplete rather than
-   * quietly amnesiac.
-   */
   const continuityTools = [Tools.memory, Tools.conversation_history, Tools.conversation_transcript];
 
   const log = (message) => console.log(`[seed-medical-agent] ${message}`);
@@ -152,6 +279,44 @@ async function main() {
   const { User } = createModels(mongoose);
 
   const author = await resolveAuthor(User, options.author);
+  const availableSet = new Set(tools);
+  const seededSubagentIds = [];
+
+  for (const subSpec of SPECIALIST_SUBAGENT_SPECS) {
+    const subTools = subSpec.toolNames
+      .map((name) => `${name}${Constants.mcp_delimiter}${serverName}`)
+      .filter((id) => availableSet.has(id));
+    await upsertAndGrantAgent({
+      Agent,
+      grantPermission,
+      author,
+      shareWithRole: options.shareWithRole,
+      data: {
+        id: subSpec.id,
+        name: subSpec.name,
+        description: subSpec.description,
+        instructions: `${subSpec.focusPrompt}\n\n${instructions}`,
+        provider: definition.model.provider,
+        model: definition.model.id,
+        model_parameters: definition.modelParameters,
+        author: author._id,
+        authorName: author.name,
+        tools: subTools,
+        mcpServerNames: [serverName],
+        max_context_tokens: 200000,
+        recursion_limit: 24,
+        category: definition.category,
+      },
+    });
+    seededSubagentIds.push(subSpec.id);
+  }
+
+  const configuredSubagents = definition.subagents ?? {
+    enabled: true,
+    allowSelf: true,
+    shareFiles: true,
+    agent_ids: seededSubagentIds,
+  };
 
   const agentData = {
     id: definition.id,
@@ -165,78 +330,40 @@ async function main() {
     authorName: author.name,
     tools: allTools,
     mcpServerNames: [serverName],
+    max_context_tokens: 200000,
     recursion_limit: definition.recursion_limit,
     category: definition.category,
     conversation_starters: definition.conversationStarters ?? [],
-    /**
-     * Isolate this agent's memories from the shared personal pool, so what a
-     * user's medical agent remembers is not handed to every other agent they
-     * use, and vice versa.
-     */
+    subagents: {
+      ...configuredSubagents,
+      agent_ids: Array.from(
+        new Set([...(configuredSubagents.agent_ids ?? []), ...seededSubagentIds]),
+      ),
+    },
     memory_scope: MemoryScope.agent,
-    /**
-     * Let the agent record durable clinical facts on its own judgement instead
-     * of waiting to be told "remember that". Continuity is the point of this
-     * agent; the default explicit-request guard would make a patient restate
-     * their history in every session, and a restated history is a worse record
-     * than a stored one. The guard it receives in place of the default still
-     * refuses identifiers and transient detail.
-     */
     memory_policy: MemoryPolicy.proactive,
-    /**
-     * One record per person. A patient is routinely talking about a parent, a
-     * child or a spouse in the same breath as themselves, and a pooled
-     * history silently merges them — which in this domain is a wrong-medication
-     * answer, not a wrong preference. The agent is given only the list of who
-     * is on file and reads the person the question is about; the fact that a
-     * relative is mentioned is not consent to store anything about them, and
-     * the agent asks once before it writes.
-     */
     memory_profiles: true,
   };
 
-  const existing = await Agent.findOne({ id: definition.id }).select('_id').lean();
-  const agent =
-    existing != null
-      ? await Agent.findOneAndUpdate({ id: definition.id }, agentData, { new: true })
-      : await Agent.create(agentData);
-
-  const grants = [
-    {
-      resourceType: ResourceType.AGENT,
-      accessRoleId: AccessRoleIds.AGENT_OWNER,
-      principalType: PrincipalType.USER,
-      principalId: author._id,
-    },
-    {
-      resourceType: ResourceType.REMOTE_AGENT,
-      accessRoleId: AccessRoleIds.REMOTE_AGENT_OWNER,
-      principalType: PrincipalType.USER,
-      principalId: author._id,
-    },
-  ];
-  if (options.shareWithRole != null) {
-    /** Role principals are identified by role identifier, not by ObjectId. */
-    grants.push({
-      resourceType: ResourceType.AGENT,
-      accessRoleId: AccessRoleIds.AGENT_VIEWER,
-      principalType: PrincipalType.ROLE,
-      principalId: options.shareWithRole,
-    });
-  }
-
-  for (const grant of grants) {
-    await grantPermission({ ...grant, resourceId: agent._id, grantedBy: author._id });
-  }
+  const agent = await upsertAndGrantAgent({
+    Agent,
+    grantPermission,
+    author,
+    shareWithRole: options.shareWithRole,
+    data: agentData,
+  });
 
   logger.info('[seed-medical-agent] agent ready', {
     id: agent.id,
     name: agent.name,
     toolCount: allTools.length,
+    subagentCount: seededSubagentIds.length,
     author: author.email ?? author.username,
     sharedWithRole: options.shareWithRole ?? null,
   });
-  log(`agent "${agent.name}" (${agent.id}) is ready with ${allTools.length} tool(s)`);
+  log(
+    `agent "${agent.name}" (${agent.id}) is ready with ${allTools.length} tool(s) and ${seededSubagentIds.length} specialist sub-agent(s)`,
+  );
   if (options.shareWithRole == null) {
     log('it is visible only to its owner; re-run with --share-with-role=USER to share it');
   }
@@ -246,11 +373,6 @@ async function main() {
   );
 
   await mongoose.disconnect();
-  /**
-   * The data-schemas and MCP imports leave handles behind, so a script that has
-   * finished its work can still sit there indefinitely. This is a one-shot CLI;
-   * exit once the last statement is done rather than waiting on an empty queue.
-   */
   process.exit(0);
 }
 

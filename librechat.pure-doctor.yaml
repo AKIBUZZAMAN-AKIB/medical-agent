@@ -1,0 +1,123 @@
+version: 1.3.8
+cache: true
+
+interface:
+  customWelcome: '🩺 Super-Power Doctor AI — আপনার ব্যক্তিগত মাল্টি-স্পেশালিস্ট ক্লিনিক্যাল সহায়ক'
+  customFooter: '🩺 Super-Power Doctor AI · Multi-Specialty Clinical Assistant (PubMed · FDA · LactMed · ClinVar)'
+  defaultPreset: false
+  presets: false
+  modelSelect: false
+  parameters: false
+  multiConvo: false
+  bookmarks: false
+  fileSearch: true
+  agents:
+    use: true
+    create: false
+    share: false
+    public: false
+  marketplace:
+    use: false
+  mcpServers:
+    use: true
+    create: false
+    share: false
+    public: false
+  prompts:
+    use: false
+    create: false
+    share: false
+    public: false
+  skills:
+    use: false
+    create: false
+    share: false
+    public: false
+
+modelSpecs:
+  enforce: false
+  prioritize: true
+  list:
+    - name: 'super-power-doctor-ai'
+      label: '🩺 Super-Power Doctor AI'
+      description: 'Chief Multi-Specialty Doctor AI with On-Demand Specialist Sub-Agents & 27 Live Biomedical Evidence Tools'
+      default: true
+      preset:
+        endpoint: 'agents'
+        agent_id: 'agent_medical_research'
+        modelLabel: '🩺 Super-Power Doctor AI'
+        greeting: 'আসসালামু আলাইকুম! আমি আপনার **🩺 Super-Power Doctor AI**। উপসর্গ, প্রেসক্রিপশনের ওষুধের পার্শ্বপ্রতিক্রিয়া বা ইন্টারেকশন, ল্যাব রিপোর্ট, গর্ভাবস্থা/স্তন্যদান নিরাপত্তা কিংবা জটিল রোগ বিষয়ে বাংলায় বা ইংরেজিতে নির্দ্বিধায় লিখুন — প্রয়োজন অনুযায়ী বিশেষজ্ঞ **Sub-Agents** তৈরি ও সমন্বয় করে যাচাইকৃত মেডিকেল তথ্যসহ উত্তর দেব।'
+
+registration:
+  socialLogins: []
+
+balance:
+  enabled: true
+  startBalance: 250000
+  autoRefillEnabled: true
+  refillIntervalValue: 30
+  refillIntervalUnit: 'days'
+  refillAmount: 100000
+
+memory:
+  disabled: false
+  validKeys:
+    - 'patient_profile'
+    - 'family_member_mother'
+    - 'family_member_father'
+    - 'allergies_and_adverse_reactions'
+    - 'chronic_conditions'
+    - 'active_medications'
+    - 'recent_lab_results'
+    - 'clinical_preferences'
+  tokenLimit: 12000
+  personalize: true
+  messageWindowSize: 8
+  agent:
+    enabled: true
+    provider: 'OpenRouter (Free)'
+    model: 'nvidia/nemotron-3-ultra-550b-a55b:free'
+    instructions: 'Extract structured clinical, medication, allergy, lab, and family member health context accurately.'
+
+mcpServers:
+  medical:
+    type: stdio
+    command: /home/user/.local/node24/bin/node
+    args:
+      - /home/user/medical-agent/packages/mcp-medical/dist/index.js
+    timeout: 60000
+    initTimeout: 30000
+    chatMenu: false
+    title: 'Medical Evidence Suite - 27 Live Tools'
+    description: 'PubMed, Europe PMC, OpenFDA, RxNorm, DailyMed, LactMed, ChEMBL, Open Targets, ClinVar, ClinicalTrials.gov, MyGene.info, ICD-10-CM, WHO GHO, CMS NPI'
+    env:
+      MEDICAL_CONTACT_EMAIL: 'medical-agent@example.org'
+
+endpoints:
+  agents:
+    disableBuilder: false
+    recursionLimit: 50
+    maxRecursionLimit: 100
+    capabilities:
+      - 'deferred_tools'
+      - 'file_search'
+      - 'subagents'
+      - 'context'
+      - 'memory'
+      - 'tools'
+      - 'chain'
+      - 'ocr'
+      - 'conversation_history'
+  custom:
+    - name: 'OpenRouter (Free)'
+      apiKey: 'live-medical-local-key'
+      baseURL: 'http://127.0.0.1:4120/v1'
+      maxContextTokens: 262144
+      models:
+        default:
+          - 'nvidia/nemotron-3-ultra-550b-a55b:free'
+          - 'medical-copilot-pro'
+        fetch: true
+      titleConvo: true
+      titleModel: 'nvidia/nemotron-3-ultra-550b-a55b:free'
+      modelDisplayLabel: 'Super-Power Doctor AI Engine'

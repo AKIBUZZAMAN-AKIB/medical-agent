@@ -114,7 +114,7 @@ Then seed the agent that carries the safety and method instructions:
 
 ```bash
 npm run seed-medical-agent -- --dry-run     # prints the discovered tools, writes nothing
-npm run seed-medical-agent                   # upserts agent id "medical_research_agent"
+npm run seed-medical-agent                   # upserts agent id "agent_medical_research"
 ```
 
 The seed script starts the MCP server as a real client first, so a server that
