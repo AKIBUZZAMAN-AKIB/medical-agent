@@ -306,4 +306,38 @@ describe('Dynamic specialist_subagent_blueprint & 32-tool registry', () => {
     expect(blueprint.text).toContain('lab_result_interpreter');
     expect(blueprint.text).toContain('HealthBench Context-Seeking Questions');
   });
+
+  it('transparently fails over condition_lookup to EBI OLS4 MONDO when Monarch returns HTTP 502', async () => {
+    const condTool = allTools.find((t) => t.name === 'condition_lookup')!;
+    const failoverHttp = new HttpClient({
+      env,
+      sleep: async () => undefined,
+      fetchImpl: async (input) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (url.includes('monarchinitiative.org')) {
+          return new Response('<html>502 Bad Gateway</html>', { status: 502 });
+        }
+        return new Response(
+          JSON.stringify({
+            response: {
+              docs: [
+                {
+                  obo_id: 'MONDO:0005148',
+                  label: 'type 2 diabetes mellitus',
+                  description: ['Chronic metabolic disorder marked by insulin resistance.'],
+                  synonym: ['T2DM'],
+                  iri: 'http://purl.obolibrary.org/obo/MONDO_0005148',
+                },
+              ],
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      },
+    });
+    const out = await condTool.handler({ condition: 'type 2 diabetes mellitus' }, { env, http: failoverHttp });
+    expect(out.isError).toBeUndefined();
+    expect(out.text).toContain('MONDO:0005148');
+    expect(out.text).toContain('EBI OLS4 failover');
+  });
 });

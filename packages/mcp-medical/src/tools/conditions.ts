@@ -24,7 +24,7 @@ const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 const ONE_DAY = 86_400_000;
 
 function monarchUpstream(): Upstream {
-  return { service: 'Monarch Initiative', minIntervalMs: 250, cacheTtlMs: ONE_DAY };
+  return { service: 'Monarch Initiative', minIntervalMs: 250, cacheTtlMs: ONE_DAY, maxAttempts: 2 };
 }
 
 interface MonarchSearch {
@@ -39,13 +39,25 @@ interface MonarchSearch {
   total?: number;
 }
 
+interface OlsMondoSearch {
+  response?: {
+    docs?: Array<{
+      iri?: string;
+      label?: string;
+      obo_id?: string;
+      description?: string[];
+      synonym?: string[];
+    }>;
+  };
+}
+
 const conditionLookup = defineTool({
   name: 'condition_lookup',
   group: 'conditions',
   title: 'Resolve a condition',
   readOnly: true,
   description:
-    'Resolve a condition name to a curated disease concept (Monarch Initiative, MONDO-based) and return its definition, synonyms, and cross-references to ICD-10, ICD-9, DOID, Orphanet, MedGen and MeSH. Use it to turn a lay or clinical phrase into an identifier, and to check that two names refer to the same disease before comparing evidence. Identification only — it does not return treatments or outcomes.',
+    'Resolve a condition name to a curated disease concept (Monarch Initiative MONDO with automatic EBI OLS4 MONDO failover) and return its definition, synonyms, and cross-references to ICD-10, ICD-9, DOID, Orphanet, MedGen and MeSH. Use it to turn a lay or clinical phrase into an identifier, and to check that two names refer to the same disease before comparing evidence. Identification only — it does not return treatments or outcomes.',
   inputSchema: {
     condition: z
       .string()
@@ -61,14 +73,43 @@ const conditionLookup = defineTool({
   },
   async handler(args, { env, http }: ToolContext): Promise<ToolOutput> {
     const maxResults = clampInt(args.max_results, 1, 10, 5);
-    const response = await http.getJson<MonarchSearch>(`${MONARCH}/search`, monarchUpstream(), {
-      query: { q: args.condition, category: 'biolink:Disease', limit: maxResults },
-    });
+    let items: NonNullable<MonarchSearch['items']> = [];
+    let usedOlsFallback = false;
 
-    const items = response.items ?? [];
+    try {
+      const response = await http.getJson<MonarchSearch>(`${MONARCH}/search`, monarchUpstream(), {
+        query: { q: args.condition, category: 'biolink:Disease', limit: maxResults },
+      });
+      items = response.items ?? [];
+    } catch (err) {
+      if (!(err instanceof UpstreamError)) {
+        throw err;
+      }
+      usedOlsFallback = true;
+      const olsRes = await http.getJson<OlsMondoSearch>(
+        `${OLS}/search`,
+        { service: 'EBI OLS4 (MONDO Disease Ontology)', minIntervalMs: 250, cacheTtlMs: ONE_DAY },
+        {
+          query: {
+            q: args.condition,
+            ontology: 'mondo',
+            rows: maxResults,
+            fieldList: 'iri,label,obo_id,description,synonym',
+          },
+        },
+      );
+      items = (olsRes.response?.docs ?? []).map((doc) => ({
+        id: doc.obo_id,
+        name: doc.label,
+        description: (doc.description ?? []).join(' '),
+        synonym: doc.synonym ?? [],
+        xref: doc.iri ? [doc.iri] : [],
+      }));
+    }
+
     if (items.length === 0) {
       throw new EmptyResultError(
-        'Monarch Initiative',
+        usedOlsFallback ? 'EBI OLS4 (MONDO)' : 'Monarch Initiative',
         `No disease concept matched "${args.condition}". Try a disease name rather than a symptom, and check spelling.`,
       );
     }
@@ -89,13 +130,17 @@ const conditionLookup = defineTool({
       .join('\n\n');
 
     return composeResult({
-      headline: `Monarch Initiative: ${items.length} disease concept(s) for "${args.condition}".`,
+      headline: usedOlsFallback
+        ? `MONDO Disease Ontology (via EBI OLS4 failover): ${items.length} disease concept(s) for "${args.condition}".`
+        : `Monarch Initiative: ${items.length} disease concept(s) for "${args.condition}".`,
       sections: [body],
       sources: items
         .filter((item) => item.id != null)
         .map((item) => ({
           name: item.name ?? item.id ?? 'disease',
-          url: `https://monarchinitiative.org/${item.id}`,
+          url: usedOlsFallback
+            ? `https://www.ebi.ac.uk/ols4/ontologies/mondo/classes?obo_id=${encodeURIComponent(item.id ?? '')}`
+            : `https://monarchinitiative.org/${item.id}`,
         })),
       notices: [
         'Concepts are community-curated and can lag new naming; if two entries look equally valid, say so rather than silently picking one.',
