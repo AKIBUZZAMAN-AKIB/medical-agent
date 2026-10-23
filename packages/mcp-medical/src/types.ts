@@ -10,6 +10,10 @@ import type { ServerEnv } from './env.js';
 export const TOOL_GROUPS = [
   'literature',
   'drugs',
+  'formulary',
+  'pharmacogenomics',
+  'calculators',
+  'orchestration',
   'conditions',
   'trials',
   'epidemiology',

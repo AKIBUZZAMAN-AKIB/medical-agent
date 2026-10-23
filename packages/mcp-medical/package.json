@@ -1,7 +1,7 @@
 {
   "name": "@librechat/mcp-medical",
-  "version": "0.1.0",
-  "description": "Keyless medical data MCP server for LibreChat: live lookups against public health APIs, no bundled clinical content",
+  "version": "0.2.0",
+  "description": "Keyless medical & clinical decision MCP server for LibreChat: 32 live biomedical, pharmacogenomic (CPIC), Bangladesh formulary (BDDrugBank 24,725 brands), clinical calculator (MedCalc), lab panel, and specialist sub-agent orchestration tools",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,8 @@
   },
   "files": [
     "dist",
-    "agent"
+    "agent",
+    "data"
   ],
   "exports": {
     ".": {

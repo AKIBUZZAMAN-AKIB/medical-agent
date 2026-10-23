@@ -31,22 +31,26 @@ const SPECIALIST_SUBAGENT_SPECS = [
     id: 'agent_sub_emergency_triage',
     name: 'Emergency & Red-Flag Triage Sub-Agent',
     description:
-      'Screens symptoms for immediate life-threatening red flags (airway/choking, stroke, ACS, sepsis, GI bleed, anaphylaxis, crisis) and checks urgent safety recalls.',
+      'Screens symptoms and lab values for immediate life-threatening red flags (airway/choking, stroke, ACS, sepsis, dengue shock, GI bleed, anaphylaxis, crisis, critical panic electrolytes) and checks urgent safety recalls.',
     toolNames: [
+      'lab_result_interpreter',
+      'clinical_calculator',
       'safety_recalls',
       'drug_adverse_event_summary',
       'condition_lookup',
       'plain_language_summary',
     ],
     focusPrompt:
-      'Focus strictly on life-threatening red flags, time-critical escalation windows, bystander rescue steps, and urgent device/drug recalls.',
+      'Focus strictly on life-threatening red flags, critical laboratory panic thresholds, time-critical escalation windows, bystander rescue steps, and urgent device/drug recalls.',
   },
   {
     id: 'agent_sub_pharmacology_ddi',
-    name: 'Clinical Pharmacology, DDI & Brand Mapper Sub-Agent',
+    name: 'Clinical Pharmacology, South Asian Formulary & PGx Sub-Agent',
     description:
-      'Resolves local/Bangladeshi & international brand medicines to generic active ingredients and verifies FDA/DailyMed labels, boxed warnings, renal/hepatic dosing, and drug-drug interactions.',
+      'Resolves Bangladeshi/regional brand medicines across 24,725 BDDrugBank formulations with BDT price comparison, verifies FDA/DailyMed labels & DDI matrices, and checks live CPIC pharmacogenomics.',
     toolNames: [
+      'bd_medicine_lookup',
+      'pharmacogenomics_guideline',
       'drug_lookup',
       'drug_label',
       'drug_interaction_check',
@@ -57,14 +61,18 @@ const SPECIALIST_SUBAGENT_SPECS = [
       'compound_properties',
     ],
     focusPrompt:
-      'Resolve every brand name to active generic ingredients first, verify current FDA/DailyMed label sections and boxed warnings, and report all clinically significant drug-drug or disease-drug interactions.',
+      'Resolve every Bangladeshi or regional brand name via bd_medicine_lookup first, check CPIC pharmacogenomics via pharmacogenomics_guideline when actionable genes exist, verify current FDA/DailyMed label sections and boxed warnings, and report all clinically significant drug-drug or disease-drug interactions plus lowest-cost bioequivalent options.',
   },
   {
     id: 'agent_sub_cardio_nephro_endo',
     name: 'Cardiology, Nephrology & Endocrinology Sub-Agent',
     description:
-      'Evaluates cardiovascular, CKD/eGFR renal dosing, hypertension, heart failure GDMT, diabetes trials, and ICD-10-CM classifications.',
+      'Computes deterministic renal/cardiac/metabolic scores (2021 CKD-EPI eGFR, Cockcroft-Gault CrCl, CHA2DS2-VASc, HAS-BLED, HEART, South Asian BMI, QTc) and synthesizes GDMT trials.',
     toolNames: [
+      'clinical_calculator',
+      'lab_result_interpreter',
+      'bd_medicine_lookup',
+      'pharmacogenomics_guideline',
       'drug_label',
       'drug_interaction_check',
       'pubmed_search',
@@ -74,29 +82,32 @@ const SPECIALIST_SUBAGENT_SPECS = [
       'condition_lookup',
     ],
     focusPrompt:
-      'Focus on organ-function thresholds (eGFR/CrCl, LVEF, HbA1c, INR), label renal/hepatic adjustments, landmark cardiovascular/renal outcome trials, and accurate ICD-10-CM coding.',
+      'Always compute exact organ-function and risk scores via clinical_calculator and lab_result_interpreter rather than mental arithmetic, check renal/hepatic label adjustments, and cite landmark cardiovascular/renal/metabolic trials.',
   },
   {
     id: 'agent_sub_maternal_peds',
     name: 'Maternal-Fetal, Lactation & Pediatric Safety Sub-Agent',
     description:
-      'Retrieves NLM LactMed breastfeeding records, current FDA PLLR pregnancy narratives (never retired A/B/C/D/X letters), and pediatric safety warnings.',
+      'Retrieves NLM LactMed breastfeeding records, current FDA PLLR pregnancy narratives (never retired A/B/C/D/X letters), and weight-capped pediatric dose math checks.',
     toolNames: [
       'drug_lactation',
       'drug_label',
+      'bd_medicine_lookup',
+      'clinical_calculator',
       'drug_lookup',
       'drug_adverse_event_summary',
       'pubmed_search',
     ],
     focusPrompt:
-      'Retrieve NLM LactMed and FDA PLLR Pregnancy/Lactation narrative sections verbatim, state infant age/weight/prematurity caveats, and never report retired FDA pregnancy letter categories.',
+      'Retrieve NLM LactMed and FDA PLLR Pregnancy/Lactation narrative sections verbatim, verify pediatric mg/kg math via clinical_calculator (pediatric_dose_check), state infant age/weight/prematurity caveats, and never report retired FDA pregnancy letter categories.',
   },
   {
     id: 'agent_sub_oncology_genomics',
-    name: 'Precision Oncology, Genomics & Rare Disease Sub-Agent',
+    name: 'Precision Oncology, Pharmacogenomics & Rare Disease Sub-Agent',
     description:
-      'Analyzes ClinVar variant pathogenicity & review stars, MyGene/UniProt molecular biology, Monarch phenotypes, and Open Targets drug pipelines.',
+      'Analyzes ClinVar variant pathogenicity & review stars, live CPIC pharmacogenomics guidelines, MyGene/UniProt biology, Monarch phenotypes, and Open Targets pipelines.',
     toolNames: [
+      'pharmacogenomics_guideline',
       'variant_clinical_significance',
       'gene_lookup',
       'protein_lookup',
@@ -106,7 +117,24 @@ const SPECIALIST_SUBAGENT_SPECS = [
       'clinical_trials',
     ],
     focusPrompt:
-      'Report exact ClinVar pathogenicity classifications with review status stars, gene/protein biology, target-disease evidence, and recruiting precision oncology or rare-disease trials.',
+      'Report exact ClinVar pathogenicity classifications with review status stars, CPIC germline pharmacogenomic recommendations, gene/protein biology, target-disease evidence, and recruiting precision oncology or rare-disease trials.',
+  },
+  {
+    id: 'agent_sub_tropical_infectious',
+    name: 'Tropical Medicine, Dengue & Antibiotic Stewardship Sub-Agent',
+    description:
+      'Evaluates febrile thrombocytopenia, Dengue plasma-leakage CBC warning patterns, CURB-65 pneumonia severity, typhoid/respiratory infections, and WHO essential antimicrobials.',
+    toolNames: [
+      'lab_result_interpreter',
+      'clinical_calculator',
+      'bd_medicine_lookup',
+      'drug_lookup',
+      'drug_interaction_check',
+      'pubmed_search',
+      'health_statistics',
+    ],
+    focusPrompt:
+      'Screen febrile illnesses with lab_result_interpreter and clinical_calculator (curb_65), enforce strict NSAID/aspirin avoidance in suspected Dengue or thrombocytopenia, check WHO Essential Medicines antimicrobial status via bd_medicine_lookup, and cite primary infectious disease guidelines.',
   },
   {
     id: 'agent_sub_evidence_trials',

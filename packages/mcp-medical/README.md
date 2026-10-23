@@ -6,30 +6,37 @@ dose table, no interaction matrix, no review abstracts. Every fact in an answer
 came back from an upstream API during the conversation, with a link to the
 record it came from.
 
-27 read-only tools, no API keys required.
+32 read-only tools across 11 domain groups, no API keys required.
 
 ## What it is for
 
 Answering the questions a careful colleague would look up before a clinician
-makes a decision — what a label actually says, what the evidence base for a
-treatment is, what a variant's classification rests on, what is in a trial, what
-a population's burden looks like — and refusing the parts that are not lookup
-work: diagnosing a person, prescribing, clearing a combination, triaging.
+makes a decision — what a label actually says, what a regional/Bangladeshi brand
+formulation contains and costs across bioequivalent manufacturers, what CPIC
+pharmacogenomics guidelines recommend, what an exact clinical equation or lab
+panel computes to without LLM arithmetic error, what a variant's classification
+rests on, what is in a trial, what a population's burden looks like — and
+refusing the parts that are not lookup work: diagnosing a person, prescribing,
+clearing a combination, triaging.
 The agent seeded alongside this server
 ([`agent/instructions.md`](agent/instructions.md)) is where that boundary and
 the research method are written down.
 
 ## Tools
 
-| Group          | Tools                                                                                                                                                                                     | Upstreams                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `literature`   | `pubmed_search`, `pubmed_article`, `read_full_text`, `europe_pmc_search`, `literature_citations`                                                                                          | NCBI E-utilities, Europe PMC (search and JATS full text), OpenAlex                                 |
-| `drugs`        | `drug_lookup`, `drug_label`, `drug_interaction_check`, `drug_safety_actions`, `drug_adverse_event_summary`, `drug_class_atc`, `drug_bioactivity`, `compound_properties`, `drug_lactation` | RxNav, DailyMed SPL, openFDA (labels, enforcement, FAERS), ChEMBL, PubChem, LactMed via Europe PMC |
-| `conditions`   | `condition_lookup`, `condition_targets_and_drugs`, `gene_lookup`, `protein_lookup`, `ontology_search`, `icd10cm_code`, `variant_clinical_significance`                                    | Monarch Initiative, Open Targets, UniProt, EBI OLS4, NLM Clinical Tables, ClinVar                  |
-| `trials`       | `clinical_trials`                                                                                                                                                                         | ClinicalTrials.gov API v2                                                                          |
-| `epidemiology` | `health_statistics`                                                                                                                                                                       | WHO Global Health Observatory                                                                      |
-| `devices`      | `device_approval`, `safety_recalls`                                                                                                                                                       | openFDA 510(k), device recall and food enforcement                                                 |
-| `clinical`     | `provider_lookup`, `plain_language_summary`                                                                                                                                               | NPPES NPI Registry v2.1, Wikipedia                                                                 |
+| Group              | Tools                                                                                                                                                                                     | Upstreams / Verified Corpora                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `formulary`        | `bd_medicine_lookup`                                                                                                                                                                      | BDDrugBank v1.0.0 (`24,725` Bangladeshi brands, `1,553` generics, BDT MRP), WHO EML 2025, BD NEML  |
+| `pharmacogenomics` | `pharmacogenomics_guideline`                                                                                                                                                              | CPIC REST API v1.55 (`api.cpicpgx.org/v1`) + South Asian `HLA-B*15:02` / `CYP2C19` / `NUDT15` notes |
+| `calculators`      | `clinical_calculator`, `lab_result_interpreter`                                                                                                                                           | 14 deterministic MedCalc equations (`ckd_epi_2021`, `cockcroft_gault`, `meld_na`, etc.) & Lab Panel |
+| `orchestration`    | `specialist_subagent_blueprint`                                                                                                                                                           | Dynamic `agent_dyn_*` specialist sub-agent blueprint & HealthBench context-seeking generator       |
+| `literature`       | `pubmed_search`, `pubmed_article`, `read_full_text`, `europe_pmc_search`, `literature_citations`                                                                                          | NCBI E-utilities, Europe PMC (search and JATS full text), OpenAlex                                 |
+| `drugs`            | `drug_lookup`, `drug_label`, `drug_interaction_check`, `drug_safety_actions`, `drug_adverse_event_summary`, `drug_class_atc`, `drug_bioactivity`, `compound_properties`, `drug_lactation` | RxNav, DailyMed SPL, openFDA (labels, enforcement, FAERS), ChEMBL, PubChem, LactMed via Europe PMC |
+| `conditions`       | `condition_lookup`, `condition_targets_and_drugs`, `gene_lookup`, `protein_lookup`, `ontology_search`, `icd10cm_code`, `variant_clinical_significance`                                    | Monarch Initiative, Open Targets, UniProt, EBI OLS4, NLM Clinical Tables, ClinVar                  |
+| `trials`           | `clinical_trials`                                                                                                                                                                         | ClinicalTrials.gov API v2                                                                          |
+| `epidemiology`     | `health_statistics`                                                                                                                                                                       | WHO Global Health Observatory                                                                      |
+| `devices`          | `device_approval`, `safety_recalls`                                                                                                                                                       | openFDA 510(k), device recall and food enforcement                                                 |
+| `clinical`         | `provider_lookup`, `plain_language_summary`                                                                                                                                               | NPPES NPI Registry v2.1, Wikipedia                                                                 |
 
 Group the tools any way the deployment needs — see `MEDICAL_TOOL_GROUPS` below.
 

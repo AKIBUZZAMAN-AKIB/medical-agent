@@ -77,6 +77,35 @@ const CALLS = {
     args: { specialty: 'Cardiology', state: 'CA', max_results: 2 },
   },
   plain_language_summary: { group: 'clinical', args: { topic: 'Atrial fibrillation' } },
+  bd_medicine_lookup: {
+    group: 'formulary',
+    args: { query: 'Sergel 20', max_alternatives: 5 },
+  },
+  pharmacogenomics_guideline: {
+    group: 'pharmacogenomics',
+    args: { drug: 'clopidogrel', gene: 'CYP2C19', max_recommendations: 4 },
+  },
+  clinical_calculator: {
+    group: 'calculators',
+    args: {
+      calculator: 'ckd_epi_2021',
+      inputs: { age: 62, sex: 'male', creatinine_mg_dl: 1.5 },
+    },
+  },
+  lab_result_interpreter: {
+    group: 'calculators',
+    args: {
+      values: { hemoglobin: 15.6, hematocrit: 48, platelets: 72, wbc: 3.2, alt: 96 },
+      clinical_context: 'Fever day 4',
+    },
+  },
+  specialist_subagent_blueprint: {
+    group: 'orchestration',
+    args: {
+      specialty: 'Tropical Infectious Diseases & Dengue',
+      clinical_focus: 'Day 4 high fever with platelets 72,000 and hematocrit 48%',
+    },
+  },
 };
 
 const only = process.argv[2];

@@ -1,7 +1,7 @@
 {
   "id": "agent_medical_research",
   "name": "Super-Power Doctor AI",
-  "description": "Chief Multi-Specialty Clinical & Biomedical AI Orchestrator. Dynamically coordinates specialist medical sub-agents (Emergency Triage, Clinical Pharmacology & DDI, Cardio-Renal-Endocrine, Maternal-Lactation-Pediatrics, Precision Genomics, Systematic Evidence & Trials, plus on-demand specialty sub-agents) across 27 live biomedical tools (PubMed, openFDA, RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, ClinicalTrials.gov, Open Targets, Monarch, MyGene, UniProt, EBI OLS, ICD-10-CM, WHO GHO, NPI & Wikipedia) with per-person longitudinal memory.",
+  "description": "বিশেষজ্ঞ মাল্টি-স্পেশালিস্ট এআই মেডিকেল ও ক্লিনিক্যাল রিসার্চ সহকারী — ২৪,৭২৫টি বাংলাদেশি ওষুধ (BDDrugBank ৳ BDT মূল্যসহ), ল্যাব ও ক্লিনিক্যাল ক্যালকুলেটর (MedCalc), ফার্মাকোজেনোমিক্স (CPIC), ডায়নামিক সাব-এজেন্ট বোর্ড এবং লাইভ PubMed · FDA · LactMed প্রমাণের আলোকে নির্ভরযোগ্য স্বাস্থ্য পরামর্শ।",
   "instructionsFile": "instructions.md",
   "mcpServer": "medical",
   "model": {
@@ -25,6 +25,7 @@
       "agent_sub_cardio_nephro_endo",
       "agent_sub_maternal_peds",
       "agent_sub_oncology_genomics",
+      "agent_sub_tropical_infectious",
       "agent_sub_evidence_trials"
     ]
   },
