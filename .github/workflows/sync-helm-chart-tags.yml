@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       release_existing_tag:
-        description: "Existing chart-* tag to dispatch if tag creation succeeded but release dispatch failed"
+        description: 'Existing chart-* tag to dispatch if tag creation succeeded but release dispatch failed'
         required: false
         type: string
 
@@ -80,7 +80,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUSH_TAGS: "true"
+          PUSH_TAGS: 'true'
         run: |
           set -euo pipefail
           cd "$REPO_DIR"

@@ -1,6 +1,7 @@
 name: Frontend Unit Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'e2e/client-build.test.mjs'
@@ -12,9 +13,10 @@ on:
       - '.github/workflows/frontend-review.yml'
       - '!**.md'
   # Post-merge safety net and full-run baseline for gated selection (same rationale as
-  # backend-review.yml stage 1): every dev merge touching frontend paths runs the full suite.
+  # backend-review.yml stage 1): every main/dev merge touching frontend paths runs the full suite.
   push:
     branches:
+      - main
       - dev
     paths:
       - 'e2e/client-build.test.mjs'

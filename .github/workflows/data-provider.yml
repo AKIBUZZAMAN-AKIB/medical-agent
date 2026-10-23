@@ -24,8 +24,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '24.16.0'
-      - run: cd packages/data-provider && npm ci
-      - run: cd packages/data-provider && npm run build
+      - run: npm ci
+      - run: npm run build:data-provider
       - name: Pack package
         run: |
           mkdir -p npm-package
@@ -41,12 +41,14 @@ jobs:
 
   publish-npm:
     needs: pack
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.repository_owner == 'danny-avila' || vars.ENABLE_NPM_PUBLISH == 'true')
     runs-on: ubuntu-latest
-    environment: publish  # Must match npm trusted publisher config
+    environment: publish # Must match npm trusted publisher config
     permissions:
       contents: read
-      id-token: write  # Required for OIDC trusted publishing
+      id-token: write # Required for OIDC trusted publishing
     steps:
       - uses: actions/setup-node@v5
         with:

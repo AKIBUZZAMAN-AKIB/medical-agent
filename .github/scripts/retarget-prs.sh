@@ -17,6 +17,16 @@ if [ "$#" -eq 0 ]; then
   exit 64
 fi
 
+if [ "$TARGET_BASE" = "$RELEASE_BASE" ]; then
+  echo "Skipping auto-retarget: TARGET_BASE and RELEASE_BASE are both '$RELEASE_BASE'."
+  exit 0
+fi
+
+if ! gh api "repos/$REPO/branches/$TARGET_BASE" >/dev/null 2>&1; then
+  echo "Skipping auto-retarget: branch '$TARGET_BASE' does not exist in $REPO."
+  exit 0
+fi
+
 # Branches on the upstream repository that legitimately merge into the release branch.
 # Backport branches are deliberately absent: `main` is kept as a fast-forward of `dev`, so a
 # backport merged straight to `main` would break that invariant. Use the label to exempt one.

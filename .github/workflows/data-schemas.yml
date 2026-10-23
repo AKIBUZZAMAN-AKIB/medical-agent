@@ -30,10 +30,12 @@ jobs:
           node-version: '24.16.0'
 
       - name: Install dependencies
-        run: cd packages/data-schemas && npm ci
+        run: npm ci
 
-      - name: Build
-        run: cd packages/data-schemas && npm run build
+      - name: Build workspace prerequisites and data-schemas
+        run: |
+          npm run build:data-provider
+          npm run build:data-schemas
 
       - name: Check version change
         id: check
@@ -67,12 +69,15 @@ jobs:
 
   publish-npm:
     needs: pack
-    if: github.ref == 'refs/heads/main' && needs.pack.outputs.skip != 'true'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      needs.pack.outputs.skip != 'true' &&
+      (github.repository_owner == 'danny-avila' || vars.ENABLE_NPM_PUBLISH == 'true')
     runs-on: ubuntu-latest
-    environment: publish  # Must match npm trusted publisher config
+    environment: publish # Must match npm trusted publisher config
     permissions:
       contents: read
-      id-token: write  # Required for OIDC trusted publishing
+      id-token: write # Required for OIDC trusted publishing
     steps:
       - name: Use Node.js
         uses: actions/setup-node@v5

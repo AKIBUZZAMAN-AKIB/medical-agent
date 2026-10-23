@@ -107,6 +107,7 @@ const FILTERS = {
     // api/package.json's @librechat/data-schemas entry.
     'packages/data-provider/package.json',
     'packages/data-schemas/package.json',
+    'packages/mcp-medical/package.json',
     'package.json',
     'package-lock.json',
     '.github/workflows/static-checks.yml',

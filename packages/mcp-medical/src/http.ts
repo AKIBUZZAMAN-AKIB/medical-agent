@@ -1,7 +1,7 @@
-import { TtlCache } from './cache.js';
-import { boundDetail, UpstreamError } from './errors.js';
 import type { ServerEnv } from './env.js';
+import { boundDetail, UpstreamError } from './errors.js';
 import { HostRateLimiter } from './ratelimit.js';
+import { TtlCache } from './cache.js';
 
 /** How a caller wants one upstream treated: who it is, and how gently to hit it. */
 export interface Upstream {
@@ -242,7 +242,7 @@ export class HttpClient {
     }
     throw new UpstreamError(
       upstream.service,
-      `request failed after ${this.env.maxAttempts} attempts: ${
+      `request failed after ${maxAttempts} attempts: ${
         lastError instanceof Error ? lastError.message : 'unknown transport error'
       }`,
     );

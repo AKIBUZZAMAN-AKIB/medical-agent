@@ -4,11 +4,11 @@ name: Build Helm Charts on Tag
 on:
   push:
     tags:
-      - "chart-*"
+      - 'chart-*'
   workflow_dispatch:
     inputs:
       chart_tag:
-        description: "Existing chart tag to release, for example chart-2.0.5"
+        description: 'Existing chart tag to release, for example chart-2.0.5'
         required: true
         type: string
 
@@ -62,8 +62,8 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v5
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+
       - name: Build Subchart Deps
         run: |
           helm repo add meilisearch https://meilisearch.github.io/meilisearch-kubernetes
@@ -93,7 +93,7 @@ jobs:
           registry: ghcr.io
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       # this is for the librechat-rag-api chart
       - name: Release Helm OCI Charts for librechat-rag-api
         uses: appany/helm-oci-chart-releaser@v0.4.2

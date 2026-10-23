@@ -26,10 +26,23 @@ jobs:
     if: >
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.run_workflow == 'true')
-    
+
     steps:
+      - name: Check Axe Linter API key
+        id: axe-key
+        env:
+          AXE_LINTER_API_KEY: ${{ secrets.AXE_LINTER_API_KEY }}
+        run: |
+          if [ -n "$AXE_LINTER_API_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "AXE_LINTER_API_KEY is not configured; skipping paid Axe Linter step." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/checkout@v5
+        if: steps.axe-key.outputs.configured == 'true'
       - uses: dequelabs/axe-linter-action@v2
+        if: steps.axe-key.outputs.configured == 'true'
         with:
           api_key: ${{ secrets.AXE_LINTER_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}

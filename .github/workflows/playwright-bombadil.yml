@@ -97,6 +97,9 @@ jobs:
         if: steps.cache-api.outputs.cache-hit != 'true'
         run: npm run build:api
 
+      - name: Build mcp-medical
+        run: npm run build:mcp-medical
+
       - name: Restore client-package build cache
         id: cache-client-package
         uses: actions/cache@v4

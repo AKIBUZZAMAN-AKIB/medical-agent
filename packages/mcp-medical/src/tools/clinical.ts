@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { EmptyResultError, UpstreamError } from '../errors.js';
+import type { ToolContext, ToolSpec } from '../types.js';
+import type { ToolOutput } from '../format.js';
+import type { Upstream } from '../http.js';
 import {
   bulletList,
   clampInt,
@@ -8,10 +10,8 @@ import {
   excerpt,
   heading,
 } from '../format.js';
-import type { ToolOutput } from '../format.js';
-import type { Upstream } from '../http.js';
+import { EmptyResultError, UpstreamError } from '../errors.js';
 import { defineTool } from '../types.js';
-import type { ToolContext, ToolSpec } from '../types.js';
 
 const NPI_REGISTRY = 'https://npiregistry.cms.hhs.gov/api';
 const WIKIPEDIA = 'https://en.wikipedia.org/api/rest_v1';

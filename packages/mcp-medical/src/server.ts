@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { loadEnv } from './env.js';
-import { describeError, EmptyResultError } from './errors.js';
-import { HttpClient } from './http.js';
-import { selectTools } from './tools/index.js';
-import type { ServerEnv } from './env.js';
 import type { ToolSpec } from './types.js';
+import type { ServerEnv } from './env.js';
+import { describeError, EmptyResultError } from './errors.js';
+import { selectTools } from './tools/index.js';
+import { HttpClient } from './http.js';
+import { loadEnv } from './env.js';
 
 const SERVER_NAME = 'medical';
 
@@ -14,7 +14,7 @@ const SERVER_NAME = 'medical';
  * rules that govern a real answer live in the agent's own instructions, because
  * they are a property of the agent, not of the tool layer.
  */
-const SERVER_INSTRUCTIONS = `Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, ChEMBL, PubChem, ClinVar, MedGen, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
+const SERVER_INSTRUCTIONS = `Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
 
 Every tool returns live data with a Sources block; cite those URLs rather than the API host, and never present a figure you did not read in a tool result. Zero results, a 404, and a rate limit are answers, not failures: say what was searched and what was not found, and widen the query instead of guessing. Upstreams are free and shared, so prefer few, well-formed calls over many speculative ones.`;
 

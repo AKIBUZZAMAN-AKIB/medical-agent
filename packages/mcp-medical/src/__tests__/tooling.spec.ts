@@ -1,7 +1,7 @@
 import { bulletList, composeResult, definitionList, excerpt, stringifyValue } from '../format.js';
-import { loadEnv } from '../env.js';
 import { allTools, describeToolGroups, selectTools } from '../tools/index.js';
 import { createMedicalServer } from '../server.js';
+import { loadEnv } from '../env.js';
 
 const env = loadEnv({});
 

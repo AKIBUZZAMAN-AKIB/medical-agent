@@ -1,6 +1,6 @@
 import { HttpClient, buildUrl } from '../http.js';
-import { loadEnv } from '../env.js';
 import { UpstreamError } from '../errors.js';
+import { loadEnv } from '../env.js';
 
 const env = loadEnv({});
 
@@ -121,6 +121,20 @@ describe('HttpClient', () => {
     await expect(
       client.getJson('https://example.org', { ...upstream, maxAttempts: 4 }),
     ).rejects.toBeInstanceOf(UpstreamError);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
+  it('reports the effective upstream maxAttempts on transport failures', async () => {
+    const fetchImpl = jest.fn(async () => {
+      throw new TypeError('socket hang up');
+    });
+    const client = clientWith(fetchImpl as unknown as typeof fetch, { MEDICAL_MAX_ATTEMPTS: '2' });
+    await expect(
+      client.getJson('https://example.org', { ...upstream, maxAttempts: 4 }),
+    ).rejects.toMatchObject({
+      name: 'UpstreamError',
+      message: 'request failed after 4 attempts: socket hang up',
+    });
     expect(fetchImpl).toHaveBeenCalledTimes(4);
   });
 

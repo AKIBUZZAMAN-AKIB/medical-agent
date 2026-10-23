@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { EmptyResultError, UpstreamError } from '../errors.js';
+import type { ToolContext, ToolSpec } from '../types.js';
+import type { ToolOutput } from '../format.js';
+import type { Upstream } from '../http.js';
 import {
   bulletList,
   clampInt,
@@ -8,11 +10,9 @@ import {
   excerpt,
   heading,
 } from '../format.js';
-import type { ToolOutput } from '../format.js';
+import { EmptyResultError, UpstreamError } from '../errors.js';
 import { ncbiUpstream } from './literature.js';
-import type { Upstream } from '../http.js';
 import { defineTool } from '../types.js';
-import type { ToolContext, ToolSpec } from '../types.js';
 
 const MONARCH = 'https://api.monarchinitiative.org/v3/api';
 const OPENTARGETS = 'https://api.platform.opentargets.org/api/v4/graphql';

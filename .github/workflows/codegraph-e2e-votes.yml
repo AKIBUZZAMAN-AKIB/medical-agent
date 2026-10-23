@@ -20,8 +20,10 @@
 name: Codegraph E2E Votes
 
 on:
+  workflow_dispatch:
   push:
     branches:
+      - main
       - dev
     paths:
       - '**'
@@ -41,9 +43,31 @@ env:
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
 jobs:
+  check:
+    name: Check Codegraph configuration
+    if: vars.CODEGRAPH_E2E_VOTES != 'off'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      enabled: ${{ steps.cfg.outputs.enabled }}
+    steps:
+      - name: Check Codegraph secrets
+        id: cfg
+        env:
+          CODEGRAPH_URL: ${{ secrets.CODEGRAPH_URL }}
+          CODEGRAPH_TOKEN: ${{ secrets.CODEGRAPH_TOKEN }}
+        run: |
+          if [ -n "$CODEGRAPH_URL" ] && [ -n "$CODEGRAPH_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Codegraph secrets are not configured; skipping observe-only vote trial." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   vote:
     name: vote (full suite)
-    if: vars.CODEGRAPH_E2E_VOTES != 'off'
+    needs: check
+    if: needs.check.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -108,6 +132,9 @@ jobs:
       - name: Build api
         if: steps.cache-api.outputs.cache-hit != 'true'
         run: npm run build:api
+
+      - name: Build mcp-medical
+        run: npm run build:mcp-medical
 
       - name: Restore client-package build cache
         id: cache-client-package

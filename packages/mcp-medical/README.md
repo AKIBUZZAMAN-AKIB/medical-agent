@@ -21,15 +21,15 @@ the research method are written down.
 
 ## Tools
 
-| Group | Tools | Upstreams |
-| --- | --- | --- |
-| `literature` | `pubmed_search`, `pubmed_article`, `read_full_text`, `europe_pmc_search`, `literature_citations` | NCBI E-utilities, Europe PMC (search and JATS full text), OpenAlex |
-| `drugs` | `drug_lookup`, `drug_label`, `drug_interaction_check`, `drug_safety_actions`, `drug_adverse_event_summary`, `drug_class_atc`, `drug_bioactivity`, `compound_properties`, `drug_lactation` | RxNav, DailyMed SPL, openFDA (labels, enforcement, FAERS), ChEMBL, PubChem, LactMed via Europe PMC |
-| `conditions` | `condition_lookup`, `condition_targets_and_drugs`, `gene_lookup`, `protein_lookup`, `ontology_search`, `icd10cm_code`, `variant_clinical_significance` | Monarch Initiative, Open Targets, UniProt, EBI OLS4, NLM Clinical Tables, ClinVar |
-| `trials` | `clinical_trials` | ClinicalTrials.gov API v2 |
-| `epidemiology` | `health_statistics` | WHO Global Health Observatory |
-| `devices` | `device_approval`, `safety_recalls` | openFDA 510(k), device recall and food enforcement |
-| `clinical` | `provider_lookup`, `plain_language_summary` | NPPES NPI Registry v2.1, Wikipedia |
+| Group          | Tools                                                                                                                                                                                     | Upstreams                                                                                          |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `literature`   | `pubmed_search`, `pubmed_article`, `read_full_text`, `europe_pmc_search`, `literature_citations`                                                                                          | NCBI E-utilities, Europe PMC (search and JATS full text), OpenAlex                                 |
+| `drugs`        | `drug_lookup`, `drug_label`, `drug_interaction_check`, `drug_safety_actions`, `drug_adverse_event_summary`, `drug_class_atc`, `drug_bioactivity`, `compound_properties`, `drug_lactation` | RxNav, DailyMed SPL, openFDA (labels, enforcement, FAERS), ChEMBL, PubChem, LactMed via Europe PMC |
+| `conditions`   | `condition_lookup`, `condition_targets_and_drugs`, `gene_lookup`, `protein_lookup`, `ontology_search`, `icd10cm_code`, `variant_clinical_significance`                                    | Monarch Initiative, Open Targets, UniProt, EBI OLS4, NLM Clinical Tables, ClinVar                  |
+| `trials`       | `clinical_trials`                                                                                                                                                                         | ClinicalTrials.gov API v2                                                                          |
+| `epidemiology` | `health_statistics`                                                                                                                                                                       | WHO Global Health Observatory                                                                      |
+| `devices`      | `device_approval`, `safety_recalls`                                                                                                                                                       | openFDA 510(k), device recall and food enforcement                                                 |
+| `clinical`     | `provider_lookup`, `plain_language_summary`                                                                                                                                               | NPPES NPI Registry v2.1, Wikipedia                                                                 |
 
 Group the tools any way the deployment needs — see `MEDICAL_TOOL_GROUPS` below.
 
@@ -41,13 +41,13 @@ alongside the MCP tools. They are built-ins rather than MCP tools on purpose: a
 stdio MCP server is never told which user called it, so it could not enforce
 per-user scoping on what it read.
 
-| Tool | Reads | Needs |
-| --- | --- | --- |
-| `set_memory` / `delete_memory` | Durable facts about one person, injected with their write date on every request | a `memory:` block in `librechat.yaml` |
-| `list_profiles` | Who is on file for this user, with a fact count each; no facts | `memory_profiles: true` |
-| `read_profile` | One person's stored facts, each dated | the same |
-| `conversation_history` | This user's own past conversations, newest first, filterable by date and full text | the `conversation_history` capability |
-| `conversation_transcript` | One session's messages in order, each dated, paged | the same capability |
+| Tool                           | Reads                                                                              | Needs                                 |
+| ------------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------- |
+| `set_memory` / `delete_memory` | Durable facts about one person, injected with their write date on every request    | a `memory:` block in `librechat.yaml` |
+| `list_profiles`                | Who is on file for this user, with a fact count each; no facts                     | `memory_profiles: true`               |
+| `read_profile`                 | One person's stored facts, each dated                                              | the same                              |
+| `conversation_history`         | This user's own past conversations, newest first, filterable by date and full text | the `conversation_history` capability |
+| `conversation_transcript`      | One session's messages in order, each dated, paged                                 | the same capability                   |
 
 `conversation_history` is a new opt-in capability
 (`endpoints.agents.capabilities`), off by default, because it hands a model the
@@ -119,7 +119,7 @@ npm run seed-medical-agent                   # upserts agent id "medical_researc
 
 The seed script starts the MCP server as a real client first, so a server that
 does not boot is reported before anything is written. It upserts on the agent id
-from `agent/agent.json` and therefore *overwrites* an existing agent with that
+from `agent/agent.json` and therefore _overwrites_ an existing agent with that
 id — edit `agent/agent.json` and `agent/instructions.md` rather than the agent in
 the database, then re-run. Ownership goes to `--author=<email|username>`, or to
 the oldest `ADMIN` when that is omitted; the agent is visible only to its owner
@@ -130,19 +130,19 @@ unless you pass `--share-with-role=<role identifier>`.
 Everything is optional. With no configuration the server uses every tool and
 needs no credentials.
 
-| Variable | Default | Effect |
-| --- | --- | --- |
-| `MEDICAL_TOOL_GROUPS` | all | Publish only these groups, e.g. `literature,drugs`. Small free models degrade badly against 25 tools. |
-| `MEDICAL_TOOL_EXCLUDE` | none | Hide individual tools, e.g. `MEDICAL_TOOL_EXCLUDE=plain_language_summary`. |
-| `NCBI_API_KEY` | unset | Raises E-utilities from 3 to 10 requests/second. |
-| `OPENFDA_API_KEY` | unset | Raises the openFDA daily cap from 1,000 to 100,000 requests. |
-| `MEDICAL_CONTACT_EMAIL` | unset | Contact address sent to NCBI and the polite pools. Set it. |
-| `MEDICAL_USER_AGENT` | LibreChat MCP Medical | Identification string several public APIs require. |
-| `MEDICAL_REQUEST_TIMEOUT_MS` | `20000` | Per-request budget. |
-| `MEDICAL_MAX_ATTEMPTS` | `3` | Total attempts per request, including the first. |
-| `MEDICAL_CACHE_TTL_MS` | `300000` | How long a successful GET stays cacheable. |
-| `MEDICAL_CACHE_MAX_ENTRIES` | `500` | In-memory cache bound. |
-| `MEDICAL_MAX_RESULT_CHARS` | `24000` | Hard cap on characters returned to the model per result. |
+| Variable                     | Default               | Effect                                                                                                |
+| ---------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `MEDICAL_TOOL_GROUPS`        | all                   | Publish only these groups, e.g. `literature,drugs`. Small free models degrade badly against 25 tools. |
+| `MEDICAL_TOOL_EXCLUDE`       | none                  | Hide individual tools, e.g. `MEDICAL_TOOL_EXCLUDE=plain_language_summary`.                            |
+| `NCBI_API_KEY`               | unset                 | Raises E-utilities from 3 to 10 requests/second.                                                      |
+| `OPENFDA_API_KEY`            | unset                 | Raises the openFDA daily cap from 1,000 to 100,000 requests.                                          |
+| `MEDICAL_CONTACT_EMAIL`      | unset                 | Contact address sent to NCBI and the polite pools. Set it.                                            |
+| `MEDICAL_USER_AGENT`         | LibreChat MCP Medical | Identification string several public APIs require.                                                    |
+| `MEDICAL_REQUEST_TIMEOUT_MS` | `20000`               | Per-request budget.                                                                                   |
+| `MEDICAL_MAX_ATTEMPTS`       | `3`                   | Total attempts per request, including the first.                                                      |
+| `MEDICAL_CACHE_TTL_MS`       | `300000`              | How long a successful GET stays cacheable.                                                            |
+| `MEDICAL_CACHE_MAX_ENTRIES`  | `500`                 | In-memory cache bound.                                                                                |
+| `MEDICAL_MAX_RESULT_CHARS`   | `24000`               | Hard cap on characters returned to the model per result.                                              |
 
 ## Behaviour that matters
 
@@ -222,7 +222,7 @@ needs no credentials.
   NLM/NICHD peer-reviewed Drugs and Lactation Database, reached through Europe
   PMC — NLM runs no API of its own, and Bookshelf's Entrez records carry no text
   through `efetch`. A title search for "metformin" returns the LactMed monograph
-  *and* seventeen other drugs that merely mention it, so the record is selected
+  _and_ seventeen other drugs that merely mention it, so the record is selected
   by requiring a Bookshelf monograph whose title resolves to the same substance;
   nothing is ever returned in its place, and a near miss is reported as a pointer
   rather than answered with. "Compatible with breastfeeding" is passed on with
@@ -230,7 +230,7 @@ needs no credentials.
 - **Two layers of tests, because they answer different questions.** The jest
   suite proves the tools parse upstreams correctly and that the safety rules are
   still written down. `eval/` is the only thing that measures whether a model
-  *follows* those rules: 19 adversarial cases drawn from published evaluation of
+  _follows_ those rules: 19 adversarial cases drawn from published evaluation of
   models in this role (sycophancy, under-triage, self-harm alerting, retired
   conventions, over-refusal), run against a real model. The grader itself is
   unit-tested, because an evaluation that silently passes everything is worse

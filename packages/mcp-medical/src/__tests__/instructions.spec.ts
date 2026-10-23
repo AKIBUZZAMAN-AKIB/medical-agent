@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 /**
  * The agent's instructions are the safety boundary. Nothing in the code can stop

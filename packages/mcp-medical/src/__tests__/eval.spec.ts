@@ -1,5 +1,5 @@
-import { CASES, RISK_CLASSES, grade, systemPrompt } from '../../eval/harness.js';
 import type { EvalCase } from '../../eval/harness.js';
+import { CASES, RISK_CLASSES, grade, systemPrompt } from '../../eval/harness.js';
 
 /**
  * The evaluation harness is the only thing in this package that measures whether

@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { EmptyResultError } from '../errors.js';
+import type { SourceRef, ToolOutput } from '../format.js';
+import type { ToolContext, ToolSpec } from '../types.js';
+import type { ServerEnv } from '../env.js';
+import type { Upstream } from '../http.js';
 import {
   bulletList,
   clampInt,
@@ -8,13 +11,10 @@ import {
   excerpt,
   heading,
 } from '../format.js';
-import type { SourceRef, ToolOutput } from '../format.js';
-import { parsePubmedArticles } from '../pubmed-xml.js';
 import { parseFullTextMetadata, parseFullTextSections, parseFullTextTables } from '../jats-xml.js';
-import type { ServerEnv } from '../env.js';
-import type { Upstream } from '../http.js';
+import { parsePubmedArticles } from '../pubmed-xml.js';
+import { EmptyResultError } from '../errors.js';
 import { defineTool } from '../types.js';
-import type { ToolContext, ToolSpec } from '../types.js';
 
 export const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
 const EPMC = 'https://www.ebi.ac.uk/europepmc/webservices/rest';

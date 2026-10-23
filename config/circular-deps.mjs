@@ -54,6 +54,14 @@ const targets = [
     minModules: 100,
   },
   {
+    name: '@librechat/mcp-medical',
+    dir: 'packages/mcp-medical',
+    entries: ['src/index.ts', 'src/server.ts'],
+    alias: {},
+    internal: [],
+    minModules: 15,
+  },
+  {
     name: 'api server',
     dir: 'api',
     entries: ['server/index.js'],

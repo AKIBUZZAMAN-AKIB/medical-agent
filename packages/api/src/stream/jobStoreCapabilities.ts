@@ -1,14 +1,35 @@
 import type { IJobStore, IJobStoreV2 } from './interfaces/IJobStore';
 
-/**
- * Methods added by the v2 generation-store contract.
- *
- * Keep this list in lockstep with {@link IJobStoreV2}: it is the runtime
- * boundary that lets the public {@link IJobStore} type remain source-compatible
- * while rejecting an implementation that cannot provide the atomic guarantees
- * required by the current generation manager.
- */
-export const JOB_STORE_V2_REQUIRED_METHODS = [
+export type JobStoreV2RequiredMethod =
+  | 'acknowledgeReplacedJobs'
+  | 'markProviderExecutionDrained'
+  | 'beginProviderExecution'
+  | 'getCleanupBlockingJobIdsByUser'
+  | 'finalizeTerminalPersistence'
+  | 'transitionStatusAndDrainSteers'
+  | 'takeoverIdempotencyKey'
+  | 'markIdempotencyKeyStarted'
+  | 'adoptIdempotencyKeyForJob'
+  | 'enqueueSteerVersioned'
+  | 'enqueueSteerWithReceipt'
+  | 'getSteerReceipt'
+  | 'restoreClaimedSteers'
+  | 'admitTerminalSteers'
+  | 'peekClaimedSteers'
+  | 'armSteer'
+  | 'armSteerVersioned'
+  | 'downgradeSteerPreempts'
+  | 'claimParkedSteersDetailed'
+  | 'consumeParkedSteer'
+  | 'discardSteerLeftover'
+  | 'settleEarlyBufferRecovery'
+  | 'finalizeEarlyBufferOverflow'
+  | 'hasSubscriberAttached'
+  | 'claimFirstSubscriber'
+  | 'detachSubscriber'
+  | 'hasActiveSubscriber';
+
+const JOB_STORE_V2_METHODS = [
   'acknowledgeReplacedJobs',
   'markProviderExecutionDrained',
   'beginProviderExecution',
@@ -36,9 +57,18 @@ export const JOB_STORE_V2_REQUIRED_METHODS = [
   'claimFirstSubscriber',
   'detachSubscriber',
   'hasActiveSubscriber',
-] as const satisfies ReadonlyArray<keyof IJobStoreV2>;
+] as const satisfies ReadonlyArray<JobStoreV2RequiredMethod & keyof IJobStoreV2>;
 
-export type JobStoreV2RequiredMethod = (typeof JOB_STORE_V2_REQUIRED_METHODS)[number];
+/**
+ * Methods added by the v2 generation-store contract.
+ *
+ * Keep this list in lockstep with {@link IJobStoreV2}: it is the runtime
+ * boundary that lets the public {@link IJobStore} type remain source-compatible
+ * while rejecting an implementation that cannot provide the atomic guarantees
+ * required by the current generation manager.
+ */
+export const JOB_STORE_V2_REQUIRED_METHODS: readonly JobStoreV2RequiredMethod[] =
+  JOB_STORE_V2_METHODS;
 
 type MethodKeys<T> = {
   [Key in keyof T]-?: NonNullable<T[Key]> extends (...args: never[]) => unknown ? Key : never;
@@ -50,8 +80,10 @@ type SameUnion<Left, Right> = [Left] extends [Right]
     : false
   : false;
 type AssertTrue<Value extends true> = Value;
-/** Compile-time tripwire: adding a v2-only method requires updating the runtime assertion. */
-type _AllV2MethodsHaveRuntimeChecks = AssertTrue<SameUnion<V2OnlyMethod, JobStoreV2RequiredMethod>>;
+/** Compile-time tripwire: adding a v2-only method requires updating both the union and runtime array. */
+type _AllV2MethodsHaveRuntimeChecks = AssertTrue<
+  SameUnion<V2OnlyMethod, (typeof JOB_STORE_V2_METHODS)[number]>
+>;
 
 /** Return the v2 capabilities absent from a legacy-compatible store. */
 export function getMissingJobStoreV2Methods(store: IJobStore): JobStoreV2RequiredMethod[] {

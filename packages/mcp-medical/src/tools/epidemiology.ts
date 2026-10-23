@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { EmptyResultError } from '../errors.js';
-import { bulletList, clampInt, composeResult, definitionList, heading } from '../format.js';
+import type { ToolContext, ToolSpec } from '../types.js';
 import type { ToolOutput } from '../format.js';
 import type { Upstream } from '../http.js';
+import { bulletList, clampInt, composeResult, definitionList, heading } from '../format.js';
+import { EmptyResultError } from '../errors.js';
 import { defineTool } from '../types.js';
-import type { ToolContext, ToolSpec } from '../types.js';
 
 const GHO = 'https://ghoapi.azureedge.net/api';
 const ONE_DAY = 86_400_000;

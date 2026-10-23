@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { EmptyResultError, UpstreamError } from '../errors.js';
-import { clampInt, composeResult, definitionList, excerpt, heading } from '../format.js';
+import type { ToolContext, ToolSpec } from '../types.js';
 import type { ToolOutput } from '../format.js';
 import type { Upstream } from '../http.js';
+import { clampInt, composeResult, definitionList, excerpt, heading } from '../format.js';
+import { EmptyResultError, UpstreamError } from '../errors.js';
 import { defineTool } from '../types.js';
-import type { ToolContext, ToolSpec } from '../types.js';
 
 const OPENFDA = 'https://api.fda.gov';
 const ONE_HOUR = 3_600_000;

@@ -1,6 +1,6 @@
+import { parseFullTextMetadata, parseFullTextSections, parseFullTextTables } from '../jats-xml.js';
 import { parsePubmedArticles, parsePubmedBookArticles, decodeEntities } from '../pubmed-xml.js';
 import { extractSplSections, findSplSection, normalizeSectionName } from '../spl-xml.js';
-import { parseFullTextMetadata, parseFullTextSections, parseFullTextTables } from '../jats-xml.js';
 
 const PUBMED_XML = `<?xml version="1.0"?>
 <PubmedArticleSet>

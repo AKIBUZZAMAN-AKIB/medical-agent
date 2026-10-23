@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { EmptyResultError, UpstreamError } from '../errors.js';
+import type { ToolContext, ToolSpec } from '../types.js';
+import type { HttpClient, Upstream } from '../http.js';
+import type { ToolOutput } from '../format.js';
+import type { ServerEnv } from '../env.js';
 import {
   bulletList,
   clampInt,
@@ -9,14 +12,11 @@ import {
   heading,
   normalizeText,
 } from '../format.js';
-import type { ToolOutput } from '../format.js';
-import type { ServerEnv } from '../env.js';
-import type { HttpClient, Upstream } from '../http.js';
-import { parsePubmedBookArticles } from '../pubmed-xml.js';
-import { defineTool } from '../types.js';
-import type { ToolContext, ToolSpec } from '../types.js';
 import { extractSplSections, findSplSection } from '../spl-xml.js';
 import { EUTILS, ncbiParams, ncbiUpstream } from './literature.js';
+import { EmptyResultError, UpstreamError } from '../errors.js';
+import { parsePubmedBookArticles } from '../pubmed-xml.js';
+import { defineTool } from '../types.js';
 
 const RXNAV = 'https://rxnav.nlm.nih.gov/REST';
 const OPENFDA = 'https://api.fda.gov';

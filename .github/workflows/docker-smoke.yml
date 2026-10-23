@@ -2,6 +2,27 @@ name: Docker Build Smoke Tests
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - '.github/workflows/docker-smoke.yml'
+      - '.dockerignore'
+      - 'Dockerfile'
+      - 'Dockerfile.multi'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'api/**'
+      - 'client/**'
+      - 'config/**'
+      - 'skill/**'
+      - 'packages/api/**'
+      - 'packages/client/**'
+      - 'packages/data-provider/**'
+      - 'packages/data-schemas/**'
+      - 'packages/mcp-medical/**'
+      - '!**.md'
   pull_request:
     paths:
       - '.github/workflows/docker-smoke.yml'
@@ -18,6 +39,7 @@ on:
       - 'packages/client/**'
       - 'packages/data-provider/**'
       - 'packages/data-schemas/**'
+      - 'packages/mcp-medical/**'
       - '!**.md'
 
 permissions:
