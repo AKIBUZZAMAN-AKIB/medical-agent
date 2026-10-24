@@ -122,7 +122,6 @@ describe('AdminPortalView 10-Module Medical AI Command Center', () => {
 
   beforeEach(() => {
     mockRole = 'ADMIN';
-    jest.spyOn(window, 'setInterval').mockReturnValue(0);
     global.fetch = jest.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes('/agents')) {
@@ -210,7 +209,7 @@ describe('AdminPortalView 10-Module Medical AI Command Center', () => {
         ok: true,
         json: async () => sampleOverview,
       } as Response;
-    }) as jest.Mock;
+    }) as unknown as typeof fetch;
   });
 
   afterEach(() => {
