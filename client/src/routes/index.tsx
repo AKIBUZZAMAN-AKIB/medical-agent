@@ -46,6 +46,11 @@ const loadInsightsView = () =>
     Component: m.default,
   }));
 
+const loadAdminPortalView = () =>
+  import('~/components/Admin').then((m) => ({
+    Component: m.default,
+  }));
+
 const loadProjectsView = () =>
   import('~/components/Projects').then((m) => ({
     Component: m.ProjectsView,
@@ -123,6 +128,14 @@ export const router = createBrowserRouter(
           ],
         },
         dashboardRoutes,
+        {
+          path: 'admin',
+          lazy: loadAdminPortalView,
+        },
+        {
+          path: 'admin/:section',
+          lazy: loadAdminPortalView,
+        },
         {
           path: '/',
           element: <Root />,

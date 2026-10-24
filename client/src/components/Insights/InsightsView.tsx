@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Check, Info, Minus, Search } from 'lucide-react';
 import {
   Button,
@@ -748,6 +748,15 @@ export default function InsightsView() {
         <div className="flex min-w-0 items-center gap-3">
           {isSmallScreen && <OpenSidebar />}
           <h1 className="text-base font-semibold">{localize('com_insights_title')}</h1>
+          {String((user as { role?: string } | undefined)?.role ?? '').toUpperCase() ===
+            'ADMIN' && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-300"
+            >
+              {'🛡️'} {localize('com_ui_admin_command_center')}
+            </Link>
+          )}
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2 md:flex-nowrap">
           {data && (
