@@ -663,7 +663,7 @@ Also audited and clean: the ten `agent_dyn_*` presets in the same admin route al
 name tools that exist. The primary agent's catalogue is the 33 published tools
 plus `memory`, `conversation_history`, `conversation_transcript`.
 
-### F-25 — `specialist_subagent_blueprint` is a hand-authored clinical table · **P2 · certain · OPEN**
+### F-25 — `specialist_subagent_blueprint` is a hand-authored clinical table · **P2 · certain · FIXED (2026-10-27)**
 `packages/mcp-medical/src/tools/orchestration.ts` carries `SPECIALTY_PROFILES`:
 six profiles, each a keyword regex mapped to recommended tools, `redFlags` written
 as clinical escalation advice, and `contextQuestions`, with one `/.*/` catch-all
@@ -682,7 +682,17 @@ tool and its table — the deterministic parts it claims to provide already exis
 to what it is — a template generator over an author-maintained profile list — and
 drop the red-flag text, which is the part that reads as advice.
 
-### F-26 — `LAB_RANGES` is unversioned clinical reference data · **P2 · probable · OPEN**
+**Resolution (2026-10-27).** Option (2), taken further: `SPECIALTY_PROFILES` and its
+five keyword regexes are deleted. The tool now renders a blueprint from what the
+caller supplies — `specialty`, `clinical_focus`, and optional `red_flags`,
+`context_questions`, `tools` — lists the live MCP catalogue (`selectTools(env)`)
+when no tool subset is given, reports unknown tool names instead of dropping them,
+and states in its own output that no profile was matched and that a blueprint with
+no supplied red flags has none. No clinical text is generated. Guarded by
+`src/__tests__/audit-regressions.spec.ts` ("no predefined clinical keyword list
+drives behaviour").
+
+### F-26 — `LAB_RANGES` is unversioned clinical reference data · **P2 · probable · PARTIALLY FIXED (2026-10-27)**
 `packages/mcp-medical/src/tools/calculators.ts:602` holds 26 analytes with
 reference ranges, `panicLow`/`panicHigh` thresholds and narrative notes
 ("Thrombocytopenia — strictly avoid NSAIDs… emergency hospital evaluation if
@@ -693,6 +703,17 @@ change to a threshold is invisible in review. Reference data is the correct plac
 for curated values — the defect is that they are unattributed and unversioned,
 not that they exist. Recommended: one source field per analyte, a
 `LAB_RANGES_VERSION` exported beside the table and surfaced in the tool result.
+
+**Partial resolution (2026-10-27).** Every narrative note in `LAB_RANGES` was
+replaced with a direction-only statement ("Below/Above the adult reference
+interval reported on this line"). The prescriptive text ("strictly avoid
+NSAIDs/aspirin; emergency hospital evaluation if <50,000") and the named diagnoses
+("critical clue in Dengue plasma leakage") are gone: they were clinical advice
+typed into a lookup table and printed with the authority of a measurement. The
+numeric intervals and panic thresholds remain — they are arithmetic, and the tool
+is explicit that they are conventional-unit adult intervals. **Still open:** no
+per-analyte source and no `LAB_RANGES_VERSION`; that needs a laboratory standard to
+cite, which is the owner's decision, not something to invent.
 
 ### F-27 — The shipped config hard-coded one machine's Node interpreter · **P1 · certain · FIXED**
 `librechat.pure-doctor.yaml` launched the medical MCP server with
@@ -872,7 +893,7 @@ to clear the relationship is told it succeeded. Unreachable from
 `update_profile` today (the tool only passes non-empty strings), which is why it is
 recorded rather than changed.
 
-### F-40 — The admin triage panel is still an authored keyword lexicon · **P2 · certain · OPEN (requirement)**
+### F-40 — The admin triage panel is still an authored keyword lexicon · **P2 · certain · FIXED (2026-10-27, option (a))**
 F-23 made an unmatched message read `unknown` instead of `routine`, but the matcher
 itself is still ~90 lines of hand-written symptom words in two languages plus hard-coded
 crisis numbers (`api/server/routes/admin/medicalCommand.js`, `classifyClinicalMessageRisk`).
@@ -884,6 +905,79 @@ cannot do that today because it has no classifier to call, so every row would re
 deployment configured; (b) keep the matcher but label the panel as an unvalidated
 keyword screen. Not changed unilaterally — (a) is a feature change and (b) needs a
 wording decision.
+
+**Resolution (2026-10-27).** Option (a), implemented as described plus one small
+addition to the contract:
+
+- `emergency_triage_check` now emits a machine-readable sentinel line,
+  `<<<TRIAGE_DECISION {"severity","severityCode","decided","classifier","ruleset"}>>>`
+  (`renderDecisionSentinel`, `packages/mcp-medical/src/tools/emergency.ts`). It is
+  additive text; nothing else in the tool changed.
+- `api/server/routes/admin/triageEvidence.js` (new, pure) reads those sentinels out
+  of persisted tool results and returns, per conversation, the highest **decided**
+  severity, the decided/undecided counts, the classifier names and the tools that
+  ran. It contains no clinical vocabulary and no regex over message text.
+- `/overview`, `/triage-safety` and `/consultations` now report that evidence.
+  `classifyClinicalMessageRisk()` — the ~90-line lexicon — is deleted, together with
+  the `dengueAlerts` / `pgxAlerts` KPI counters (which counted matches of
+  `/dengue|ডেঙ্গু/` and `/cyp2c19|hla-b|…/` over patient sentences).
+- `specialty` is now the handling agent (from `conversations.agent_id`), and
+  `flags` is the list of medical tools the conversation actually invoked. Both are
+  reads of the record; neither is inferred from wording.
+- Severity vocabulary became the engine's own (`none … unknown`) plus
+  `unassessed`. `unassessed` replaces the old `unknown`-from-a-miss so that "the
+  classifier could not decide" and "nobody ever assessed this" are different rows.
+- **Honest consequence:** if a deployment never invokes `emergency_triage_check`,
+  every row reads `unassessed`. That is a true statement about the record and is
+  surfaced as a KPI (`unassessedMessages`), not hidden.
+- Tests: `api/server/routes/admin/__tests__/triageEvidence.spec.js` (8 unit tests),
+  the four rewritten tests in `medicalCommand.spec.js`, including one that feeds the
+  exact sentence the old lexicon scored as `emergency` and asserts `unassessed`.
+
+### F-41 — The CPIC tool keyword-matched drug names to print typed allele frequencies · **P2 · certain · FIXED (2026-10-27)**
+`packages/mcp-medical/src/tools/pharmacogenomics.ts` carried
+`POPULATION_PGX_NOTES`: seven paragraphs of "South Asian population alert" text,
+each attached to a `RegExp` of drug/gene names, filtered against
+`${drugQuery} ${geneQuery} ${pairs…}`. The alert therefore fired on a *word*, not on
+CPIC guidance, and the allele-frequency figures were typed in this repository with
+no source attached to the claim. Deleted. What is emitted now is derived from the
+CPIC rows themselves — a "Pairs With CPIC Guidance In This Result" list built from
+`genesymbol`/`drugname`/`cpiclevel`, with the guideline URL as the place to read
+population data. Test asserts the alert text can no longer appear.
+
+### F-42 — `lab_result_interpreter` printed a named diagnosis and a management instruction · **P2 · certain · FIXED (2026-10-27)**
+A numeric test in `calculators.ts` (platelets <100 plus raised haematocrit or
+leukopenia) emitted "Dengue Plasma-Leakage / Viral Hemorrhagic Warning Pattern …"
+followed by treatment instructions. That is an author-authored diagnosis and an
+author-authored prescription rendered as laboratory output. Replaced with a
+statement of what was measured: the two values, that both are outside the
+reference interval, and an explicit "reported as measurements only: this tool does
+not name a cause, a diagnosis or a treatment". Test asserts `Plasma-Leakage` and
+`Warning Pattern` are gone.
+
+### F-43 — Preset specialist blueprints shipped authored clinical instruction paragraphs · **P3 · certain · FIXED (2026-10-27)**
+`PRESET_SPECIALTY_BLUEPRINTS` in `api/server/routes/admin/medicalCommand.js` gave
+each of the ten one-click sub-agents a hand-written paragraph of clinical rules
+("screen immediately for mucosal blistering … after anticonvulsants/allopurinol/
+sulfonamides", "audit CYP2C19/CYP2D6 … check QTc", crisis numbers). Those
+paragraphs were pasted into every spawned sub-agent as if they were reviewed
+policy. The blueprints remain (operators want a starting point) but their
+`instructions` are now one neutral template that carries no clinical claim: take
+severity from `emergency_triage_check`, take facts from the listed MCP tools with
+citations, never diagnose or change a dose, and let the deployment owner supply
+any additional clinical content.
+
+### F-44 — Clinical reference constants remain authored and unversioned · **P2 · probable · OPEN**
+After F-25/F-26/F-40–F-43 the remaining author-maintained clinical data is numeric:
+`LAB_RANGES` intervals and panic thresholds, the calculator point tables (CURB-65,
+CHA₂DS₂-VASc, HAS-BLED, MELD-Na, Child-Pugh, Wells, HEART, corrected calcium, anion
+gap, QTc, paediatric mg/kg), and the South Asian BMI cut-offs. None of them match
+text and none of them decide severity, so they are not the defect the user's rule
+targets — but they are still unpublished clinical constants with no citation and
+no version. Closing this needs a chosen source per table (WHO / lab standard /
+society guideline) and a version surfaced in tool output. **Not done here:** picking
+a standard is an owner decision, and inventing one would be the same mistake in a
+different file.
 
 ## H. Performance and scalability
 
@@ -1109,5 +1203,10 @@ naive keyword implementation would ship:
 | F-34 (admin endpoints scanning whole collections) | **FIXED** | `/triage-safety` looks up only the authors it displays; `/consultations` fetches messages only for the conversations shown. See F-34. |
 | F-35 (`unknown` outranking `emergency`) | **NOT FIXED** | Documented and tested behaviour; changing it needs an owner decision (F-35 lists both options). |
 | F-36 / F-37 / F-38 / F-39 (byte budget after buffering, swallowed enrichment, no-op flag, unclearable field) | **NOT FIXED** | Recorded with reproductions; each is small and independent. |
-| F-40 (admin triage panel is a keyword lexicon) | **NOT FIXED** | Requirement gap; F-40 lists the two honest options. |
+| F-40 (admin triage panel is a keyword lexicon) | **FIXED** | Lexicon deleted; severity now read from persisted `emergency_triage_check` sentinels, `specialty` from the handling agent, `flags` from the tools invoked. `dengueAlerts`/`pgxAlerts` KPIs removed. 8 unit tests + 4 API tests, including the old lexicon's own trigger sentence asserting `unassessed`. |
+| F-25 (blueprint profile table) | **FIXED** | `SPECIALTY_PROFILES` deleted; blueprint renders caller-supplied content and the live tool catalogue. |
+| F-26 / F-42 (authored lab interpretation) | **FIXED (partial for F-26)** | Notes are direction-only; the named diagnosis and management instruction are gone. Intervals still unversioned → F-44. |
+| F-41 (CPIC population alerts by keyword) | **FIXED** | `POPULATION_PGX_NOTES` deleted; output derived from the CPIC rows. |
+| F-43 (preset blueprints carrying clinical instructions) | **FIXED** | Neutral instructions template; no clinical rules preloaded. |
+| F-44 (numeric clinical constants unversioned) | **NOT FIXED** | Recorded; needs an owner-chosen source per table. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |

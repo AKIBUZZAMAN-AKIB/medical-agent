@@ -51,54 +51,44 @@ interface CpicRecommendationRow {
   comments?: string;
 }
 
-const POPULATION_PGX_NOTES: Array<{ match: RegExp; note: string }> = [
-  {
-    match: /\b(carbamazepine|oxcarbazepine|phenytoin|fosphenytoin|lamotrigine)\b/i,
-    note: 'South & Southeast Asian Population Alert: HLA-B*15:02 allele prevalence is markedly elevated across South/Southeast Asian populations (including Bangladesh, India, Malaysia, Thailand, and Southern China) and confers a high risk of life-threatening Stevens-Johnson syndrome / toxic epidermal necrolysis (SJS/TEN) with carbamazepine and related aromatic antiepileptics.',
-  },
-  {
-    match: /\b(clopidogrel|CYP2C19)\b/i,
-    note: 'South Asian Population Alert: CYP2C19 loss-of-function alleles (*2, *3) occur in roughly 50%–60% of South Asian individuals, impairing bioactivation of the prodrug clopidogrel and increasing major adverse cardiovascular/cerebrovascular events after PCI or acute coronary syndrome.',
-  },
-  {
-    match: /\b(allopurinol)\b/i,
-    note: 'Severe Cutaneous Adverse Reaction Alert: HLA-B*58:01 carriage substantially increases the risk of allopurinol-induced SCAR/DRESS/SJS-TEN, compounded further in chronic kidney disease.',
-  },
-  {
-    match: /\b(azathioprine|mercaptopurine|thioguanine|NUDT15|TPMT)\b/i,
-    note: 'South & East Asian Population Alert: Inherited NUDT15 loss-of-function variants are substantially more frequent than TPMT deficiency across South and East Asian patients and cause severe thiopurine-induced myelosuppression at standard doses.',
-  },
-  {
-    match: /\b(codeine|tramadol|CYP2D6)\b/i,
-    note: 'Opioid Metabolism Alert: CYP2D6 ultrarapid metabolizers convert codeine/tramadol into excessive active morphine/M1 opioid metabolites (life-threatening respiratory depression, especially in children and breastfed infants), while poor metabolizers experience inadequate analgesia.',
-  },
-  {
-    match: /\b(simvastatin|atorvastatin|rosuvastatin|SLCO1B1|ABCG2)\b/i,
-    note: 'Statin Myopathy Alert: SLCO1B1 decreased/poor function variants (and ABCG2 for rosuvastatin) elevate systemic statin exposure and statin-associated musculoskeletal symptoms / myopathy risk.',
-  },
-  {
-    match: /\b(fluorouracil|capecitabine|DPYD)\b/i,
-    note: 'Oncology Fluoropyrimidine Toxicity Alert: DPYD decreased/no-function variants cause severe or fatal fluoropyrimidine mucositis, neutropenia, neurotoxicity, and diarrhea without upfront dose reduction or alternative therapy.',
-  },
-];
-
+/**
+ * CPIC pharmacogenomics guideline lookup.
+ *
+ * This file used to carry `POPULATION_PGX_NOTES`: seven hand-written "South
+ * Asian population alert" paragraphs, each attached to a `RegExp` of drug and
+ * gene names (carbamazepine|phenytoin|..., clopidogrel|CYP2C19, ...). The drug
+ * subject was then keyword-matched against the user's query to decide which
+ * paragraphs to print. Two things were wrong with that: the alert fired on a
+ * *word*, regardless of whether CPIC had any guidance for that pair, and the
+ * allele frequencies were typed here rather than read from the guideline — so
+ * they could not be reviewed or updated with the source.
+ *
+ * They are gone. What replaces them is data: the gene-drug pairs, CPIC/ClinPGx
+ * levels and testing status come from the CPIC API responses, and the population
+ * allele-frequency context is left to the CPIC guideline itself (whose URL is in
+ * the sources) instead of being paraphrased from memory in this file.
+ */
 export const pharmacogenomicsTools = [
   defineTool({
     name: 'pharmacogenomics_guideline',
     group: 'pharmacogenomics',
     title: 'CPIC pharmacogenomics gene-drug guideline & phenotype lookup',
     description:
-      'Query live Clinical Pharmacogenetics Implementation Consortium (CPIC v1.55, api.cpicpgx.org) gene-drug pairs, CPIC/ClinPGx evidence levels, FDA PGx testing status, and phenotype-specific clinical prescribing recommendations (e.g. CYP2C19 + clopidogrel, HLA-B*15:02 + carbamazepine, CYP2D6 + codeine, SLCO1B1 + statins, NUDT15/TPMT + azathioprine, DPYD + fluoropyrimidines). Includes South Asian population allele prevalence alerts.',
+      'Query live Clinical Pharmacogenetics Implementation Consortium (CPIC v1.55, api.cpicpgx.org) gene-drug pairs, CPIC/ClinPGx evidence levels, FDA PGx testing status, and phenotype-specific clinical prescribing recommendations (e.g. CYP2C19 + clopidogrel, HLA-B*15:02 + carbamazepine, CYP2D6 + codeine, SLCO1B1 + statins, NUDT15/TPMT + azathioprine, DPYD + fluoropyrimidines). Population allele-frequency context is not paraphrased here; the CPIC guideline link in each result is where it lives.',
     readOnly: true,
     inputSchema: {
       drug: z
         .string()
         .optional()
-        .describe('Generic drug name, e.g. "clopidogrel", "carbamazepine", "allopurinol", "simvastatin"'),
+        .describe(
+          'Generic drug name, e.g. "clopidogrel", "carbamazepine", "allopurinol", "simvastatin"',
+        ),
       gene: z
         .string()
         .optional()
-        .describe('HGNC pharmacogene symbol, e.g. "CYP2C19", "HLA-B", "CYP2D6", "SLCO1B1", "NUDT15", "DPYD"'),
+        .describe(
+          'HGNC pharmacogene symbol, e.g. "CYP2C19", "HLA-B", "CYP2D6", "SLCO1B1", "NUDT15", "DPYD"',
+        ),
       phenotype: z
         .string()
         .optional()
@@ -228,7 +218,9 @@ export const pharmacogenomicsTools = [
             });
             sections.push(
               [
-                heading(`CPIC Phenotype-Specific Recommendations (${matchedDrug.name ?? targetDrugName})`),
+                heading(
+                  `CPIC Phenotype-Specific Recommendations (${matchedDrug.name ?? targetDrugName})`,
+                ),
                 recBlocks.join('\n\n'),
               ].join('\n'),
             );
@@ -236,12 +228,30 @@ export const pharmacogenomicsTools = [
         }
       }
 
-      const combinedSubject = `${drugQuery} ${geneQuery} ${pairs.map((p) => `${p.genesymbol} ${p.drugname}`).join(' ')}`;
-      const popAlerts = POPULATION_PGX_NOTES.filter((item) => item.match.test(combinedSubject)).map(
-        (item) => item.note,
-      );
-      if (popAlerts.length > 0) {
-        sections.push([heading('Population Pharmacogenomics Alerts'), bulletList(popAlerts)].join('\n'));
+      /**
+       * No population-prevalence section is generated here.
+       *
+       * There is no list of "notable" genes and no keyword test deciding which
+       * populations to mention: an authored frequency figure is a clinical claim
+       * with no source attached to the claim itself. Every pair CPIC returned is
+       * already listed above with its level, testing status and guideline URL,
+       * and the guideline is where population and allele-frequency data belong.
+       */
+      const geneticPairs = pairs.filter((p) => p.genesymbol);
+      if (geneticPairs.length > 0) {
+        sections.push(
+          [
+            heading('Pairs With CPIC Guidance In This Result'),
+            bulletList(
+              geneticPairs
+                .slice(0, 15)
+                .map(
+                  (p) =>
+                    `${p.genesymbol} — ${p.drugname ?? 'drug'} (CPIC level ${p.cpiclevel ?? 'n/a'}); see the guideline URL above for population and allele-frequency tables.`,
+                ),
+            ),
+          ].join('\n'),
+        );
       }
 
       return composeResult({

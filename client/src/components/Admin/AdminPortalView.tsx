@@ -404,17 +404,14 @@ export default function AdminPortalView() {
                           onClick={() => switchSection('triage-safety')}
                           className="rounded-xl border border-slate-800 bg-slate-900/90 p-4 text-left hover:border-rose-500/50"
                         >
-                          <div className="text-xs text-slate-400">
-                            🚨 Safety & Red-Flag Detections
-                          </div>
+                          <div className="text-xs text-slate-400">🚨 Triage Decisions Recorded</div>
                           <div className="mt-2 text-3xl font-extrabold text-rose-300">
-                            {overview.kpis.emergencyAlerts +
-                              overview.kpis.dengueAlerts +
-                              overview.kpis.pgxAlerts}
+                            {overview.kpis.emergencyAlerts}
                           </div>
                           <div className="mt-1 text-[11px] text-slate-300">
-                            {overview.kpis.emergencyAlerts} Emergency · {overview.kpis.dengueAlerts}{' '}
-                            Dengue · {overview.kpis.pgxAlerts} PGx
+                            {overview.kpis.assessedMessages} assessed ·{' '}
+                            {overview.kpis.unassessedMessages} unassessed ·{' '}
+                            {overview.kpis.undecidedMessages} undecided
                           </div>
                         </button>
 

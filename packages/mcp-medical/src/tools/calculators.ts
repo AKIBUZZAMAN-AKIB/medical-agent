@@ -708,6 +708,23 @@ interface LabRange {
   noteHigh?: string;
 }
 
+/**
+ * Reference intervals.
+ *
+ * What is left here is the part that is arithmetic: an interval, a critical
+ * threshold, a unit. Everything that used to be attached to it — "strictly avoid
+ * NSAIDs/aspirin", "evaluate iron/ferritin, B12/folate", "critical clue in Dengue
+ * plasma leakage" — has been removed (§F-43). Those sentences were clinical
+ * advice and clinical attribution typed into a lookup table, printed next to a
+ * number with the same authority as the number itself, and they were wrong for
+ * every patient whose low platelet count was not dengue: they are not what a
+ * laboratory measures, and nothing in this repository is a source for them.
+ *
+ * The remaining `noteLow`/`noteHigh` text states only which side of the interval
+ * the value fell on. Interpretation belongs to a clinician, to a cited guideline
+ * fetched through a tool, or to the classifier-backed triage decision — not to an
+ * annotation table.
+ */
 const LAB_RANGES: Record<string, LabRange> = {
   hemoglobin: {
     label: 'Hemoglobin (Hb)',
@@ -716,8 +733,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 17.5,
     panicLow: 7.0,
     panicHigh: 20.0,
-    noteLow: 'Anemia — evaluate iron/ferritin, B12/folate, blood loss, thalassemia trait, or CKD',
-    noteHigh: 'Erythrocytosis / hemoconcentration (critical clue in Dengue plasma leakage)',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   hematocrit: {
     label: 'Hematocrit (Hct / PCV)',
@@ -726,9 +743,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 50,
     panicLow: 21,
     panicHigh: 60,
-    noteLow: 'Decreased red cell mass / dilution / bleeding',
-    noteHigh:
-      'Hemoconcentration (>=20% rise over baseline in fever strongly warns of Dengue capillary plasma leakage)',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   wbc: {
     label: 'White Blood Cell Count (WBC)',
@@ -737,9 +753,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 11.0,
     panicLow: 1.5,
     panicHigh: 30.0,
-    noteLow:
-      'Leukopenia (common in viral syndromes incl. Dengue, typhoid, drug marrow suppression)',
-    noteHigh: 'Leukocytosis (bacterial infection, inflammation, stress, or hematologic disorder)',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   platelets: {
     label: 'Platelets',
@@ -748,9 +763,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 450,
     panicLow: 20,
     panicHigh: 1000,
-    noteLow:
-      'Thrombocytopenia — strictly avoid NSAIDs/aspirin; emergency hospital evaluation if <50,000, rapidly falling, or any bleeding',
-    noteHigh: 'Thrombocytosis (reactive vs myeloproliferative)',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   sodium: {
     label: 'Serum Sodium (Na+)',
@@ -759,8 +773,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 145,
     panicLow: 120,
     panicHigh: 160,
-    noteLow: 'Hyponatremia',
-    noteHigh: 'Hypernatremia',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   potassium: {
     label: 'Serum Potassium (K+)',
@@ -769,8 +783,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 5.1,
     panicLow: 2.5,
     panicHigh: 6.0,
-    noteLow: 'Hypokalemia — arrhythmia risk',
-    noteHigh: 'Hyperkalemia — urgent ECG & arrhythmia risk',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   creatinine: {
     label: 'Serum Creatinine',
@@ -778,7 +792,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 0.6,
     high: 1.2,
     panicHigh: 5.0,
-    noteHigh: 'Elevated creatinine — compute race-free eGFR via clinical_calculator (ckd_epi_2021)',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   bun: {
     label: 'Blood Urea Nitrogen (BUN)',
@@ -786,7 +800,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 7,
     high: 20,
     panicHigh: 80,
-    noteHigh: 'Azotemia / dehydration / upper GI bleed / catabolism',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   fasting_glucose: {
     label: 'Fasting Plasma Glucose',
@@ -795,9 +809,8 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 99,
     panicLow: 54,
     panicHigh: 400,
-    noteLow: 'Hypoglycemia',
-    noteHigh:
-      'Hyperglycemia (100–125 impaired fasting glucose; >=126 diabetes threshold on repeat testing)',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   hba1c: {
     label: 'HbA1c',
@@ -805,8 +818,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 4.0,
     high: 5.6,
     panicHigh: 12.0,
-    noteHigh:
-      '5.7–6.4% prediabetes range; >=6.5% diabetes diagnostic range (verify hemoglobinopathies/thalassemia common in South Asia)',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   alt: {
     label: 'ALT (SGPT)',
@@ -814,8 +826,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 7,
     high: 45,
     panicHigh: 1000,
-    noteHigh:
-      'Hepatocellular injury marker (viral hepatitis A/B/E, fatty liver MASLD, dengue, drug-induced)',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   ast: {
     label: 'AST (SGOT)',
@@ -823,14 +834,14 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 8,
     high: 40,
     panicHigh: 1000,
-    noteHigh: 'Hepatic / muscle transaminase elevation',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   alp: {
     label: 'Alkaline Phosphatase (ALP)',
     unit: 'U/L',
     low: 44,
     high: 147,
-    noteHigh: 'Cholestatic / biliary or bone turnover elevation',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   bilirubin_total: {
     label: 'Total Bilirubin',
@@ -838,7 +849,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 0.1,
     high: 1.2,
     panicHigh: 15.0,
-    noteHigh: 'Hyperbilirubinemia / jaundice — fractionate direct vs indirect bilirubin',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   albumin: {
     label: 'Serum Albumin',
@@ -846,7 +857,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 3.5,
     high: 5.0,
     panicLow: 2.0,
-    noteLow: 'Hypoalbuminemia (chronic liver disease, nephrotic loss, malnutrition, inflammation)',
+    noteLow: 'Below the adult reference interval reported on this line',
   },
   tsh: {
     label: 'TSH',
@@ -855,31 +866,30 @@ const LAB_RANGES: Record<string, LabRange> = {
     high: 4.0,
     panicLow: 0.01,
     panicHigh: 50.0,
-    noteLow: 'Suppressed TSH — evaluate Free T4 & Free T3 for hyperthyroidism',
-    noteHigh: 'Elevated TSH — evaluate Free T4 for hypothyroidism',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   free_t4: {
     label: 'Free T4',
     unit: 'ng/dL',
     low: 0.8,
     high: 1.8,
-    noteLow: 'Low Free T4',
-    noteHigh: 'Elevated Free T4',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   ldl: {
     label: 'LDL Cholesterol',
     unit: 'mg/dL',
     low: 0,
     high: 100,
-    noteHigh:
-      'Elevated atherogenic LDL-C (interpret against overall ASCVD risk, diabetes, and CKD)',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   hdl: {
     label: 'HDL Cholesterol',
     unit: 'mg/dL',
     low: 40,
     high: 100,
-    noteLow: 'Low HDL-C cardiometabolic marker',
+    noteLow: 'Below the adult reference interval reported on this line',
   },
   triglycerides: {
     label: 'Triglycerides',
@@ -887,7 +897,7 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 0,
     high: 149,
     panicHigh: 500,
-    noteHigh: 'Hypertriglyceridemia (>=500 mg/dL carries acute pancreatitis risk)',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   inr: {
     label: 'INR',
@@ -895,37 +905,36 @@ const LAB_RANGES: Record<string, LabRange> = {
     low: 0.8,
     high: 1.2,
     panicHigh: 4.5,
-    noteHigh: 'Prolonged INR (supratherapeutic anticoagulation or coagulopathy — bleeding risk)',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   crp: {
     label: 'C-Reactive Protein (CRP)',
     unit: 'mg/L',
     low: 0,
     high: 5.0,
-    noteHigh: 'Systemic inflammation or infection marker',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   uric_acid: {
     label: 'Serum Uric Acid',
     unit: 'mg/dL',
     low: 3.0,
     high: 7.0,
-    noteHigh: 'Hyperuricemia',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
   vitamin_d: {
     label: '25-Hydroxy Vitamin D',
     unit: 'ng/mL',
     low: 30,
     high: 100,
-    noteLow: 'Vitamin D insufficiency/deficiency (<20 ng/mL deficient; 20–29 ng/mL insufficient)',
+    noteLow: 'Below the adult reference interval reported on this line',
   },
   ferritin: {
     label: 'Serum Ferritin',
     unit: 'ng/mL',
     low: 30,
     high: 300,
-    noteLow: 'Depleted iron stores',
-    noteHigh:
-      'Elevated ferritin (acute-phase reactant, dengue hyperferritinemia, or iron overload)',
+    noteLow: 'Below the adult reference interval reported on this line',
+    noteHigh: 'Above the adult reference interval reported on this line',
   },
 };
 
@@ -1082,10 +1091,24 @@ export const calculatorTools = [
       const plt = args.values.platelets;
       const hct = args.values.hematocrit;
       const wbc = args.values.wbc;
-      if (plt != null && plt < 100 && ((hct != null && hct >= 45) || (wbc != null && wbc < 4.0))) {
-        patterns.push(
-          'Dengue Plasma-Leakage / Viral Hemorrhagic Warning Pattern: Thrombocytopenia (<100 ×10³/µL) alongside elevated hematocrit or leukopenia demands urgent serial CBC monitoring, oral/IV hydration assessment, strict avoidance of all NSAIDs/aspirin (use paracetamol only within hepatic limits), and immediate hospital care for warning signs (abdominal pain, persistent vomiting, mucosal bleeding, lethargy).',
-        );
+      /**
+       * This used to print a named condition here ("Dengue Plasma-Leakage /
+       * Viral Hemorrhagic Warning Pattern") plus a management instruction, chosen
+       * by a numeric test in this file. That is an author-authored diagnosis and an
+       * author-authored prescription rendered as if the laboratory produced them.
+       * What is emitted now is what the tool actually measured: the numbers, and
+       * the fact that two of them are concurrently abnormal. Cause, diagnosis and
+       * treatment are not this tool's output.
+       */
+      if (plt != null && plt < 100) {
+        const companions: string[] = [];
+        if (hct != null && hct >= 45) companions.push(`hematocrit ${hct} % (above reference)`);
+        if (wbc != null && wbc < 4.0) companions.push(`WBC ${wbc} ×10³/µL (below reference)`);
+        if (companions.length > 0) {
+          patterns.push(
+            `Platelets ${plt} ×10³/µL (below reference) alongside ${companions.join(' and ')}. Reported as measurements only: this tool does not name a cause, a diagnosis or a treatment.`,
+          );
+        }
       }
       const hba1c = args.values.hba1c;
       if (hba1c != null && hba1c >= 4) {

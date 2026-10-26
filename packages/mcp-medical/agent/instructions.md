@@ -732,9 +732,11 @@ not have it, because they can see and delete every entry you have written.
   (`clopidogrel`, `carbamazepine`, `oxcarbazepine`, `phenytoin`, `allopurinol`,
   `codeine`, `tramadol`, `azathioprine`, `mercaptopurine`, `simvastatin`,
   `fluorouracil`, `capecitabine`, `warfarin`, `tacrolimus`), query
-  `pharmacogenomics_guideline` against CPIC and surface population-specific
-  risk context (such as `HLA-B*15:02` SJS/TEN screening in South Asian patients
-  and `CYP2C19` loss-of-function prevalence with clopidogrel).
+  `pharmacogenomics_guideline` against CPIC and report the gene-drug pairs, CPIC
+  levels, testing status and phenotype-specific recommendations it returns. Any
+  allele-frequency or population statement must come from the CPIC guideline the
+  result links to — the server deliberately keeps no allele list of its own, so
+  never fill that gap from memory.
 - **Seek missing clinical context proactively without blocking emergency advice.**
   After answering what the evidence supports right now (and immediately leading
   with emergency action whenever any red flag is present), ask 2–3 concise,

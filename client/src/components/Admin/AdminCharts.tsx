@@ -2,33 +2,48 @@
 import React, { useMemo, useState } from 'react';
 import type { AdminAgentItem, DailySeriesPoint } from './types';
 
+/**
+ * Severity badge for a triage decision.
+ *
+ * Labels are the triage engine's own vocabulary and nothing else. They used to
+ * read "HIGH · DENGUE / CRITICAL" and "MODERATE · PGX / RENAL" — condition names
+ * hard-wired to a severity level, so the badge asserted a diagnosis the system
+ * had never made. Severity is a rung on the escalation ladder, not a disease.
+ */
 export function SeverityBadge({ severity }: { severity: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     emergency: {
-      label: '🚨 EMERGENCY RED-FLAG',
+      label: '🚨 EMERGENCY — classifier decision',
       cls: 'border-rose-500/40 bg-rose-500/15 text-rose-300',
     },
-    high: {
-      label: '🦟 HIGH · DENGUE / CRITICAL',
+    urgent: {
+      label: '⚠️ URGENT — assessment today',
       cls: 'border-amber-500/40 bg-amber-500/15 text-amber-300',
     },
-    moderate: {
-      label: '🧬 MODERATE · PGX / RENAL',
+    routine: {
+      label: 'ROUTINE — classifier decision',
       cls: 'border-sky-500/40 bg-sky-500/15 text-sky-300',
     },
-    routine: {
-      label: '✅ ROUTINE CLINICAL',
-      cls: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
+    informational: {
+      label: 'ℹ️ INFORMATIONAL',
+      cls: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
     },
-    /** Not assessed. It must never render as `routine`: a badge that says
-     *  "routine" for a message nobody screened is the false clearance the whole
-     *  triage design exists to prevent. */
+    none: {
+      label: 'NONE — no signal returned',
+      cls: 'border-slate-600/40 bg-slate-600/15 text-slate-300',
+    },
+    /** The classifier ran and could not decide. Not a clearance. */
     unknown: {
+      label: '— UNDECIDED BY CLASSIFIER',
+      cls: 'border-violet-500/40 bg-violet-500/15 text-violet-300',
+    },
+    /** No persisted decision exists at all. Never rendered as `routine`. */
+    unassessed: {
       label: '— NOT ASSESSED',
       cls: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
     },
   };
-  const item = map[severity] || map.unknown;
+  const item = map[severity] || map.unassessed;
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${item.cls}`}
@@ -37,7 +52,6 @@ export function SeverityBadge({ severity }: { severity: string }) {
     </span>
   );
 }
-
 export function MultiSeriesAreaChart({ series }: { series: DailySeriesPoint[] }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [metric, setMetric] = useState<'messages' | 'toolInvocations' | 'tokens'>('messages');

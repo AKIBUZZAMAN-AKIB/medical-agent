@@ -101,6 +101,12 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
     expect(res.body.kpis.totalAgents).toBeGreaterThanOrEqual(2);
     expect(res.body.kpis.bdBrandsTotal).toBeGreaterThan(24000);
     expect(res.body.dailySeries).toHaveLength(7);
+    /** Severity KPIs are reads of persisted decisions, not keyword tallies. */
+    expect(res.body.kpis).toHaveProperty('assessedMessages');
+    expect(res.body.kpis).toHaveProperty('unassessedMessages');
+    expect(res.body.kpis.triageBasis).toBe('persisted-triage-decision');
+    expect(res.body.kpis).not.toHaveProperty('dengueAlerts');
+    expect(res.body.kpis).not.toHaveProperty('pgxAlerts');
   });
 
   it('spawns, updates, and deletes dynamic specialist sub-agents in MongoDB', async () => {
@@ -188,76 +194,128 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
     const triageRes = await request(app).get('/api/admin/medical-command/triage-safety');
     expect(triageRes.status).toBe(200);
     expect(triageRes.body.counts.totalScanned).toBeGreaterThanOrEqual(3);
+    expect(triageRes.body.basis).toBe('persisted-triage-decision');
   });
 
-  it('never labels a message it did not assess as routine', async () => {
-    /**
-     * The console surfaces a severity per message. A keyword matcher that
-     * defaults to `routine` is clearing everything it does not understand, which
-     * is the failure the medical package's triage tool refuses to produce. An
-     * unassessed message must read as `unknown` and say so.
-     */
+  /**
+   * The console must report *decisions*, not *matches*.
+   *
+   * These four tests are the guard on §F-40/F-41 in
+   * `docs/REPOSITORY_DEEP_AUDIT.md`: severity and specialty in the admin surface
+   * may only come from a persisted `emergency_triage_check` decision (and from
+   * the handling agent), never from a word list scanning the patient's sentence.
+   * A message whose conversation holds no stored decision is `unassessed`, no
+   * matter how alarming or how mundane it reads.
+   */
+  const decisionContent = (severity, decided = true) => [
+    {
+      type: 'tool_call',
+      tool_call: {
+        id: 'call-1',
+        name: 'emergency_triage_check_mcp_medical',
+        args: { message: 'synthetic' },
+        output:
+          'Triage severity: X (ruleset 2.0.0-generation)\n' +
+          `<<<TRIAGE_DECISION {"severity":"${severity}","severityCode":4,"decided":${decided},"classifier":"llm:synthetic","ruleset":"2.0.0-generation"}>>>`,
+      },
+    },
+  ];
+
+  async function insertConversation({ conversationId, text, content, agentId }) {
+    const db = mongoose.connection.db;
+    const now = new Date();
+    await db.collection('conversations').insertOne({
+      conversationId,
+      user: patientUser._id,
+      agent_id: agentId || 'agent_sub_emergency_triage',
+      title: text.slice(0, 40),
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.collection('messages').insertOne({
+      messageId: `${conversationId}-user`,
+      conversationId,
+      user: patientUser._id,
+      isCreatedByUser: true,
+      text,
+      createdAt: now,
+    });
+    if (content) {
+      await db.collection('messages').insertOne({
+        messageId: `${conversationId}-assistant`,
+        conversationId,
+        user: patientUser._id,
+        isCreatedByUser: false,
+        sender: 'Super-Power Doctor AI',
+        content,
+        createdAt: now,
+      });
+    }
+  }
+
+  it('reports a severity only when the record holds a triage decision', async () => {
+    await insertConversation({
+      conversationId: 'conv-evidence-emergency',
+      text: 'Something is happening and I do not know how to say it',
+      content: decisionContent('emergency'),
+    });
+
     const res = await request(buildApp('ADMIN')).get('/api/admin/medical-command/triage-safety');
     expect(res.status).toBe(200);
-    expect(res.body.basis).toBe('keyword-match');
-    expect(res.body.notice).toMatch(/not a clearance|not assessed/i);
-    expect(res.body.counts).toHaveProperty('unknown');
-    /** Whatever the mix, no row may claim `routine` without a matched rule. */
+    expect(res.body.basis).toBe('persisted-triage-decision');
+    const event = res.body.events.find((e) => e.conversationId === 'conv-evidence-emergency');
+    expect(event.severity).toBe('emergency');
+    expect(event.severityBasis).toBe('persisted-triage-decision');
+    expect(event.triageDecisions).toBe(1);
+    /** The handling agent is the label, not an inferred specialty. */
+    expect(event.specialty).toBe('agent_sub_emergency_triage');
+  });
+
+  it('never upgrades a message from its wording: alarming text with no decision is unassessed', async () => {
+    /**
+     * This is the exact sentence the old lexicon scored as `emergency`
+     * ("suicide", "chest pain", "ডেঙ্গু", "Napa"), with the old lexicon deleted.
+     * It must now read as an absence of assessment — which is the truth about the
+     * record — and must not be counted as a safety alert either way.
+     */
+    await insertConversation({
+      conversationId: 'conv-no-decision',
+      text: 'I have chest pain and thoughts of suicide after taking Napa, ডেঙ্গু প্লাটিলেট কম',
+    });
+
+    const res = await request(buildApp('ADMIN')).get('/api/admin/medical-command/triage-safety');
+    const event = res.body.events.find((e) => e.conversationId === 'conv-no-decision');
+    expect(event.severity).toBe('unassessed');
+    expect(event.severityBasis).toBe('none');
+    expect(event.triageDecisions).toBe(0);
+    expect(res.body.counts).toHaveProperty('unassessed');
+    expect(res.body.notice).toMatch(/no stored decision|not assessed|not a clearance/i);
+    /** No row may claim a made-up severity while its basis is `none`. */
     const unsupported = res.body.events.filter(
-      (event) => event.severity === 'routine' && event.severityBasis === 'none',
+      (e) => e.severityBasis === 'none' && e.severity !== 'unassessed',
     );
     expect(unsupported).toEqual([]);
-    const unassessed = res.body.events.filter((event) => event.severityBasis === 'none');
-    expect(unassessed.every((event) => event.severity === 'unknown')).toBe(true);
   });
 
-  it('raises a matched rule above unassessed instead of leaving it unknown', async () => {
-    /**
-     * The regression this guards: severity started at `unknown` (correct) but the
-     * graded branches were written as `if (severity === 'routine')`, a value the
-     * variable never holds. Every graded rule was therefore dead code, and a
-     * message that matched "creatinine" came back with a flag but no severity —
-     * the console showed an unassessed-looking row that had in fact been matched.
-     */
-    const db = mongoose.connection.db;
-    const patientId = patientUser._id;
-    const conversationId = 'conv-audit-severity';
-    await db.collection('messages').insertMany([
-      {
-        messageId: 'msg-renal',
-        conversationId,
-        user: patientId,
-        isCreatedByUser: true,
-        text: 'My creatinine is 3.2 and I am on dialysis, what dose?',
-        createdAt: new Date(),
-      },
-      {
-        messageId: 'msg-unmatched',
-        conversationId,
-        user: patientId,
-        isCreatedByUser: true,
-        text: 'What colour is a ripe banana',
-        createdAt: new Date(),
-      },
-    ]);
+  it('keeps an undecided classifier result undecided instead of inventing routine', async () => {
+    await insertConversation({
+      conversationId: 'conv-undecided',
+      text: 'My father has been dizzy since morning',
+      content: decisionContent('unknown', false),
+    });
 
     const res = await request(buildApp('ADMIN')).get('/api/admin/medical-command/triage-safety');
-    expect(res.status).toBe(200);
-    const byId = new Map(res.body.events.map((event) => [event.messageId, event]));
-    const renal = byId.get('msg-renal');
-    const unmatched = byId.get('msg-unmatched');
-    expect(renal.severityBasis).toBe('keyword-match');
-    expect(renal.severity).toBe('moderate');
-    expect(unmatched.severityBasis).toBe('none');
-    expect(unmatched.severity).toBe('unknown');
+    const event = res.body.events.find((e) => e.conversationId === 'conv-undecided');
+    expect(event.severity).toBe('unknown');
+    expect(event.undecidedTriage).toBe(1);
+    expect(res.body.counts.unknown).toBeGreaterThanOrEqual(1);
   });
 
   it('scans only the people its 200 rows mention, not the whole user collection', async () => {
     /**
      * The triage panel used to read every account in the deployment to decorate
      * 200 messages. This asserts the narrowing at the data layer: a message whose
-     * author is not in `users` still renders (as "Patient"), and the query is
-     * bounded by `$in` rather than a collection scan.
+     * author is not in `users` still renders (as "Patient").
      */
     const db = mongoose.connection.db;
     await db.collection('messages').insertOne({
@@ -273,6 +331,8 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
     const orphan = res.body.events.find((event) => event.messageId === 'msg-orphan');
     expect(orphan).toBeDefined();
     expect(orphan.userName).toBe('Patient');
-    expect(orphan.severity).toBe('emergency');
+    /** Wording is not evidence: with no decision stored it is unassessed. */
+    expect(orphan.severity).toBe('unassessed');
+    expect(orphan.specialty).toBe('No agent recorded');
   });
 });

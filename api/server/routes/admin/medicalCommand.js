@@ -11,6 +11,12 @@ const { SystemCapabilities } = require('@librechat/data-schemas');
 const mongoose = require('mongoose');
 const { requireJwtAuth } = require('~/server/middleware');
 const { requireCapability } = require('~/server/middleware/roles/capabilities');
+const {
+  BASIS_PERSISTED,
+  UNASSESSED,
+  collectTriageEvidence,
+  triageForConversation,
+} = require('./triageEvidence');
 
 const importDynamicEsm = new Function('specifier', 'return import(specifier)');
 
@@ -250,7 +256,34 @@ const TOOL_GROUPS = [
   },
 ];
 
-const PRESET_SPECIALTY_BLUEPRINTS = [
+/**
+ * Preset specialty blueprints — scaffolds, not clinical knowledge.
+ *
+ * Each preset used to ship a hand-written `instructions` paragraph of clinical
+ * rules: which eruptions to screen for, which enzyme to audit, which helpline to
+ * quote. Those paragraphs were clinical content with no author, no review and no
+ * version — the same defect as the keyword lexicons (§F-40/F-41): they would be
+ * pasted into every spawned sub-agent as if they were policy, and every specialty
+ * somebody did not write a paragraph for silently got none.
+ *
+ * The blueprint still exists — an operator wants a one-click starting point —
+ * but its instructions are now a neutral template that carries no clinical
+ * claim. What a specialist may say about severity comes from
+ * `emergency_triage_check` (classifier-backed); medical facts come from the MCP
+ * tools listed on the blueprint, with citations; everything else the operator
+ * writes themselves.
+ */
+function presetInstructions(specialtyLabel) {
+  return [
+    `You are the ${specialtyLabel} specialist sub-agent for this deployment.`,
+    'Run emergency_triage_check on any message that describes symptoms, an injury, an ingestion or distress, and take the severity it returns as the severity you report — never from your own wording match.',
+    'Take every drug, dose-reference, interaction, guideline and literature statement from the MCP tools listed on this blueprint, and carry their citations and limitations into the answer.',
+    'Never diagnose, never start, stop or change a medicine or a dose, and escalate to emergency care whenever a classifier or a cited source says to.',
+    'This is a scaffold: the deployment owner supplies any additional clinical content, and none is preloaded here.',
+  ].join(' ');
+}
+
+const PRESET_SPECIALTY_BLUEPRINTS_RAW = [
   {
     key: 'dermatology',
     id: 'agent_dyn_dermatology',
@@ -265,8 +298,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'pubmed_search',
       'condition_lookup',
     ],
-    instructions:
-      'You are the Dermatology & Cutaneous Allergy Specialist Sub-Agent. Screen immediately for mucosal blistering, skin sloughing, facial swelling, or fever after starting anticonvulsants/allopurinol/sulfonamides (SJS/TEN/DRESS emergency). Provide evidence-graded topical/systemic options and Bangladesh brand availability.',
   },
   {
     key: 'psychiatry_sleep',
@@ -282,8 +313,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'clinical_calculator',
       'pubmed_search',
     ],
-    instructions:
-      'You are the Psychiatry & Sleep Specialist Sub-Agent. Prioritize suicide/self-harm safety first (999 emergency & Kaan Pete Roi helpline in Bangladesh), audit CYP2C19/CYP2D6 psychotropic metabolism, check QTc & serotonergic interactions, and combine CBT-I sleep hygiene with safe pharmacotherapy.',
   },
   {
     key: 'gastro_hepatology',
@@ -299,8 +328,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'drug_label',
       'pubmed_search',
     ],
-    instructions:
-      'You are the Gastroenterology & Hepatology Sub-Agent. Screen urgently for hematemesis, melena, jaundice with encephalopathy, or acute severe abdominal pain. Compute MELD-Na and Child-Pugh scores deterministically and adjust hepatically cleared medications.',
   },
   {
     key: 'pulmonology',
@@ -316,8 +343,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'pubmed_search',
       'icd10cm_code',
     ],
-    instructions:
-      'You are the Pulmonology & Airway Specialist Sub-Agent. Triage resting dyspnea, SpO2 < 92%, cyanosis, hemoptysis, and chest pain immediately. Stratify community-acquired pneumonia using CURB-65 and verify inhaler technique and beta-blocker compatibility.',
   },
   {
     key: 'ophthalmology',
@@ -327,8 +352,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
     description:
       'Evaluates sudden vision loss, painful red eye, angle-closure glaucoma risk, chemical injury, and topical ophthalmic drops.',
     tools: ['bd_medicine_lookup', 'drug_label', 'condition_lookup', 'pubmed_search'],
-    instructions:
-      'You are the Ophthalmology Sub-Agent. Immediately flag sudden monocular vision loss, curtain-like visual field defect, halos with nausea/headache, contact-lens corneal ulcer pain, or steroid eye drop misuse.',
   },
   {
     key: 'ent_vertigo',
@@ -338,8 +361,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
     description:
       'Differentiates peripheral BPPV/vestibular neuritis vs posterior circulation stroke, sinusitis, otitis, and stridor/epiglottitis.',
     tools: ['bd_medicine_lookup', 'drug_interaction_check', 'pubmed_search', 'icd10cm_code'],
-    instructions:
-      'You are the ENT & Neuro-Otology Sub-Agent. Always screen vertigo for central stroke red flags (diplopia, dysarthria, dysphagia, limb ataxia, inability to walk unassisted) and airway red flags (stridor, drooling, trismus).',
   },
   {
     key: 'orthopedics_pain',
@@ -355,8 +376,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'clinical_calculator',
       'pubmed_search',
     ],
-    instructions:
-      'You are the Orthopedics, Rheumatology & Pain Sub-Agent. Screen for cauda equina syndrome (saddle anesthesia, urinary retention), septic arthritis, and osteoporotic fracture. Never recommend systemic NSAIDs when CKD, active peptic ulcer, heart failure, anticoagulation, or dengue fever is present.',
   },
   {
     key: 'urology_stone',
@@ -372,8 +391,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'drug_interaction_check',
       'pubmed_search',
     ],
-    instructions:
-      'You are the Urology & Renal Stone Sub-Agent. Immediately flag fever + flank pain with suspected ureteric obstruction (urosepsis decompression emergency) and acute urinary retention. Adjust all antimicrobials to Cockcroft-Gault CrCl.',
   },
   {
     key: 'hematology_nutrition',
@@ -389,8 +406,6 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'bd_medicine_lookup',
       'pubmed_search',
     ],
-    instructions:
-      'You are the Hematology & Nutrition Sub-Agent. In Bangladesh, always distinguish iron deficiency anemia from beta-thalassemia/HbE trait ( ferritin + Hb electrophoresis ) before prolonged empiric iron therapy, and triage severe anemia (Hb < 7 g/dL) or neutropenic fever urgently.',
   },
   {
     key: 'neurology_stroke',
@@ -406,10 +421,13 @@ const PRESET_SPECIALTY_BLUEPRINTS = [
       'pubmed_search',
       'condition_lookup',
     ],
-    instructions:
-      'You are the Neurology, Stroke & Epilepsy Sub-Agent. Screen every acute neurological symptom for thunderclap headache, meningeal signs, focal deficit, or status epilepticus, and enforce CPIC HLA-B*15:02 safety screening prior to aromatic anticonvulsants in South Asian patients.',
   },
 ];
+
+const PRESET_SPECIALTY_BLUEPRINTS = PRESET_SPECIALTY_BLUEPRINTS_RAW.map((preset) => ({
+  ...preset,
+  instructions: presetInstructions(preset.specialty),
+}));
 
 let cachedFormularySummary = null;
 let cachedFormularyCorpus = null;
@@ -654,91 +672,21 @@ function searchFormularyCorpus({ query = '', manufacturer = '', emlOnly = false,
 }
 
 /**
- * Keyword screen behind the admin console's triage panel.
+ * Which agent handled the conversation, as a label.
  *
- * It is a keyword matcher, and this is the one place where that is stated
- * plainly rather than implied. Two rules follow from it:
- *
- * 1. A message it does not recognise is `unknown`, not `routine`. A default of
- *    `routine` is a clearance the matcher has not earned — the same false
- *    clearance that the medical package's triage tool refuses to give, and the
- *    reason that tool reports `unknown` when no classifier is available. An
- *    operator reading "routine" concludes somebody checked; an operator reading
- *    "unknown" concludes nobody did.
- * 2. Every row carries `basis`, so a severity can never be mistaken for a
- *    clinical assessment. `keyword-match` means a regex matched; `none` means
- *    the matcher found nothing and the row was not assessed at all.
- *
- * This is a triage *queue for humans*, not a triage decision — see F-23 in
- * `docs/REPOSITORY_DEEP_AUDIT.md`.
+ * This used to be a "specialty" chosen by `classifyClinicalMessageRisk()` from a
+ * hand-written clinical regex lexicon. It is now read from the record: the agent
+ * (or dynamically spawned specialist sub-agent) that actually answered. A label
+ * the user or the orchestrating agent wrote is a fact about the deployment; a
+ * list of disease words matched against a patient's sentence is an invention.
+ * `UNASSIGNED_AGENT_LABEL` says "no agent recorded", not "general medicine".
  */
-/** Ordered worst-last, so a matched rule can only ever raise a severity. */
-const SEVERITY_RANK = { unknown: 0, routine: 1, moderate: 2, high: 3, emergency: 4 };
+const UNASSIGNED_AGENT_LABEL = 'No agent recorded';
 
-function raiseSeverity(current, next) {
-  return (SEVERITY_RANK[next] ?? 0) > (SEVERITY_RANK[current] ?? 0) ? next : current;
-}
-
-function classifyClinicalMessageRisk(text = '') {
-  const s = String(text || '').toLowerCase();
-  const flags = [];
-  let severity = 'unknown';
-  let specialty = 'General & Internal Medicine';
-
-  if (/suicide|self[- ]?harm|kill myself|end my life|আত্মহত্যা|বাঁচতে চাই না|নিজেকে শেষ/.test(s)) {
-    flags.push('Self-Harm / Crisis Protocol (999 + Kaan Pete Roi)');
-    severity = 'emergency';
-    specialty = 'Psychiatry & Crisis Triage';
-  }
-  if (
-    /chest pain|crushing|radiating to left arm|stemi|heart attack|বুকে ব্যথা|বুকে চাপ|শ্বাসকষ্ট/.test(
-      s,
-    )
-  ) {
-    flags.push('Acute Coronary / Cardiopulmonary Red-Flag');
-    severity = 'emergency';
-    specialty = 'Cardiology & Emergency Triage';
-  }
-  if (/stroke|slurred speech|facial droop|weakness on one side|প্যারালাইসিস|মুখ বেঁকে/.test(s)) {
-    flags.push('Acute Stroke FAST Red-Flag');
-    severity = 'emergency';
-    specialty = 'Neurology & Acute Stroke';
-  }
-  if (/dengue|platelet|hematocrit|ডেঙ্গু|প্লাটিলেট/.test(s)) {
-    flags.push('Dengue Hemorrhagic & NSAID Contraindication Guard');
-    severity = raiseSeverity(severity, 'high');
-    specialty = 'Tropical Medicine & Dengue';
-  }
-  if (/cyp2c19|hla-b|clopidogrel|carbamazepine|pharmacogenom|warfarin/.test(s)) {
-    flags.push('CPIC Pharmacogenomics / High-Alert DDI Check');
-    severity = raiseSeverity(severity, 'moderate');
-    if (specialty === 'General & Internal Medicine') specialty = 'Clinical Pharmacology & PGx';
-  }
-  if (/egfr|creatinine|ckd|dialysis|কিডনি/.test(s)) {
-    flags.push('Renal eGFR / CrCl Drug Dosing Guard');
-    severity = raiseSeverity(severity, 'moderate');
-    if (specialty === 'General & Internal Medicine') specialty = 'Nephrology & Metabolic';
-  }
-  if (/pregnant|pregnancy|breastfeed|lactation|গর্ভবতী|স্তন্যদান|শিশু|baby|child/.test(s)) {
-    flags.push('Maternal-Fetal / LactMed / Pediatric Weight Guard');
-    severity = raiseSeverity(severity, 'moderate');
-    if (specialty === 'General & Internal Medicine') specialty = 'Maternal & Pediatric Safety';
-  }
-  if (/rash|itching|eczema|psoriasis|dandruff|চুলকানি|খুশকি|চর্ম/.test(s)) {
-    if (specialty === 'General & Internal Medicine') specialty = 'Dermatology & Cutaneous';
-  }
-  if (/eye|vision|blurry|চোখ|ঝাপসা/.test(s)) {
-    if (specialty === 'General & Internal Medicine') specialty = 'Ophthalmology';
-  }
-  if (/insomnia|sleep|anxiety|ঘুম|দুশ্চিন্তা/.test(s)) {
-    if (specialty === 'General & Internal Medicine') specialty = 'Psychiatry & Sleep';
-  }
-  if (/bizoran|sergel|napa|maxpro|seclo|monas|দাম|বিকল্প|brand|medicine/.test(s)) {
-    flags.push('Bangladesh Formulary Price & Generic Verification');
-    if (specialty === 'General & Internal Medicine') specialty = 'Bangladesh Formulary';
-  }
-
-  return { severity, specialty, flags, basis: flags.length > 0 ? 'keyword-match' : 'none' };
+function agentLabelFor(conversationId, conversationAgentIds, agentMap) {
+  const agentId = conversationAgentIds.get(conversationId);
+  if (!agentId) return UNASSIGNED_AGENT_LABEL;
+  return agentMap.get(agentId) || agentId;
 }
 
 function probeLocalHttp(host, port, urlPath, timeoutMs = 1500) {
@@ -893,6 +841,29 @@ function createMedicalCommandRouter(options = {}) {
       const userMap = new Map(users.map((u) => [String(u._id), u]));
       const agentMap = new Map(agents.map((a) => [a.id, a]));
 
+      /**
+       * Which agent handled each conversation in this window, plus the triage
+       * decisions the record actually holds. Both are reads: one bounded `$in`
+       * projection and a pure scan of the messages already fetched. Nothing here
+       * looks at the patient's words.
+       */
+      const sampledConversationIds = [
+        ...new Set(messages.map((m) => m.conversationId).filter(Boolean)),
+      ];
+      const conversationAgentRows = sampledConversationIds.length
+        ? await db
+            .collection('conversations')
+            .find(
+              { conversationId: { $in: sampledConversationIds } },
+              { projection: { conversationId: 1, agent_id: 1 } },
+            )
+            .toArray()
+        : [];
+      const conversationAgentIds = new Map(
+        conversationAgentRows.map((row) => [row.conversationId, row.agent_id]),
+      );
+      const triageEvidence = collectTriageEvidence(messages);
+
       let promptTokens = 0;
       let completionTokens = 0;
       for (const tx of transactions) {
@@ -917,8 +888,9 @@ function createMedicalCommandRouter(options = {}) {
 
       const specialtyCounts = new Map();
       let emergencyAlerts = 0;
-      let dengueAlerts = 0;
-      let pgxAlerts = 0;
+      let assessedMessages = 0;
+      let unassessedMessages = 0;
+      let undecidedMessages = 0;
       let totalToolCalls = 0;
       let subagentDelegations = 0;
       const convoMessageStats = new Map();
@@ -953,19 +925,31 @@ function createMedicalCommandRouter(options = {}) {
 
         if (msg.isCreatedByUser && msg.text) {
           cStat.firstUserText = msg.text;
-          const risk = classifyClinicalMessageRisk(msg.text);
-          specialtyCounts.set(risk.specialty, (specialtyCounts.get(risk.specialty) || 0) + 1);
-          if (risk.severity === 'emergency') emergencyAlerts += 1;
-          if (/dengue|ডেঙ্গু/i.test(msg.text)) dengueAlerts += 1;
-          if (/cyp2c19|hla-b|clopidogrel|carbamazepine|warfarin/i.test(msg.text)) pgxAlerts += 1;
+          const triage = triageForConversation(triageEvidence, msg.conversationId);
+          const agentLabel = agentLabelFor(msg.conversationId, conversationAgentIds, agentMap);
+          specialtyCounts.set(agentLabel, (specialtyCounts.get(agentLabel) || 0) + 1);
+
+          if (triage.basis === BASIS_PERSISTED) {
+            assessedMessages += 1;
+            if (triage.undecided > 0) undecidedMessages += 1;
+            if (triage.severity === 'emergency' || triage.severity === 'urgent') {
+              emergencyAlerts += 1;
+            }
+          } else {
+            unassessedMessages += 1;
+          }
+
           if (bucket) {
             bucket.userQueries += 1;
-            /** Only substantiated severities are alerts; an unassessed message
-             *  is not evidence of safety, but it is also not an alert. */
+            /**
+             * `safetyAlerts` counts messages the record carries a *decision* for,
+             * at urgent or above. An unassessed message is not evidence of
+             * safety, but it is also not an alert — and counting it as one would
+             * make the chart a measure of how often the tool was called.
+             */
             if (
-              risk.severity === 'emergency' ||
-              risk.severity === 'high' ||
-              risk.severity === 'moderate'
+              triage.basis === BASIS_PERSISTED &&
+              (triage.severity === 'emergency' || triage.severity === 'urgent')
             ) {
               bucket.safetyAlerts += 1;
             }
@@ -1008,14 +992,18 @@ function createMedicalCommandRouter(options = {}) {
           activeBanners: bannersCount,
           auditEntries: auditCount,
           emergencyAlerts,
-          dengueAlerts,
-          pgxAlerts,
+          assessedMessages,
+          unassessedMessages,
+          undecidedMessages,
+          triageBasis: BASIS_PERSISTED,
           mcpToolsTotal: 32,
           mcpToolGroups: TOOL_GROUPS.length,
           bdBrandsTotal: formulary.totalBrands,
           bdGenericsTotal: formulary.totalGenerics,
         },
         dailySeries: [...dayBuckets.values()],
+        /** Handling-agent mix, read from `conversations.agent_id` — the label the
+         *  deployment's own agents carry, not a specialty guessed from wording. */
         specialtyBreakdown: [...specialtyCounts.entries()]
           .sort((a, b) => b[1] - a[1])
           .map(([specialty, count]) => ({ specialty, count })),
@@ -1029,7 +1017,7 @@ function createMedicalCommandRouter(options = {}) {
             toolCalls: 0,
             subagents: 0,
           };
-          const risk = classifyClinicalMessageRisk(`${c.title || ''} ${st.firstUserText || ''}`);
+          const triage = triageForConversation(triageEvidence, c.conversationId);
           return {
             conversationId: c.conversationId,
             title: c.title || 'Clinical Consultation',
@@ -1041,9 +1029,14 @@ function createMedicalCommandRouter(options = {}) {
             messages: st.count,
             toolCalls: st.toolCalls,
             subagentHandoffs: st.subagents,
-            severity: risk.severity,
-            specialty: risk.specialty,
-            flags: risk.flags,
+            severity: triage.severity,
+            severityBasis: triage.basis,
+            triageDecisions: triage.decisions,
+            undecidedTriage: triage.undecided,
+            /** Handling agent, not a guessed specialty — see `agentLabelFor`. */
+            specialty: a.name || UNASSIGNED_AGENT_LABEL,
+            /** Medical tools the conversation actually invoked, deduplicated. */
+            flags: triage.tools.filter((name) => name !== 'subagent').slice(0, 8),
             updatedAt: c.updatedAt || c.createdAt,
           };
         }),
@@ -1527,57 +1520,93 @@ function createMedicalCommandRouter(options = {}) {
   router.get('/triage-safety', async (_req, res) => {
     try {
       const db = getDb();
-      /** The 200 messages come first so the user lookup can be narrowed to the
-       *  people those messages mention. Reading the whole `users` collection to
-       *  decorate 200 rows put every account the deployment has into memory on
-       *  each request, which is an out-of-memory waiting to happen at scale. */
-      const userMessages = await db
+      const userMessagesPromise = db
         .collection('messages')
         .find({ isCreatedByUser: true })
         .sort({ createdAt: -1 })
         .limit(200)
         .toArray();
-      const authorIds = [
-        ...new Set(userMessages.map((msg) => msg.user).filter((id) => id != null)),
+
+      const userMessages = await userMessagesPromise;
+
+      /**
+       * Triage decisions live on the assistant/tool side of the same
+       * conversation, so the evidence scan has to see those messages too. The
+       * query is bounded by the conversations the 200 sampled messages belong to,
+       * not by the whole collection (see F-34).
+       */
+      const conversationIds = [
+        ...new Set(userMessages.map((msg) => msg.conversationId).filter(Boolean)),
       ];
-      const users =
-        authorIds.length > 0
-          ? await db
-              .collection('users')
-              .find({ _id: { $in: authorIds } }, { projection: { name: 1, email: 1 } })
+      const [users, evidenceMessages, conversationRows] = await Promise.all([
+        db
+          .collection('users')
+          .find(
+            { _id: { $in: [...new Set(userMessages.map((msg) => msg.user).filter(Boolean))] } },
+            { projection: { name: 1, email: 1 } },
+          )
+          .toArray(),
+        conversationIds.length
+          ? db
+              .collection('messages')
+              .find(
+                { conversationId: { $in: conversationIds } },
+                { projection: { conversationId: 1, messageId: 1, content: 1 } },
+              )
               .toArray()
-          : [];
-      const userMap = new Map(users.map((u) => [String(u.user || u._id), u]));
+          : [],
+        conversationIds.length
+          ? db
+              .collection('conversations')
+              .find(
+                { conversationId: { $in: conversationIds } },
+                { projection: { conversationId: 1, agent_id: 1 } },
+              )
+              .toArray()
+          : [],
+      ]);
+      const userMap = new Map(users.map((u) => [String(u._id), u]));
+      const conversationAgentIds = new Map(
+        conversationRows.map((row) => [row.conversationId, row.agent_id]),
+      );
+      const triageEvidence = collectTriageEvidence(evidenceMessages);
 
       const events = userMessages.map((msg) => {
-        const risk = classifyClinicalMessageRisk(msg.text || '');
+        const triage = triageForConversation(triageEvidence, msg.conversationId);
         const u = userMap.get(String(msg.user)) || {};
+        const agentId = conversationAgentIds.get(msg.conversationId);
         return {
           messageId: msg.messageId || String(msg._id),
           conversationId: msg.conversationId,
           userName: u.name || 'Patient',
           userEmail: u.email || '',
           text: msg.text || '',
-          severity: risk.severity,
-          severityBasis: risk.basis,
-          specialty: risk.specialty,
-          flags: risk.flags,
+          severity: triage.severity,
+          severityBasis: triage.basis,
+          triageDecisions: triage.decisions,
+          undecidedTriage: triage.undecided,
+          classifiers: triage.classifiers,
+          /** Handling agent id, not an inferred specialty. */
+          specialty: agentId || UNASSIGNED_AGENT_LABEL,
+          /** Medical tools this conversation invoked — a record, not a guess. */
+          flags: triage.tools.filter((name) => name !== 'subagent').slice(0, 8),
           createdAt: msg.createdAt,
         };
       });
 
       res.json({
-        basis: 'keyword-match',
+        basis: BASIS_PERSISTED,
         notice:
-          'Severities here come from a keyword matcher, not from the deterministic triage screen and not from a clinician. "unknown" means the message matched no rule and was not assessed — it is not a clearance.',
+          'Severities here are the decisions a triage classifier actually returned for that conversation, read back from the persisted `emergency_triage_check` result. Nothing is inferred from the wording of the message: a row with no stored decision reads "unassessed", which is not a clearance and not a reassurance. "unknown" means the classifier could not decide on that run.',
         counts: {
           totalScanned: events.length,
           emergency: events.filter((e) => e.severity === 'emergency').length,
-          high: events.filter((e) => e.severity === 'high').length,
-          moderate: events.filter((e) => e.severity === 'moderate').length,
-          /** Retained at 0 for wire compatibility with existing clients. */
+          urgent: events.filter((e) => e.severity === 'urgent').length,
           routine: events.filter((e) => e.severity === 'routine').length,
+          informational: events.filter((e) => e.severity === 'informational').length,
+          none: events.filter((e) => e.severity === 'none').length,
           unknown: events.filter((e) => e.severity === 'unknown').length,
+          unassessed: events.filter((e) => e.severity === UNASSESSED).length,
         },
         events,
       });
@@ -1634,6 +1663,7 @@ function createMedicalCommandRouter(options = {}) {
 
       const userMap = new Map(users.map((u) => [String(u._id), u]));
       const agentMap = new Map(agents.map((a) => [a.id, a.name]));
+      const triageEvidence = collectTriageEvidence(messages);
       const grouped = new Map();
 
       for (const m of messages) {
@@ -1669,7 +1699,7 @@ function createMedicalCommandRouter(options = {}) {
             subagentCalls: 0,
             firstUserPrompt: '',
           };
-          const risk = classifyClinicalMessageRisk(`${c.title || ''} ${g.firstUserPrompt || ''}`);
+          const triage = triageForConversation(triageEvidence, c.conversationId);
           return {
             conversationId: c.conversationId,
             title: c.title || 'Untitled Consultation',
@@ -1681,9 +1711,12 @@ function createMedicalCommandRouter(options = {}) {
             messagesCount: g.messagesCount,
             toolCalls: g.toolCalls,
             subagentCalls: g.subagentCalls,
-            severity: risk.severity,
-            specialty: risk.specialty,
-            flags: risk.flags,
+            severity: triage.severity,
+            severityBasis: triage.basis,
+            triageDecisions: triage.decisions,
+            undecidedTriage: triage.undecided,
+            specialty: agentMap.get(c.agent_id) || UNASSIGNED_AGENT_LABEL,
+            flags: triage.tools.filter((name) => name !== 'subagent').slice(0, 8),
             updatedAt: c.updatedAt || c.createdAt,
           };
         })
@@ -2243,6 +2276,7 @@ const router = createMedicalCommandRouter();
 router.createMedicalCommandRouter = createMedicalCommandRouter;
 router.getFormularyAnalytics = getFormularyAnalytics;
 router.searchFormularyCorpus = searchFormularyCorpus;
-router.classifyClinicalMessageRisk = classifyClinicalMessageRisk;
+router.collectTriageEvidence = collectTriageEvidence;
+router.triageForConversation = triageForConversation;
 
 module.exports = router;

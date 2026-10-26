@@ -4,6 +4,7 @@ import { defineTool } from '../types.js';
 import {
   EMERGENCY_RULESET_VERSION,
   Severity,
+  type TriageDecision,
   renderDecision,
   triage,
 } from '../safety/emergency.js';
@@ -24,6 +25,33 @@ import {
  * Unlike every other tool, this one cannot be removed by `MEDICAL_TOOL_GROUPS` or
  * `MEDICAL_TOOL_EXCLUDE` — see `selectTools`.
  */
+/**
+ * Machine-readable copy of the decision.
+ *
+ * The console has to report *what a classifier decided*, and it must not
+ * re-derive that from the user's wording — re-deriving it is exactly the
+ * keyword matcher this package deleted. Printing the decision in a parseable
+ * one-line sentinel lets the host record it verbatim when it persists the tool
+ * result, so admin surfaces can read a verdict instead of guessing one.
+ *
+ * Format is a contract: `<<<TRIAGE_DECISION {json}>>>`, one line, JSON with
+ * `severity`, `severityCode`, `decided`, `classifier`, `ruleset`. It is additive
+ * — a consumer that cannot find it must report "not assessed", never `routine`.
+ */
+export const TRIAGE_DECISION_SENTINEL_PREFIX = '<<<TRIAGE_DECISION ';
+export const TRIAGE_DECISION_SENTINEL_SUFFIX = '>>>';
+
+export function renderDecisionSentinel(decision: TriageDecision): string {
+  const payload = {
+    severity: Severity[decision.severity],
+    severityCode: decision.severity,
+    decided: decision.decided,
+    classifier: decision.classifier,
+    ruleset: EMERGENCY_RULESET_VERSION,
+  };
+  return `${TRIAGE_DECISION_SENTINEL_PREFIX}${JSON.stringify(payload)}${TRIAGE_DECISION_SENTINEL_SUFFIX}`;
+}
+
 const SOURCES = [
   {
     name: 'WHO — basic emergency care',
@@ -73,7 +101,7 @@ export const emergencyTools = [
 
       return composeResult({
         headline: `Triage severity: ${Severity[decision.severity].toUpperCase()} (ruleset ${EMERGENCY_RULESET_VERSION})`,
-        sections: [renderDecision(decision)],
+        sections: [renderDecision(decision), renderDecisionSentinel(decision)],
         sources: SOURCES,
         notices,
         env: ctx.env,

@@ -40,7 +40,7 @@ describe('BDDrugBank v1.0.0 Bangladeshi formulary corpus & bd_medicine_lookup', 
     expect(index.raw.generics.length).toBe(1_553);
     expect(index.raw.manufacturers.length).toBeGreaterThanOrEqual(380);
     for (const g of index.raw.generics) {
-      expect(g.pl).not.toMatch(/\bPregnancy\s+Category\s*[:\-]?\s*[ABCDX]\b/i);
+      expect(g.pl).not.toMatch(/\bPregnancy\s+Category\s*[:-]?\s*[ABCDX]\b/i);
     }
   });
 
@@ -54,7 +54,9 @@ describe('BDDrugBank v1.0.0 Bangladeshi formulary corpus & bd_medicine_lookup', 
     const bizoran = await bdTool.handler({ query: 'Bizoran 5/20', max_alternatives: 5 }, ctx);
     expect(bizoran.text).toMatch(/Amlodipine/i);
     expect(bizoran.text).toMatch(/Olmesartan/i);
-    expect(bizoran.text).toContain('Individual Ingredients for FDA/RxNorm/LactMed Lookup: Amlodipine, Olmesartan');
+    expect(bizoran.text).toContain(
+      'Individual Ingredients for FDA/RxNorm/LactMed Lookup: Amlodipine, Olmesartan',
+    );
   });
 
   it('handles unknown trade names gracefully without fabricating ingredients', async () => {
@@ -66,7 +68,7 @@ describe('BDDrugBank v1.0.0 Bangladeshi formulary corpus & bd_medicine_lookup', 
 describe('CPIC pharmacogenomics_guideline tool', () => {
   const pgxTool = pharmacogenomicsTools[0];
 
-  it('formats CPIC Level A gene-drug pairs, clinical recommendations, and South Asian population alerts', async () => {
+  it('formats CPIC Level A gene-drug pairs and recommendations from the API rows alone', async () => {
     const http = mockHttp({
       '/pair_view': [
         {
@@ -89,8 +91,11 @@ describe('CPIC pharmacogenomics_guideline tool', () => {
         {
           drugid: 'RxNorm:32968',
           phenotypes: { CYP2C19: 'Poor Metabolizer' },
-          implications: { CYP2C19: 'Significantly reduced active metabolite formation; increased risk for MACE' },
-          drugrecommendation: 'Avoid standard-dose clopidogrel if no contraindication; consider prasugrel or ticagrelor.',
+          implications: {
+            CYP2C19: 'Significantly reduced active metabolite formation; increased risk for MACE',
+          },
+          drugrecommendation:
+            'Avoid standard-dose clopidogrel if no contraindication; consider prasugrel or ticagrelor.',
           classification: 'Strong',
           population: 'ACS and/or PCI',
         },
@@ -104,10 +109,20 @@ describe('CPIC pharmacogenomics_guideline tool', () => {
     expect(res.isError).toBeUndefined();
     expect(res.text).toContain('CYP2C19 × clopidogrel | CPIC Level: A');
     expect(res.text).toContain('Poor Metabolizer');
-    expect(res.text).toContain('South Asian Population Alert');
+    /**
+     * The seven hand-written "South Asian Population Alert" paragraphs and the
+     * keyword test that chose between them are gone (§F-42). What remains is what
+     * CPIC returned; population/allele-frequency context is now the guideline
+     * URL's job, not a paraphrase typed into this repository.
+     */
+    expect(res.text).not.toContain('South Asian Population Alert');
+    expect(res.text).toContain('Pairs With CPIC Guidance In This Result');
+    expect(res.text).toContain(
+      'see the guideline URL above for population and allele-frequency tables',
+    );
   });
 
-  it('surfaces HLA-B*15:02 South Asian SJS/TEN alerts for carbamazepine and validates empty input', async () => {
+  it('names the HLA-B × carbamazepine pair from the API data and validates empty input', async () => {
     const emptyRes = await pgxTool.handler({}, { env, http: mockHttp({}) });
     expect(emptyRes.isError).toBe(true);
 
@@ -129,8 +144,10 @@ describe('CPIC pharmacogenomics_guideline tool', () => {
         }),
       },
     );
-    expect(cbzRes.text).toContain('HLA-B*15:02');
-    expect(cbzRes.text).toContain('Stevens-Johnson syndrome');
+    expect(cbzRes.text).toContain('HLA-B × carbamazepine');
+    expect(cbzRes.text).toContain('Testing required');
+    /** No allele text is generated locally: it must come from CPIC or nowhere. */
+    expect(cbzRes.text).not.toContain('Stevens-Johnson');
   });
 });
 
@@ -168,7 +185,12 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
     const hasBled = await calcTool.handler(
       {
         calculator: 'has_bled',
-        inputs: { age: 72, hypertension_uncontrolled: true, prior_bleeding: true, drugs_antiplatelet_nsaid: true },
+        inputs: {
+          age: 72,
+          hypertension_uncontrolled: true,
+          prior_bleeding: true,
+          drugs_antiplatelet_nsaid: true,
+        },
       },
       ctx,
     );
@@ -195,7 +217,13 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
     const cp = await calcTool.handler(
       {
         calculator: 'child_pugh',
-        inputs: { bilirubin_mg_dl: 2.5, albumin_g_dl: 3.1, inr: 1.9, ascites: 'mild', encephalopathy: 'none' },
+        inputs: {
+          bilirubin_mg_dl: 2.5,
+          albumin_g_dl: 3.1,
+          inr: 1.9,
+          ascites: 'mild',
+          encephalopathy: 'none',
+        },
       },
       ctx,
     );
@@ -209,7 +237,10 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
     expect(wells.text).toContain('PE Likely');
 
     const heart = await calcTool.handler(
-      { calculator: 'heart_score', inputs: { history: 2, ecg: 1, age: 58, risk_factors: 2, troponin: 2 } },
+      {
+        calculator: 'heart_score',
+        inputs: { history: 2, ecg: 1, age: 58, risk_factors: 2, troponin: 2 },
+      },
       ctx,
     );
     expect(heart.text).toContain('8 / 10 points');
@@ -260,7 +291,7 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
     expect(peds.text).toContain('Capped at adult single-dose ceiling');
   });
 
-  it('flags Dengue plasma-leakage CBC patterns and critical panic electrolytes in lab_result_interpreter', async () => {
+  it('reports concurrent CBC abnormalities as measurements and critical panic electrolytes', async () => {
     const denguePanel = await labTool.handler(
       {
         values: {
@@ -280,7 +311,14 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
     expect(denguePanel.text).toContain('CRITICAL PANIC VALUE ALERTS');
     expect(denguePanel.text).toContain('CRITICAL LOW Platelets');
     expect(denguePanel.text).toContain('CRITICAL HIGH Serum Potassium');
-    expect(denguePanel.text).toContain('Dengue Plasma-Leakage / Viral Hemorrhagic Warning Pattern');
+    /**
+     * The panel used to print a named condition here, chosen by a numeric test in
+     * `calculators.ts` (§F-43). It now reports the concurrent measurements and
+     * explicitly declines to diagnose.
+     */
+    expect(denguePanel.text).toContain('Reported as measurements only');
+    expect(denguePanel.text).not.toContain('Plasma-Leakage');
+    expect(denguePanel.text).not.toContain('Warning Pattern');
     expect(denguePanel.text).toContain('Estimated Average Glucose');
     expect(denguePanel.text).toContain('De Ritis');
   });
@@ -305,8 +343,15 @@ describe('Dynamic specialist_subagent_blueprint & 33-tool registry', () => {
       { env, http: mockHttp({}) },
     );
     expect(blueprint.text).toContain('agent_dyn_tropical_infectious_diseases_dengue');
+    /**
+     * No profile matching: the label is the requester's, the catalogue is the live
+     * registry, and nothing clinical is invented when the caller supplies nothing.
+     */
+    expect(blueprint.text).toContain('Tropical Infectious Diseases & Dengue');
+    expect(blueprint.text).toContain('Live MCP Tool Catalogue');
     expect(blueprint.text).toContain('lab_result_interpreter');
-    expect(blueprint.text).toContain('HealthBench Context-Seeking Questions');
+    expect(blueprint.text).toContain('No red-flag triggers were supplied');
+    expect(allTools.map((tool) => tool.name)).toContain('emergency_triage_check');
   });
 
   it('transparently fails over condition_lookup to EBI OLS4 MONDO when Monarch returns HTTP 502', async () => {
@@ -337,7 +382,10 @@ describe('Dynamic specialist_subagent_blueprint & 33-tool registry', () => {
         );
       },
     });
-    const out = await condTool.handler({ condition: 'type 2 diabetes mellitus' }, { env, http: failoverHttp });
+    const out = await condTool.handler(
+      { condition: 'type 2 diabetes mellitus' },
+      { env, http: failoverHttp },
+    );
     expect(out.isError).toBeUndefined();
     expect(out.text).toContain('MONDO:0005148');
     expect(out.text).toContain('EBI OLS4 failover');

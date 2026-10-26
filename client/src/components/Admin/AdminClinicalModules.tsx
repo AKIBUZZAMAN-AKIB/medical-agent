@@ -909,11 +909,11 @@ export function ClinicalTriageSafetyMonitor({ token }: { token?: string }) {
       {data && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {[
-            ['Total Scanned Prompts', data.counts.totalScanned, 'text-white'],
-            ['🚨 Emergency Red-Flags', data.counts.emergency, 'text-rose-400'],
-            ['🦟 Dengue / High Risk', data.counts.high, 'text-amber-300'],
-            ['🧬 PGx / Renal / Maternal', data.counts.moderate, 'text-sky-300'],
-            ['✅ Routine Outpatient', data.counts.routine, 'text-emerald-300'],
+            ['Prompts Sampled', data.counts.totalScanned, 'text-white'],
+            ['🚨 Emergency (classifier)', data.counts.emergency, 'text-rose-400'],
+            ['⚠️ Urgent (classifier)', data.counts.urgent, 'text-amber-300'],
+            ['✅ Routine (classifier)', data.counts.routine, 'text-sky-300'],
+            ['— No triage decision', data.counts.unassessed, 'text-slate-300'],
           ].map(([label, val, color]) => (
             <div
               key={String(label)}
@@ -976,9 +976,11 @@ export function ClinicalTriageSafetyMonitor({ token }: { token?: string }) {
 
       {/* Live Safety Surveillance Feed */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">
-          🛡️ Patient Safety & Red-Flag Surveillance Log
-        </h3>
+        <h3 className="text-sm font-semibold text-white">🛡️ Persisted Triage Decisions</h3>
+        <p className="mb-3 mt-1 text-[11px] leading-relaxed text-slate-400">
+          {data?.notice ??
+            'Severities are the decisions a triage classifier actually returned, read back from stored tool results. No wording in a message is matched against a word list; a row without a stored decision reads “not assessed”.'}
+        </p>
         <div className="space-y-2.5">
           {data?.events.map((ev) => (
             <div
@@ -1002,7 +1004,7 @@ export function ClinicalTriageSafetyMonitor({ token }: { token?: string }) {
                       key={f}
                       className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-300"
                     >
-                      ⚡ {f}
+                      🔧 {f}
                     </span>
                   ))}
                 </div>

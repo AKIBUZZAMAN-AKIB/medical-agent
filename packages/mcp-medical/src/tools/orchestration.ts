@@ -1,212 +1,199 @@
+/**
+ * Specialist sub-agent blueprint generator.
+ *
+ * This file used to hold `SPECIALTY_PROFILES`: five hand-written profiles, each
+ * with a `keywords: RegExp` of clinical vocabulary (dengue/fever/platelet,
+ * heart/bp/egfr, pregnan/breastfeed, migraine/stroke, and a catch-all that matched everything)
+ * plus a fixed `redFlags`, `contextQuestions` and `recommendedTools` list. The
+ * "dynamic specialist" was therefore not dynamic at all: the specialist was
+ * whichever profile happened to be listed first whose regex matched, and every
+ * clinical statement the sub-agent was told to make was author-invented text
+ * keyed on that match.
+ *
+ * It has been removed deliberately, for the same reason the emergency lexicon
+ * was removed (see `../safety/emergency.ts`):
+ *
+ *  - The caller already knows the specialty. It arrives as `args.specialty`, in
+ *    the user's own words and language. A regex list of English (and no Bangla)
+ *    disease words could only ever *disagree* with the person who asked.
+ *  - A red-flag list is a clinical claim. Copying five hand-written claim sets
+ *    into every spawned specialist is not a safety guarantee; it is untraceable
+ *    clinical content with no author, no review and no version.
+ *  - First-match-wins over an ordered array makes behaviour depend on array
+ *    order — invisible, untestable, and impossible to audit.
+ *
+ * What the tool does now: it renders a blueprint from what it is *given* — the
+ * specialty label, the clinical focus, and (optionally) the red flags, context
+ * questions and tool subset that the calling agent chose. It matches nothing,
+ * enumerates nothing clinical, and says so in its own output. Tool names are
+ * read from the live registry, so the catalogue cannot drift from the server.
+ *
+ * Consequence, stated where it cannot be missed: with no `red_flags` supplied,
+ * the blueprint contains **no red-flag triggers** and says so, instead of
+ * silently substituting an author's list. Emergency screening is not this
+ * tool's job — `emergency_triage_check` is, and it is classifier-backed.
+ */
 import { z } from 'zod';
-import {
-  bulletList,
-  composeResult,
-  definitionList,
-  heading,
-} from '../format.js';
+import { bulletList, composeResult, definitionList, heading } from '../format.js';
 import { defineTool } from '../types.js';
 
-interface SpecialtyProfile {
-  slug: string;
-  title: string;
-  keywords: RegExp;
-  recommendedTools: string[];
-  redFlags: string[];
-  contextQuestions: string[];
+function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 36);
 }
 
-const SPECIALTY_PROFILES: SpecialtyProfile[] = [
-  {
-    slug: 'tropical_infectious_dengue',
-    title: 'Tropical & Infectious Diseases Specialist Sub-Agent (Dengue / Typhoid / Sepsis)',
-    keywords: /\b(dengue|typhoid|malaria|chikungunya|fever|platelet|ns1|antibiotic|infection|sepsis|pneumonia|tb|tuberculosis)\b/i,
-    recommendedTools: [
-      'lab_result_interpreter',
-      'bd_medicine_lookup',
-      'drug_interaction_check',
-      'clinical_calculator',
-      'pubmed_search',
-      'health_statistics',
-    ],
-    redFlags: [
-      'Dengue warning signs on defervescence (day 3–7): severe abdominal pain, persistent vomiting, mucosal bleeding, lethargy/restlessness, rising hematocrit with falling platelets (<50,000–100,000/µL)',
-      'Sepsis / qSOFA criteria: altered mentation, respiratory rate >=22/min, systolic BP <=100 mmHg, or persistent SpO2 <92%',
-      'Strict contraindication to NSAIDs (ibuprofen, diclofenac, ketorolac, naproxen) and aspirin until dengue hemorrhagic fever is excluded',
-    ],
-    contextQuestions: [
-      'What day of fever is today, and what is the peak recorded temperature?',
-      'Are there any warning signs: severe belly pain, repeated vomiting, gum/nose bleeding, black stools, dizziness, or reduced urine output?',
-      'Have serial CBC (Hematocrit + Platelet count) or NS1/IgM tests been done, and what medicines were taken so far?',
-    ],
-  },
-  {
-    slug: 'cardio_nephro_metabolic',
-    title: 'Cardio-Renal-Endocrine Specialist Sub-Agent',
-    keywords: /\b(heart|bp|hypertension|cardiac|afib|cholesterol|statin|kidney|ckd|egfr|creatinine|diabetes|hba1c|insulin|thyroid|tsh)\b/i,
-    recommendedTools: [
-      'clinical_calculator',
-      'lab_result_interpreter',
-      'bd_medicine_lookup',
-      'pharmacogenomics_guideline',
-      'drug_label',
-      'drug_interaction_check',
-      'clinical_trials',
-      'pubmed_search',
-    ],
-    redFlags: [
-      'Chest pressure/pain radiating to arm/jaw/back, acute dyspnea, syncope, or focal stroke deficits (FAST) -> call 999 / 911 / 112 immediately',
-      'Hypertensive emergency (BP >=180/120 mmHg WITH chest pain, dyspnea, visual loss, headache, or neurologic change)',
-      'Severe hyperkalemia (K+ >=6.0 mEq/L), hypoglycemia (<54 mg/dL), DKA symptoms, or eGFR <15 mL/min/1.73m²',
-    ],
-    contextQuestions: [
-      'What are the most recent home BP / fasting & post-meal blood glucose readings and latest serum creatinine + HbA1c?',
-      'Please list every regular tablet (including exact strengths and fixed-dose combinations) and any OTC pain relievers.',
-      'Is there any swelling of the feet, shortness of breath when lying flat, frothy urine, or chest tightness on exertion?',
-    ],
-  },
-  {
-    slug: 'maternal_fetal_lactation_peds',
-    title: 'Maternal-Fetal, Lactation & Pediatric Safety Sub-Agent',
-    keywords: /\b(pregnan|trimester|breastfeed|lactat|infant|baby|newborn|child|pediatric|syrup|drop|postpartum|ectopic)\b/i,
-    recommendedTools: [
-      'drug_lactation',
-      'drug_label',
-      'bd_medicine_lookup',
-      'clinical_calculator',
-      'drug_interaction_check',
-      'pubmed_search',
-    ],
-    redFlags: [
-      'Pregnancy red flags: vaginal bleeding, severe one-sided pelvic pain, severe headache/visual scotomata with BP >=140/90 (preeclampsia), decreased fetal movement, or fluid leakage',
-      'Pediatric red flags: infant <3 months with fever >=38.0°C (100.4°F), chest indrawing/grunting, inability to drink/breastfeed, sunken fontanelle, lethargy, or non-blanching rash',
-    ],
-    contextQuestions: [
-      'For pregnancy/lactation: exact gestational weeks OR infant chronological age (and whether pre-term) + exclusive vs partial breastfeeding?',
-      'For children: exact recent body weight in kg and the exact mg/5 mL concentration printed on any liquid medicine bottle?',
-      'Are there any danger signs in feeding, breathing rate, wet diapers, or alertness?',
-    ],
-  },
-  {
-    slug: 'neuro_psych_pain',
-    title: 'Neurology, Headache & Neuropsychiatry Sub-Agent',
-    keywords: /\b(migraine|headache|seizure|epilepsy|stroke|vertigo|neuropathy|sleep|insomnia|anxiety|depression|carbamazepine|sertraline)\b/i,
-    recommendedTools: [
-      'pharmacogenomics_guideline',
-      'bd_medicine_lookup',
-      'drug_interaction_check',
-      'drug_label',
-      'condition_lookup',
-      'pubmed_search',
-    ],
-    redFlags: [
-      'SNOOP10 headache red flags: thunderclap onset peaking within 60 seconds, fever + neck stiffness, papilledema/visual loss, focal weakness/speech change, pregnancy/postpartum onset, or age >50 new headache',
-      'Any suicidal ideation or self-harm thoughts -> immediate crisis lifeline at top of message (988 US/Canada, 111 UK, Kaan Pete Roi +880-9612-119911 / Emergency 999 in Bangladesh)',
-    ],
-    contextQuestions: [
-      'Did the symptom start suddenly like a thunderclap or build gradually, and how long does each episode last?',
-      'Is there any vision change, weakness/numbness on one side, slurred speech, fever, or neck stiffness?',
-      'Which acute pain medicines, preventives, or sedatives are currently being taken and how many days per week?',
-    ],
-  },
-  {
-    slug: 'gastro_hepatology_derma_general',
-    title: 'Dynamic Subspecialty Clinical Research Sub-Agent',
-    keywords: /.*/,
-    recommendedTools: [
-      'bd_medicine_lookup',
-      'pharmacogenomics_guideline',
-      'clinical_calculator',
-      'lab_result_interpreter',
-      'drug_lookup',
-      'drug_label',
-      'drug_interaction_check',
-      'pubmed_search',
-      'clinical_trials',
-    ],
-    redFlags: [
-      'Hematemesis (vomiting blood), melena (black tarry stool), progressive dysphagia, unintentional weight loss, jaundice, or severe persistent pain',
-      'Rapidly spreading mucocutaneous blistering/mucosal erosion after starting a medication (SJS/TEN emergency — stop suspect drug immediately & seek emergency hospital care)',
-    ],
-    contextQuestions: [
-      'How long have the symptoms been present, and how have they changed over the past 48–72 hours?',
-      'What chronic conditions, drug allergies, kidney/liver problems, or regular prescriptions/herbal supplements are present?',
-      'Have any recent blood tests, imaging, or endoscopy reports been performed?',
-    ],
-  },
-];
+function cleanList(values: string[] | undefined): string[] {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return values.map((value) => String(value).trim()).filter((value) => value.length > 0);
+}
 
 export const orchestrationTools = [
   defineTool({
     name: 'specialist_subagent_blueprint',
     group: 'orchestration',
-    title: 'Dynamic specialist medical sub-agent blueprint generator',
+    title: 'Specialist sub-agent blueprint renderer (no built-in clinical profiles)',
     description:
-      'Generate a structured, safety-hardened specialist sub-agent configuration on demand for any medical specialty, organ system, or complex multi-morbidity case. Maps the clinical query to an optimal subset of `@librechat/mcp-medical` tools, specialty red-flag triage rules, HealthBench context-seeking questions, and a persistable LibreChat `agent_dyn_*` schema.',
+      'Render a persistable LibreChat `agent_dyn_*` specialist sub-agent specification from the specialty label and clinical focus you supply, plus any red flags, context-seeking questions and tool subset you choose. This tool holds no clinical profiles, no keyword matcher and no red-flag list of its own: unmatched or unspecified fields come back empty with a notice saying so, never filled in from an author-authored table. Available MCP tool names are read from the live registry so the catalogue cannot drift.',
     readOnly: true,
     inputSchema: {
       specialty: z
         .string()
         .min(2)
-        .describe('Requested medical specialty or domain, e.g. "Tropical Infectious Diseases & Dengue", "Nephrology", "Neurology", "Dermatology"'),
+        .describe(
+          'The specialty or domain label for the sub-agent, in the requester\'s own words and language (e.g. "Tropical Infectious Diseases & Dengue", "Nephrology", "নিউরোলজি"). Used verbatim as the agent label; never matched against a list.',
+        ),
       clinical_focus: z
         .string()
         .min(3)
         .describe('Specific patient question or clinical problem this sub-agent must investigate'),
+      red_flags: z
+        .array(z.string().min(1))
+        .optional()
+        .describe(
+          'Red-flag escalation triggers for this sub-agent, chosen by the calling agent from the evidence it gathered (for example the findings in an emergency_triage_check result). Omitted = the blueprint ships no red-flag triggers and says so; nothing is invented here.',
+        ),
+      context_questions: z
+        .array(z.string().min(1))
+        .optional()
+        .describe(
+          'Context-seeking questions the sub-agent should ask. Omitted = none are emitted; this tool does not carry a question bank.',
+        ),
+      tools: z
+        .array(z.string().min(1))
+        .optional()
+        .describe(
+          'MCP tool names to grant the sub-agent. Omitted = the blueprint lists the live catalogue grouped by family and leaves the choice to the caller. Unknown names are reported back rather than dropped silently.',
+        ),
     },
     async handler(args, { env }) {
-      const combined = `${args.specialty} ${args.clinical_focus}`;
-      const matched =
-        SPECIALTY_PROFILES.find((p) => p.keywords.test(combined)) ??
-        SPECIALTY_PROFILES[SPECIALTY_PROFILES.length - 1];
-      const cleanSlug = args.specialty
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '')
-        .slice(0, 36);
-      const agentId = `agent_dyn_${cleanSlug || matched.slug}`;
+      /* Resolved lazily: the registry imports this module, so a static import
+       * would be a cycle. Reading it per call also means the blueprint always
+       * reflects the tools this server actually published. */
+      const { allTools, describeToolGroups, selectTools } = await import('./index.js');
+      const catalog = selectTools(env, allTools);
+      const catalogNames = new Set(catalog.map((tool) => tool.name));
+
+      const requestedTools = cleanList(args.tools);
+      const unknownTools = requestedTools.filter((name) => !catalogNames.has(name));
+      const grantedTools = requestedTools.filter((name) => catalogNames.has(name));
+      const redFlags = cleanList(args.red_flags);
+      const contextQuestions = cleanList(args.context_questions);
+
+      const cleanSlug = slugify(args.specialty);
+      const agentId = `agent_dyn_${cleanSlug || 'specialist'}`;
+
+      const sections: string[] = [
+        [
+          heading('Dynamic Specialist Sub-Agent Specification'),
+          definitionList([
+            ['Agent ID', agentId],
+            ['Specialty Label (requester-supplied)', args.specialty.trim()],
+            ['Assigned Clinical Focus', args.clinical_focus.trim()],
+            [
+              'Granted MCP Tools',
+              grantedTools.length > 0
+                ? grantedTools.join(', ')
+                : 'Not chosen by this tool — see the live catalogue below',
+            ],
+          ]),
+        ].join('\n'),
+      ];
+
+      if (redFlags.length > 0) {
+        sections.push(
+          [heading('Red-Flag Escalation Triggers (caller-supplied)'), bulletList(redFlags)].join(
+            '\n',
+          ),
+        );
+      }
+
+      if (contextQuestions.length > 0) {
+        sections.push(
+          [
+            heading('Context-Seeking Questions (caller-supplied)'),
+            bulletList(contextQuestions),
+          ].join('\n'),
+        );
+      }
+
+      if (grantedTools.length === 0) {
+        sections.push(
+          [
+            heading('Live MCP Tool Catalogue (choose the subset for this sub-agent)'),
+            describeToolGroups(catalog),
+          ].join('\n'),
+        );
+      }
 
       const blueprintJson = JSON.stringify(
         {
           id: agentId,
           name: `${args.specialty.trim()} Specialist Sub-Agent`,
           category: 'medical-specialist',
-          mcpTools: matched.recommendedTools,
+          mcpTools: grantedTools.length > 0 ? grantedTools : [],
+          redFlagTriggers: redFlags,
+          contextQuestions: contextQuestions.length > 0 ? contextQuestions : [],
           safetyInvariants: [
             'Never diagnose or prescribe/adjust doses',
-            'Escalate red flags immediately with concrete time window',
+            'Escalate whatever the deployment-supplied triage classifier returned, with a concrete time window',
             'Never cite unverified sources or retired FDA pregnancy letter categories',
           ],
         },
         null,
         2,
       );
+      sections.push([heading('LibreChat Agent Registration Payload'), blueprintJson].join('\n'));
+
+      const notices: string[] = [
+        'This blueprint contains no clinical vocabulary of its own. Everything clinical in it was supplied by the caller; fields the caller left empty came back empty on purpose.',
+        'The rendered sub-agent does no emergency screening by itself. Give it `emergency_triage_check` and require it on symptom messages — severity there comes from a classifier, never from a word list.',
+      ];
+      if (redFlags.length === 0) {
+        notices.push(
+          'No red-flag triggers were supplied, so this sub-agent spec has none. Do not read that as "no red flags exist" — derive them from the triage evidence for this case.',
+        );
+      }
+      if (unknownTools.length > 0) {
+        notices.push(
+          `These requested tool names are not published by this server and were not granted: ${unknownTools.join(', ')}.`,
+        );
+      }
 
       return composeResult({
-        headline: `Generated dynamic sub-agent blueprint \`${agentId}\` (${matched.title}).`,
-        sections: [
-          [
-            heading('Dynamic Specialist Sub-Agent Specification'),
-            definitionList([
-              ['Agent ID', agentId],
-              ['Matched Clinical Profile', matched.title],
-              ['Assigned Clinical Focus', args.clinical_focus],
-              ['Recommended MCP Tools', matched.recommendedTools.join(', ')],
-            ]),
-          ].join('\n'),
-          [heading('Mandatory Red-Flag Escalation Triggers'), bulletList(matched.redFlags)].join('\n'),
-          [
-            heading('HealthBench Context-Seeking Questions to Gather'),
-            bulletList(matched.contextQuestions),
-          ].join('\n'),
-          [heading('LibreChat Agent Registration Payload'), blueprintJson].join('\n'),
-        ],
+        headline: `Rendered dynamic sub-agent blueprint \`${agentId}\` from the requester's own specialty label (no profile matched, no keyword list consulted).`,
+        sections,
         sources: [
           {
             name: 'HealthBench Clinical Evaluation Rubric (Arora et al., OpenAI 2025)',
             url: 'https://arxiv.org/abs/2505.08775',
           },
         ],
+        notices,
         env,
       });
     },

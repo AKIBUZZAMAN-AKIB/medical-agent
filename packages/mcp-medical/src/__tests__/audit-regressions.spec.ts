@@ -9,6 +9,8 @@ import { UpstreamError } from '../errors.js';
 import { loadEnv } from '../env.js';
 import { calculatorTools } from '../tools/calculators.js';
 import { drugTools } from '../tools/drugs.js';
+import { emergencyTools } from '../tools/emergency.js';
+import { orchestrationTools } from '../tools/orchestration.js';
 import { literatureTools } from '../tools/literature.js';
 
 const env = loadEnv({});
@@ -259,5 +261,81 @@ describe('lab_result_interpreter refuses to read a value in the wrong unit', () 
       { env, http: scriptedHttp([]) },
     );
     expect(String(out.text ?? out)).toMatch(/Within Reference Interval/i);
+  });
+});
+
+/**
+ * §F-40, §F-41, §F-42, §F-43 — no author-written clinical lexicon may decide
+ * behaviour in this package.
+ *
+ * F-41 removed `SPECIALTY_PROFILES` (five profiles of hand-written clinical
+ * keywords that chose the "dynamic" specialist by first regex match); F-42
+ * removed the keyword-matched population-alert paragraphs from the CPIC tool;
+ * F-43 removed a named diagnosis and a management instruction from the lab
+ * interpreter. This block fails if any of that comes back.
+ */
+describe('no predefined clinical keyword list drives behaviour', () => {
+  const blueprintTool = orchestrationTools[0];
+
+  it('renders the blueprint from caller-supplied content only', async () => {
+    const out = await blueprintTool.handler(
+      {
+        specialty: 'নিউরোলজি',
+        clinical_focus: 'Synthetic case: recurrent headache',
+        red_flags: ['Caller-supplied escalation: any new focal deficit'],
+        context_questions: ['Caller-supplied: how did the headache start?'],
+        tools: ['lab_result_interpreter', 'not_a_real_tool'],
+      },
+      { env, http: scriptedHttp([]) },
+    );
+    const text = String(out.text ?? out);
+    expect(text).toContain('নিউরোলজি');
+    expect(text).toContain('Caller-supplied escalation: any new focal deficit');
+    expect(text).toContain('Caller-supplied: how did the headache start?');
+    /** Requested-but-unpublished tools are reported, never silently dropped. */
+    expect(text).toMatch(/not published by this server/i);
+    expect(text).toContain('not_a_real_tool');
+    /** No profile was matched, and the tool says so. */
+    expect(text).toMatch(/no profile matched, no keyword list consulted/i);
+  });
+
+  it('invents no red flags when the caller supplies none', async () => {
+    const out = await blueprintTool.handler(
+      { specialty: 'Cardiology', clinical_focus: 'Synthetic case' },
+      { env, http: scriptedHttp([]) },
+    );
+    const text = String(out.text ?? out);
+    expect(text).toContain('No red-flag triggers were supplied');
+    expect(text).not.toContain('Mandatory Red-Flag Escalation Triggers');
+    /** A blueprint with no tool choice lists the live catalogue, not a preset. */
+    expect(text).toContain('Live MCP Tool Catalogue');
+    expect(text).toMatch(/mcpTools": \[\]/);
+  });
+
+  it('keeps the triage verdict machine-readable and classifier-attributed', async () => {
+    const out = await emergencyTools[0].handler(
+      { message: 'synthetic message, no classifier is configured in tests' },
+      { env, http: scriptedHttp([]) },
+    );
+    const text = String(out.text ?? out);
+    const match = /<<<TRIAGE_DECISION (\{[\s\S]*?\})>>>/.exec(text);
+    expect(match).not.toBeNull();
+    const payload = JSON.parse(match![1]);
+    /** No model here, so the only honest verdict is "undecided". */
+    expect(payload.decided).toBe(false);
+    expect(payload.severity).toBe('unknown');
+    expect(payload.classifier).toBe('none');
+    expect(payload.ruleset).toBe('2.0.0-generation');
+  });
+
+  it('names no diagnosis and no treatment in the lab panel', async () => {
+    const labTool = requireTool(calculatorTools, 'lab_result_interpreter');
+    const out = await labTool.handler(
+      { values: { platelets: 62, hematocrit: 52, wbc: 3.1 } } as never,
+      { env, http: scriptedHttp([]) },
+    );
+    const text = String(out.text ?? out);
+    expect(text).toContain('Reported as measurements only');
+    expect(text).not.toMatch(/plasma-leakage|warning pattern|avoid NSAIDs/i);
   });
 });

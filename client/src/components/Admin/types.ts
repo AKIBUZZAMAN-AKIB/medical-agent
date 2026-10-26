@@ -19,6 +19,25 @@ export interface DailySeriesPoint {
   safetyAlerts: number;
 }
 
+/**
+ * Severity as the triage engine defines it, plus `unassessed`.
+ *
+ * `unassessed` is not a severity — it is the absence of one: the conversation's
+ * record holds no persisted `emergency_triage_check` decision. It exists so the
+ * console can never render an unexamined message as `routine`.
+ */
+export type TriageSeverity =
+  | 'none'
+  | 'informational'
+  | 'routine'
+  | 'urgent'
+  | 'emergency'
+  | 'unknown'
+  | 'unassessed';
+
+/** Where a row's severity came from. Only persisted decisions count as evidence. */
+export type TriageBasis = 'persisted-triage-decision' | 'none';
+
 export interface RecentConsultationSummary {
   conversationId: string;
   title: string;
@@ -30,8 +49,13 @@ export interface RecentConsultationSummary {
   messages: number;
   toolCalls: number;
   subagentHandoffs: number;
-  severity: 'emergency' | 'high' | 'moderate' | 'routine';
+  severity: TriageSeverity;
+  severityBasis?: TriageBasis;
+  triageDecisions?: number;
+  undecidedTriage?: number;
+  /** Handling agent label (or "No agent recorded") — never an inferred specialty. */
   specialty: string;
+  /** Medical tools the conversation invoked. A record, not a classification. */
   flags: string[];
   updatedAt?: string;
 }
@@ -56,8 +80,10 @@ export interface OverviewResponse {
     activeBanners: number;
     auditEntries: number;
     emergencyAlerts: number;
-    dengueAlerts: number;
-    pgxAlerts: number;
+    assessedMessages: number;
+    unassessedMessages: number;
+    undecidedMessages: number;
+    triageBasis?: TriageBasis;
     mcpToolsTotal: number;
     mcpToolGroups: number;
     bdBrandsTotal: number;
@@ -171,17 +197,20 @@ export interface FormularySearchResponse {
 }
 
 export interface TriageSafetyResponse {
-  /** Where the severities came from — currently always a keyword matcher. */
+  /** Where the severities came from — the persisted triage decisions. */
   basis?: string;
   notice?: string;
   counts: {
     totalScanned: number;
     emergency: number;
-    high: number;
-    moderate: number;
+    urgent: number;
     routine: number;
-    /** Matched no rule and was therefore not assessed; not a clearance. */
-    unknown?: number;
+    informational: number;
+    none: number;
+    /** The classifier could not decide on that run. Not a clearance. */
+    unknown: number;
+    /** No persisted decision exists for the conversation; not a clearance. */
+    unassessed: number;
   };
   events: Array<{
     messageId: string;
@@ -189,9 +218,14 @@ export interface TriageSafetyResponse {
     userName: string;
     userEmail: string;
     text: string;
-    severity: 'emergency' | 'high' | 'moderate' | 'routine' | 'unknown';
-    severityBasis?: 'keyword-match' | 'none';
+    severity: TriageSeverity;
+    severityBasis?: TriageBasis;
+    triageDecisions?: number;
+    undecidedTriage?: number;
+    classifiers?: string[];
+    /** Handling agent id, or "No agent recorded". */
     specialty: string;
+    /** Medical tools this conversation invoked. */
     flags: string[];
     createdAt?: string;
   }>;
@@ -208,7 +242,10 @@ export interface ConsultationListItem {
   messagesCount: number;
   toolCalls: number;
   subagentCalls: number;
-  severity: 'emergency' | 'high' | 'moderate' | 'routine';
+  severity: TriageSeverity;
+  severityBasis?: TriageBasis;
+  triageDecisions?: number;
+  undecidedTriage?: number;
   specialty: string;
   flags: string[];
   updatedAt?: string;
