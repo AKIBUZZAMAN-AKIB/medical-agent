@@ -694,6 +694,46 @@ for curated values — the defect is that they are unattributed and unversioned,
 not that they exist. Recommended: one source field per analyte, a
 `LAB_RANGES_VERSION` exported beside the table and surfaced in the tool result.
 
+### F-27 — The shipped config hard-coded one machine's Node interpreter · **P1 · certain · FIXED**
+`librechat.pure-doctor.yaml` launched the medical MCP server with
+`command: /home/user/.local/node24/bin/node` and an absolute
+`/home/user/medical-agent/packages/mcp-medical/dist/index.js`. Those paths exist on
+the machine the file was written on and nowhere else, so on every other machine the
+server could not spawn at all. Observed live, before the fix, in the API log:
+
+```
+error: [MCP] Connection failed
+```
+
+i.e. the deployment served the chat UI with **zero** medical tools while the config
+claimed 33. Fixed by resolving the interpreter through `PATH` and the server entry
+relative to the repository root, matching `e2e/config/librechat.real.yaml`. Verified
+after the fix by the same boot path:
+
+```
+info: [MCP][medical] Capabilities: {"tools":{"listChanged":true}}
+info: [MCP] Initialized with 1 configured server and 33 tools.
+info: [MCP][medical] Tool list changed; refreshed 33 tools
+```
+
+### F-28 — A failed login answered `404 Not Found` · **P2 · certain · FIXED**
+`api/server/middleware/requireLocalAuth.js:12` replies `res.status(404).send(info)`
+when Passport returns no user, so a wrong password is indistinguishable from a
+missing route by status code. The SPA still shows "Incorrect password." because it
+renders `response.data.message`, but every non-browser consumer — uptime monitors,
+WAF rules, client retry logic, `4xx` dashboards — is told the endpoint does not
+exist. Confirmed against a live server in `e2e/browser-auth-api.e2e.mjs` (check B7):
+`POST /api/auth/login -> 404 ("Incorrect password.")`. Not introduced by this fork (the line is identical to upstream).
+
+Fixed after the audit: `requireLocalAuth` now answers `401` (with a body, so the
+client can still render "Incorrect password.") and keeps its separate `422` branch
+for a rejection that carries an `info.message`. The change is safe for the SPA —
+`client/src/utils/getLoginError.ts` maps `401` to `com_auth_error_login`, and
+`404` fell through to the same default key, so no user-visible string moved. Guarded
+by `api/server/middleware/requireLocalAuth.spec.js` and, dependency-free, by
+`e2e/verify-require-local-auth.js` (6/6 checks including the regression guard that a
+rejected login is never `404`).
+
 ## H. Performance and scalability
 
 ### H.1 Measured results (this machine only)
@@ -906,4 +946,8 @@ naive keyword implementation would ship:
 | F-22 (lazy sub-agent descriptor identity) | **FIXED** | Allowlist inverted onto `AgentUpdateParams` with a compile-time exhaustiveness assertion and a generated per-field test. See F-22. |
 | F-25 / F-26 (blueprint table, lab reference data provenance) | **NOT FIXED** | Both need an owner decision — deleting a shipping tool changes the public catalogue, and adding source/version fields to clinical reference data needs the standard named. Documented with options in F-25 and F-26. |
 | `meld_na` rounding mismatch | **NOT FIXED** | Needs clinical sign-off; sub-1-point effect. |
+| F-27 (medical MCP server launched from a hard-coded interpreter path) | **FIXED** | `command: node` + repo-relative `args[0]` in `librechat.pure-doctor.yaml`. Before: `[MCP] Connection failed`, 0 tools. After: `[MCP] Initialized with 1 configured server and 33 tools`. See F-27. |
+| F-28 (failed login returned 404) | **FIXED** | `requireLocalAuth` now answers `401` with a message body; the `422` branch is untouched. SPA strings unchanged (`getLoginError` maps both 401 and the old 404 to the same key). Verified by `api/server/middleware/requireLocalAuth.spec.js` and the dependency-free `e2e/verify-require-local-auth.js` → 6/6. |
+| Browser-level auth E2E (`e2e/browser-auth-api.e2e.mjs`) | **12/12 PASS** | Chromium 151 via Playwright against a fresh database: signup, immediate login, ADMIN bootstrap, admin API, refresh, logout, wrong password, duplicate-email parity, USER denied, anonymous refused, foreign Origin refused. |
+| Browser-level **UI** E2E (`e2e/browser-auth.e2e.mjs`) | **NOT TESTED (blocked)** | The client bundle cannot be compiled on this 1.98 GB host — kernel OOM kill at `rendering chunks`. Script and instructions are committed; see `docs/e2e/README.md`. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |

@@ -9,7 +9,12 @@ const requireLocalAuth = (req, res, next) => {
     }
     if (!user) {
       logger.debug('[requireLocalAuth] Error: No user');
-      return res.status(404).send(info);
+      /* 401, not 404: a rejected password is an authentication failure, and the
+         route exists. Answering 404 told every non-browser consumer — uptime
+         checks, WAF rules, client retry logic, 4xx dashboards — that the login
+         endpoint itself was missing. `info` carries Passport's message (e.g.
+         "Incorrect password.") so the client can still render it. */
+      return res.status(401).send(info ?? { message: 'Invalid credentials' });
     }
     if (info && info.message) {
       logger.debug('[requireLocalAuth] Error: ' + info.message);

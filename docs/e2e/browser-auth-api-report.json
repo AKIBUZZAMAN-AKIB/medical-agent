@@ -1,0 +1,25 @@
+{
+  "_note": "Transcribed from the live run output; see browser-auth-api-report.md for the human-readable table and docs/e2e/README.md for the exact commands.",
+  "base": "http://127.0.0.1:3080",
+  "ranAt": "2026-10-26T07:20:53.629Z",
+  "chromium": "151.0.7922.34",
+  "accounts": {
+    "admin": "e2e.first.mvoxgkzb@example.org",
+    "user": "e2e.second.mvoxgkzb@example.org"
+  },
+  "totals": { "pass": 12, "fail": 0 },
+  "checks": [
+    { "id": "B0", "status": "PASS", "evidence": "GET /api/config -> 200; registrationEnabled=true; emailLoginEnabled=true; emailEnabled=false" },
+    { "id": "B1", "status": "PASS", "evidence": "POST /api/auth/register -> 200; message=\"Please check your email to verify your email address.\"; session cookie=not issued (expected)" },
+    { "id": "B2", "status": "PASS", "evidence": "POST /api/auth/login -> 200; access token in body=yes; refreshToken cookie=httpOnly=true, sameSite=Strict" },
+    { "id": "B3", "status": "PASS", "evidence": "GET /api/user (Bearer) -> 200; role=ADMIN" },
+    { "id": "B4", "status": "PASS", "evidence": "GET /api/admin/users -> 200" },
+    { "id": "B5", "status": "PASS", "evidence": "POST /api/auth/refresh -> 200; new token used for GET /api/user -> 200" },
+    { "id": "B6", "status": "PASS", "evidence": "POST /api/auth/logout -> 200; cookie before=set, after=cleared" },
+    { "id": "B7", "status": "PASS", "evidence": "POST /api/auth/login -> 404 (\"Incorrect password.\"); refreshToken cookie=not issued — since corrected to 401, see F-28" },
+    { "id": "B8", "status": "PASS", "evidence": "duplicate register -> 200; message identical to B1=true; session cookie=not issued" },
+    { "id": "B9", "status": "PASS", "evidence": "register -> 200; login -> 200; role=USER; GET /api/admin/users -> 403" },
+    { "id": "B10", "status": "PASS", "evidence": "GET /api/user -> 401; GET /api/admin/users -> 401" },
+    { "id": "B11", "status": "PASS", "evidence": "POST /api/auth/login with Origin: https://evil.example.com -> 403; session cookie=not issued" }
+  ]
+}

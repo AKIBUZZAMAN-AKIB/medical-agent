@@ -95,9 +95,13 @@ memory:
 mcpServers:
   medical:
     type: stdio
-    command: /home/user/.local/node24/bin/node
+    # Resolved through PATH: a hard-coded interpreter path only ever works on the
+    # one machine it was written on, so the server could never start anywhere else
+    # ("[MCP] Connection failed" at boot -> no medical tools at all).
+    command: node
     args:
-      - /home/user/medical-agent/packages/mcp-medical/dist/index.js
+      # Relative to the repository root, matching e2e/config/librechat.real.yaml.
+      - packages/mcp-medical/dist/index.js
     timeout: 60000
     initTimeout: 30000
     chatMenu: false
