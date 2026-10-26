@@ -286,14 +286,16 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
   });
 });
 
-describe('Dynamic specialist_subagent_blueprint & 32-tool registry', () => {
-  it('publishes all 32 tools across 11 groups and generates valid agent_dyn_* specs', async () => {
-    expect(allTools).toHaveLength(32);
+describe('Dynamic specialist_subagent_blueprint & 33-tool registry', () => {
+  it('publishes all 33 tools across 11 groups and generates valid agent_dyn_* specs', async () => {
+    // 32 lookup tools plus the deterministic emergency screen (ruleset 1.0.0).
+    expect(allTools).toHaveLength(33);
     const groups = describeToolGroups();
     for (const g of ['formulary', 'pharmacogenomics', 'calculators', 'orchestration']) {
       expect(groups).toContain(`${g}:`);
     }
-    expect(selectTools(loadEnv({ MEDICAL_TOOL_GROUPS: 'formulary,calculators' }))).toHaveLength(3);
+    // 1 formulary + 2 calculators + the non-removable emergency screen.
+    expect(selectTools(loadEnv({ MEDICAL_TOOL_GROUPS: 'formulary,calculators' }))).toHaveLength(4);
 
     const blueprint = await orchestrationTools[0].handler(
       {

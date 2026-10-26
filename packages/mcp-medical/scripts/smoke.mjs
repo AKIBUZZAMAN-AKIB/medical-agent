@@ -17,6 +17,12 @@ const entry = path.resolve(here, '..', 'dist', 'index.js');
 
 /** One representative call per tool: the cheapest query that proves the wiring. */
 const CALLS = {
+  emergency_triage_check: {
+    // Offline by design — it reads no upstream — but included so that "all tools
+    // responded" is a true statement about the whole published catalogue.
+    group: 'clinical',
+    args: { message: 'crushing chest pain radiating to my left arm and sweating' },
+  },
   pubmed_search: {
     group: 'literature',
     args: { query: 'semaglutide type 2 diabetes', max_results: 3 },

@@ -14,7 +14,9 @@ const SERVER_NAME = 'medical';
  * rules that govern a real answer live in the agent's own instructions, because
  * they are a property of the agent, not of the tool layer.
  */
-const SERVER_INSTRUCTIONS = `Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
+const SERVER_INSTRUCTIONS = `Call \`emergency_triage_check\` first, with the user's own words, on any message that describes symptoms, an injury, an ingestion, or emotional distress. It evaluates a deterministic triage policy over evidence from a classifier. This server has no model, so with no classifier configured it returns UNKNOWN — undecided, never ROUTINE — which must be treated as urgent and is never a clearance. Do not run a lookup before it, and never present an undecided result as reassurance.
+
+Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
 
 Every tool returns live data with a Sources block; cite those URLs rather than the API host, and never present a figure you did not read in a tool result. Zero results, a 404, and a rate limit are answers, not failures: say what was searched and what was not found, and widen the query instead of guessing. Upstreams are free and shared, so prefer few, well-formed calls over many speculative ones.`;
 

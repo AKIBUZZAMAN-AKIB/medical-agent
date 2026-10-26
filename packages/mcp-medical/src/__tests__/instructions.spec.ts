@@ -54,6 +54,34 @@ describe('agent instructions — safety rules that must survive editing', () => 
     expect(instructions).toMatch(/Give the crisis contact every time/i);
   });
 
+  it('requires the deterministic screen before any other tool', () => {
+    expect(instructions).toMatch(/Before any other tool call/i);
+    expect(instructions).toMatch(
+      /call `emergency_triage_check` with the\s+user's own words, verbatim/i,
+    );
+    /** The pass-through requirement is what keeps negation and time framing intact. */
+    expect(instructions).toMatch(/Pass the message through unchanged/i);
+  });
+
+  it('forbids reporting a non-emergency severity as a clearance', () => {
+    expect(instructions).toMatch(/`unknown` is not a clearance, and neither is `routine`/i);
+    expect(instructions).toMatch(/Do not present a\s+non-emergency severity as evidence that nothing is wrong/i);
+  });
+
+  it('requires an unassessed message to be handled as urgent, not laundered', () => {
+    expect(instructions).toMatch(/No assessment was obtained/i);
+    expect(instructions).toMatch(/Do not launder an\s+unassessed message into a confident\s+answer/i);
+  });
+
+  it('does not let the agent invent triage when the classifier is absent', () => {
+    expect(instructions).toMatch(/The tool holds no clinical rule set/i);
+    expect(instructions).toMatch(/do not fill the gap with your own triage/i);
+  });
+
+  it("requires the screen's own limitations to travel with the answer", () => {
+    expect(instructions).toMatch(/limitations must travel with the answer/i);
+  });
+
   it('keeps clinical facts out of memory and personal facts out of databases', () => {
     expect(instructions).toMatch(/never look a clinical fact up in memory/i);
     expect(instructions).toMatch(/never look a personal fact up\s+in a database/i);

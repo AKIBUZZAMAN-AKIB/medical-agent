@@ -1,5 +1,5 @@
 import { bulletList, composeResult, definitionList, excerpt, stringifyValue } from '../format.js';
-import { allTools, describeToolGroups, selectTools } from '../tools/index.js';
+import { allTools, describeToolGroups, safetyToolNames, selectTools } from '../tools/index.js';
 import { createMedicalServer } from '../server.js';
 import { loadEnv } from '../env.js';
 
@@ -85,7 +85,11 @@ describe('tool catalogue', () => {
   it('narrows the catalogue to the groups an operator selected', () => {
     const narrowed = selectTools(loadEnv({ MEDICAL_TOOL_GROUPS: 'literature,drugs' }));
     expect(narrowed.length).toBeGreaterThan(0);
-    expect(narrowed.every((tool) => ['literature', 'drugs'].includes(tool.group))).toBe(true);
+    // Every selected tool is in a requested group, except the safety floor, which
+    // is not optional (see the next test and src/tools/index.ts).
+    const nonSafety = narrowed.filter((tool) => !safetyToolNames.has(tool.name));
+    expect(nonSafety.length).toBeGreaterThan(0);
+    expect(nonSafety.every((tool) => ['literature', 'drugs'].includes(tool.group))).toBe(true);
   });
 
   it('excludes individual tools without disturbing the rest', () => {
@@ -103,6 +107,7 @@ describe('createMedicalServer', () => {
 
   it('builds with a narrowed catalogue without touching the rest of the config', () => {
     const { tools } = createMedicalServer(loadEnv({ MEDICAL_TOOL_GROUPS: 'trials' }));
-    expect(tools.map((tool) => tool.name)).toEqual(['clinical_trials']);
+    // The emergency screen is deliberately not group-selectable.
+    expect(tools.map((tool) => tool.name)).toEqual(['emergency_triage_check', 'clinical_trials']);
   });
 });

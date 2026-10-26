@@ -6,7 +6,9 @@ dose table, no interaction matrix, no review abstracts. Every fact in an answer
 came back from an upstream API during the conversation, with a link to the
 record it came from.
 
-32 read-only tools across 11 domain groups, no API keys required.
+33 read-only tools across 11 domain groups, no API keys required — including one
+triage tool whose decision procedure is a deterministic, unit-tested pure function
+(it holds no clinical word list; see below).
 
 ## What it is for
 
@@ -36,13 +38,37 @@ the research method are written down.
 | `trials`           | `clinical_trials`                                                                                                                                                                         | ClinicalTrials.gov API v2                                                                          |
 | `epidemiology`     | `health_statistics`                                                                                                                                                                       | WHO Global Health Observatory                                                                      |
 | `devices`          | `device_approval`, `safety_recalls`                                                                                                                                                       | openFDA 510(k), device recall and food enforcement                                                 |
-| `clinical`         | `provider_lookup`, `plain_language_summary`                                                                                                                                               | NPPES NPI Registry v2.1, Wikipedia                                                                 |
+| `clinical`         | `emergency_triage_check`, `provider_lookup`, `plain_language_summary`                                                                                                                      | None for the triage tool (policy evaluation is deterministic; severity comes from a classifier); NPPES NPI Registry v2.1, Wikipedia |
 
 Group the tools any way the deployment needs — see `MEDICAL_TOOL_GROUPS` below.
+`emergency_triage_check` is the one exception: it is the safety floor and is
+published whatever the group selection or exclude list says.
+
+### The triage tool holds no clinical rules, on purpose
+
+It contains no red-flag word list, no symptom lexicon and no first-aid text. An
+earlier revision did (~1,800 lines); it was removed because an enumerated word
+list is a *maintained* asset rather than a safety guarantee — every phrasing it
+lacks is silently unsupported, it cannot be reviewed for clinical validity as a
+whole, and 39 hand-written concepts read like coverage that was never adjudicated.
+
+What remains is a pure evaluator (`src/safety/triage.ts`) over evidence supplied
+by a classifier: severity ordering is a monotone max-join, denials are inert
+unless a policy reads them explicitly, and an absent, throwing, timing-out or
+malformed classifier is `unknown` — never `routine`. Semantics are the
+classifier's; the decision procedure is this repository's, and it is tested with
+synthetic evidence and property tests rather than with clinical strings.
+
+A stdio MCP server has no model, so out of the box the tool returns `UNKNOWN` and
+says it is undecided. That is the honest failure. Real classification belongs on
+the host side, where the agent's model already lives — see
+[`docs/MEMORY_AND_LONG_RUN.md`](../../docs/MEMORY_AND_LONG_RUN.md).
+
+- **Emergencies get actions, not a phone number.**
 
 ## Continuity: what the agent remembers
 
-The 27 tools above answer questions about medicine. They know nothing about the
+The 33 tools above answer questions about medicine. They know nothing about the
 person asking, so the agent also gets three LibreChat built-ins, seeded
 alongside the MCP tools. They are built-ins rather than MCP tools on purpose: a
 stdio MCP server is never told which user called it, so it could not enforce
@@ -260,7 +286,7 @@ node packages/mcp-medical/scripts/smoke.mjs drugs         # one group
 ```
 
 The smoke script starts the built server over stdio as a real MCP client and
-calls all 27 tools against the live upstreams. Run it after an upstream moves
+calls all 33 tools against the live upstreams. Run it after an upstream moves
 an endpoint, which public APIs do without notice.
 
 ## Why these upstreams
