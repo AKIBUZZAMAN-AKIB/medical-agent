@@ -981,7 +981,7 @@ different file.
 
 ### F-45 — The alternation regexes that remain are parsers, not clinical semantics · **INFO · certain · BY DESIGN**
 After F-25/F-40–F-43 a sweep for `|`-alternation regexes over the medical surfaces
-returns 17 lines, and all of them do one of three non-semantic jobs:
+returns 15 lines (plus one doc comment), and all of them do one of three non-semantic jobs:
 
 | Where | What it matches | Why it is not clinical semantics |
 | --- | --- | --- |
@@ -1224,5 +1224,5 @@ naive keyword implementation would ship:
 | F-41 (CPIC population alerts by keyword) | **FIXED** | `POPULATION_PGX_NOTES` deleted; output derived from the CPIC rows. |
 | F-43 (preset blueprints carrying clinical instructions) | **FIXED** | Neutral instructions template; no clinical rules preloaded. |
 | F-44 (numeric clinical constants unversioned) | **NOT FIXED** | Recorded; needs an owner-chosen source per table. |
-| F-45 (remaining alternation regexes) | **BY DESIGN** | All 17 are mark-up/dosage-form/IMRaD parsers; sweep script committed alongside. |
+| F-45 (remaining alternation regexes) | **BY DESIGN** | All 15 are mark-up/dosage-form/IMRaD parsers; sweep script committed alongside. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |
