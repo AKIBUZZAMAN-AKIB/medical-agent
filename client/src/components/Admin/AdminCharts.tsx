@@ -20,8 +20,15 @@ export function SeverityBadge({ severity }: { severity: string }) {
       label: '✅ ROUTINE CLINICAL',
       cls: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
     },
+    /** Not assessed. It must never render as `routine`: a badge that says
+     *  "routine" for a message nobody screened is the false clearance the whole
+     *  triage design exists to prevent. */
+    unknown: {
+      label: '— NOT ASSESSED',
+      cls: 'border-slate-500/40 bg-slate-500/15 text-slate-300',
+    },
   };
-  const item = map[severity] || map.routine;
+  const item = map[severity] || map.unknown;
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ${item.cls}`}

@@ -653,10 +653,29 @@ function searchFormularyCorpus({ query = '', manufacturer = '', emlOnly = false,
   };
 }
 
+/**
+ * Keyword screen behind the admin console's triage panel.
+ *
+ * It is a keyword matcher, and this is the one place where that is stated
+ * plainly rather than implied. Two rules follow from it:
+ *
+ * 1. A message it does not recognise is `unknown`, not `routine`. A default of
+ *    `routine` is a clearance the matcher has not earned — the same false
+ *    clearance that the medical package's triage tool refuses to give, and the
+ *    reason that tool reports `unknown` when no classifier is available. An
+ *    operator reading "routine" concludes somebody checked; an operator reading
+ *    "unknown" concludes nobody did.
+ * 2. Every row carries `basis`, so a severity can never be mistaken for a
+ *    clinical assessment. `keyword-match` means a regex matched; `none` means
+ *    the matcher found nothing and the row was not assessed at all.
+ *
+ * This is a triage *queue for humans*, not a triage decision — see F-23 in
+ * `docs/REPOSITORY_DEEP_AUDIT.md`.
+ */
 function classifyClinicalMessageRisk(text = '') {
   const s = String(text || '').toLowerCase();
   const flags = [];
-  let severity = 'routine';
+  let severity = 'unknown';
   let specialty = 'General & Internal Medicine';
 
   if (/suicide|self[- ]?harm|kill myself|end my life|আত্মহত্যা|বাঁচতে চাই না|নিজেকে শেষ/.test(s)) {
@@ -712,7 +731,7 @@ function classifyClinicalMessageRisk(text = '') {
     if (specialty === 'General & Internal Medicine') specialty = 'Bangladesh Formulary';
   }
 
-  return { severity, specialty, flags };
+  return { severity, specialty, flags, basis: flags.length > 0 ? 'keyword-match' : 'none' };
 }
 
 function probeLocalHttp(host, port, urlPath, timeoutMs = 1500) {
@@ -934,7 +953,15 @@ function createMedicalCommandRouter(options = {}) {
           if (/cyp2c19|hla-b|clopidogrel|carbamazepine|warfarin/i.test(msg.text)) pgxAlerts += 1;
           if (bucket) {
             bucket.userQueries += 1;
-            if (risk.severity !== 'routine') bucket.safetyAlerts += 1;
+            /** Only substantiated severities are alerts; an unassessed message
+             *  is not evidence of safety, but it is also not an alert. */
+            if (
+              risk.severity === 'emergency' ||
+              risk.severity === 'high' ||
+              risk.severity === 'moderate'
+            ) {
+              bucket.safetyAlerts += 1;
+            }
           }
         }
         if (bucket) {
@@ -1517,6 +1544,7 @@ function createMedicalCommandRouter(options = {}) {
           userEmail: u.email || '',
           text: msg.text || '',
           severity: risk.severity,
+          severityBasis: risk.basis,
           specialty: risk.specialty,
           flags: risk.flags,
           createdAt: msg.createdAt,
@@ -1524,12 +1552,17 @@ function createMedicalCommandRouter(options = {}) {
       });
 
       res.json({
+        basis: 'keyword-match',
+        notice:
+          'Severities here come from a keyword matcher, not from the deterministic triage screen and not from a clinician. "unknown" means the message matched no rule and was not assessed — it is not a clearance.',
         counts: {
           totalScanned: events.length,
           emergency: events.filter((e) => e.severity === 'emergency').length,
           high: events.filter((e) => e.severity === 'high').length,
           moderate: events.filter((e) => e.severity === 'moderate').length,
+          /** Retained at 0 for wire compatibility with existing clients. */
           routine: events.filter((e) => e.severity === 'routine').length,
+          unknown: events.filter((e) => e.severity === 'unknown').length,
         },
         events,
       });

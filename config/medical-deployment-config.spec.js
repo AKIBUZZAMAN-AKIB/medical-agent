@@ -208,3 +208,97 @@ describe('medical deployment config — per-person records across the agent grap
     expect(seed).not.toMatch(/profileName\s*:\s*['"]/);
   });
 });
+
+/**
+ * Governance for the specialist board.
+ *
+ * The unit specs cannot see this: a specialist is assembled by string
+ * concatenation at seed time, and a name that does not exist is simply not
+ * added. The agent then runs, answers, and quietly lacks a capability nobody
+ * declared as optional. These tests read the package's own tool definitions, so
+ * a rename in `packages/mcp-medical` breaks the seed here rather than in
+ * production.
+ */
+describe('medical deployment config — specialist sub-agent tool wiring', () => {
+  const seed = read('config/seed-medical-agent.js');
+  const toolDir = path.join(repoRoot, 'packages/mcp-medical/src/tools');
+
+  /** Every tool name the package actually defines. */
+  const published = new Set(
+    fs
+      .readdirSync(toolDir)
+      .filter((file) => file.endsWith('.ts') && file !== 'index.ts')
+      .flatMap((file) => [
+        ...fs
+          .readFileSync(path.join(toolDir, file), 'utf8')
+          .matchAll(/^\s+name: '([a-z0-9_]+)',/gm),
+      ])
+      .map((match) => match[1]),
+  );
+
+  /** `id` -> declared tool names, for every specialist in the seed.
+   *  Comments are stripped first: the declarations carry load-bearing rationale,
+   *  and a parser that reads them as tool names would fail on its own prose. */
+  const declarativeSeed = seed.replace(/\/\*[\s\S]*?\*\//g, '');
+  const specialists = [
+    ...declarativeSeed.matchAll(
+      /id: '([^']+)',[\s\S]*?toolNames: \[([\s\S]*?)\][\s\S]*?focusPrompt/g,
+    ),
+  ].map((match) => ({
+    id: match[1],
+    tools: match[2]
+      .split(',')
+      .map((entry) => entry.trim().replace(/^'|'$/g, ''))
+      .filter(Boolean),
+    block: match[0],
+  }));
+
+  it('reads a plausible tool catalogue and specialist board', () => {
+    expect(published.size).toBeGreaterThan(20);
+    expect(specialists.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('declares no specialist tool the package does not publish', () => {
+    const missing = specialists.flatMap((spec) =>
+      spec.tools.filter((tool) => !published.has(tool)).map((tool) => `${spec.id}: ${tool}`),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('gives the emergency specialist the deterministic screen', () => {
+    /**
+     * The regression: the specialist dedicated to red-flag triage was the one
+     * agent that could not call the screen built for exactly that job. It
+     * reports `unknown` today, which is a refusal to clear — an agent that
+     * cannot ask is an agent that has to assume.
+     */
+    const emergency = specialists.find((spec) => spec.id.includes('emergency'));
+    expect(emergency).toBeDefined();
+    expect(emergency.tools).toContain('emergency_triage_check');
+  });
+
+  it('gives every specialist the tools its own focus prompt promises', () => {
+    /** A prompt that promises a check the toolset cannot perform is an
+     *  instruction to improvise. Matched on the capability words the prompts
+     *  actually use, each against the tool that performs it. */
+    const promises = [
+      { word: /device.{0,12}recall|recall.{0,12}device/i, tool: 'device_approval' },
+      { word: /LactMed|breastfeeding|breast-feeding/i, tool: 'drug_lactation' },
+      { word: /pharmacogenom|CPIC/i, tool: 'pharmacogenomics_guideline' },
+    ];
+    const broken = specialists.flatMap((spec) =>
+      promises
+        .filter((promise) => promise.word.test(spec.block) && !spec.tools.includes(promise.tool))
+        .map(
+          (promise) => `${spec.id} promises ${promise.word.source} but cannot call ${promise.tool}`,
+        ),
+    );
+    expect(broken).toEqual([]);
+  });
+
+  it('refuses to seed a specialist whose declared tool is missing', () => {
+    /** The seed must fail loudly rather than filter the capability away. */
+    expect(seed).toMatch(/const unpublished = subSpec\.toolNames\.filter/);
+    expect(seed).toMatch(/Refusing to seed a specialist that would run with missing capabilities/);
+  });
+});

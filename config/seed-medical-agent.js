@@ -49,9 +49,18 @@ const SPECIALIST_SUBAGENT_SPECS = [
     description:
       'Screens symptoms and lab values for immediate life-threatening red flags (airway/choking, stroke, ACS, sepsis, dengue shock, GI bleed, anaphylaxis, crisis, critical panic electrolytes) and checks urgent safety recalls.',
     toolNames: [
+      /** The specialist whose whole job is red-flag triage was the one agent
+       *  that could not call the deterministic screen. It reports `unknown`
+       *  until a host classifier is supplied, and that is the point: an
+       *  undecided screen is not a clearance, and the specialist should be told
+       *  so in the tool result rather than infer safety from silence. */
+      'emergency_triage_check',
       'lab_result_interpreter',
       'clinical_calculator',
       'safety_recalls',
+      /** Its own focus prompt promises device-recall checks; without this it
+       *  could only search drug and food recalls. */
+      'device_approval',
       'drug_adverse_event_summary',
       'condition_lookup',
       'plain_language_summary',
@@ -332,12 +341,21 @@ async function main() {
      *  specialist that cannot read the record has to be told the patient's
      *  facts in its task text instead, which both duplicates PHI across agents
      *  and invites a summary to drift from the record. */
-    const subTools = [
-      ...subSpec.toolNames
-        .map((name) => `${name}${Constants.mcp_delimiter}${serverName}`)
-        .filter((id) => availableSet.has(id)),
-      Tools.memory,
-    ];
+    /** A declared tool that the server does not publish used to be filtered
+     *  away in silence, so renaming an MCP tool quietly stripped a capability
+     *  from a specialist — and a specialist with a missing drug-interaction
+     *  checker still answers. Refusing to seed is the only outcome that cannot
+     *  be mistaken for success. */
+    const composite = (name) => `${name}${Constants.mcp_delimiter}${serverName}`;
+    const unpublished = subSpec.toolNames.filter((name) => !availableSet.has(composite(name)));
+    if (unpublished.length > 0) {
+      throw new Error(
+        `Specialist "${subSpec.id}" declares tools the "${serverName}" server does not publish: ${unpublished.join(
+          ', ',
+        )}. Refusing to seed a specialist that would run with missing capabilities.`,
+      );
+    }
+    const subTools = [...subSpec.toolNames.map(composite), Tools.memory];
     await upsertAndGrantAgent({
       Agent,
       grantPermission,

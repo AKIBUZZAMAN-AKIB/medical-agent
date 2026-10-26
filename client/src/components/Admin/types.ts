@@ -171,12 +171,17 @@ export interface FormularySearchResponse {
 }
 
 export interface TriageSafetyResponse {
+  /** Where the severities came from — currently always a keyword matcher. */
+  basis?: string;
+  notice?: string;
   counts: {
     totalScanned: number;
     emergency: number;
     high: number;
     moderate: number;
     routine: number;
+    /** Matched no rule and was therefore not assessed; not a clearance. */
+    unknown?: number;
   };
   events: Array<{
     messageId: string;
@@ -184,7 +189,8 @@ export interface TriageSafetyResponse {
     userName: string;
     userEmail: string;
     text: string;
-    severity: 'emergency' | 'high' | 'moderate' | 'routine';
+    severity: 'emergency' | 'high' | 'moderate' | 'routine' | 'unknown';
+    severityBasis?: 'keyword-match' | 'none';
     specialty: string;
     flags: string[];
     createdAt?: string;

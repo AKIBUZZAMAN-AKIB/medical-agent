@@ -189,4 +189,25 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
     expect(triageRes.status).toBe(200);
     expect(triageRes.body.counts.totalScanned).toBeGreaterThanOrEqual(3);
   });
+
+  it('never labels a message it did not assess as routine', async () => {
+    /**
+     * The console surfaces a severity per message. A keyword matcher that
+     * defaults to `routine` is clearing everything it does not understand, which
+     * is the failure the medical package's triage tool refuses to produce. An
+     * unassessed message must read as `unknown` and say so.
+     */
+    const res = await request(buildApp('ADMIN')).get('/api/admin/medical-command/triage-safety');
+    expect(res.status).toBe(200);
+    expect(res.body.basis).toBe('keyword-match');
+    expect(res.body.notice).toMatch(/not a clearance|not assessed/i);
+    expect(res.body.counts).toHaveProperty('unknown');
+    /** Whatever the mix, no row may claim `routine` without a matched rule. */
+    const unsupported = res.body.events.filter(
+      (event) => event.severity === 'routine' && event.severityBasis === 'none',
+    );
+    expect(unsupported).toEqual([]);
+    const unassessed = res.body.events.filter((event) => event.severityBasis === 'none');
+    expect(unassessed.every((event) => event.severity === 'unknown')).toBe(true);
+  });
 });

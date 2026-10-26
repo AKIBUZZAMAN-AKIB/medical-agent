@@ -614,6 +614,86 @@ refactor, minutes after the exhaustiveness assertion had passed.
 Fingerprints are per-request and never persisted, so re-hashing every sub-agent
 invalidates no stored state.
 
+### F-23 — The admin console ran a second, independent keyword triage · **P1 · certain · FIXED**
+`api/server/routes/admin/medicalCommand.js:656` `classifyClinicalMessageRisk` is a
+~50-line regex table that assigns `emergency / high / moderate / routine` to every
+user message and feeds the `/triage-safety` panel, the overview's `safetyAlerts`
+counter and the specialised workload breakdown. It defaulted to `routine` when no
+rule matched — the same false clearance that the medical package's triage tool was
+rewritten to refuse. Two triage surfaces therefore disagreed about the same
+message: the MCP tool says `unknown` and explains itself, while the operator's
+screen said `routine`, in green, with a ✅.
+
+Fixed in place rather than deleted, because a human triage queue is a legitimate
+thing for an operator to have. What it may not do is imply an assessment it did
+not make: unmatched text is now `unknown`, every row carries
+`severityBasis: 'keyword-match' | 'none'`, the response carries `basis` and a
+`notice` stating that these severities are keyword-derived and that `unknown` is
+not a clearance, and `safetyAlerts` no longer counts unassessed rows.
+`SeverityBadge` gained a grey `— NOT ASSESSED` state and no longer falls back to
+the green routine badge for an unrecognised value. Test:
+*"never labels a message it did not assess as routine"*.
+
+### F-24 — The triage specialist could not call the triage screen, and a missing tool was silent · **P1 · certain · FIXED**
+Audited all seven seeded specialists against the 33 tools the server actually
+publishes, over MCP stdio rather than by eye. Two structural defects:
+
+- `agent_sub_emergency_triage` — the agent whose entire focus is *"life-threatening
+  red flags, critical laboratory panic thresholds, time-critical escalation"* —
+  did not include `emergency_triage_check`. Four published tools were offered to
+  no specialist at all: the triage screen, `device_approval`, `provider_lookup`
+  and `specialist_subagent_blueprint`. Its own focus prompt also promised *"urgent
+  device/drug recalls"* while it could only reach drug and food recalls.
+- The seed filtered a specialist's declared tool names against the published set
+  and **dropped** any that did not match, silently. Renaming a tool in
+  `packages/mcp-medical` would have stripped a capability from a specialist with
+  no error, no log, and a fully green test run.
+
+Fixed: the emergency specialist now carries `emergency_triage_check` and
+`device_approval`; the seed throws — *"Refusing to seed a specialist that would run
+with missing capabilities"* — instead of filtering. Governance tests read the
+package's own `name:` definitions and assert (a) no declared tool is unpublished,
+(b) the emergency specialist has the screen, (c) every capability a specialist's
+prompt promises is in its toolset, and (d) the seed refuses rather than filters.
+
+Verified by difference: before the fix the emergency specialist had 6 tools and
+neither `emergency_triage_check` nor `device_approval`; after, 8 with both.
+
+Also audited and clean: the ten `agent_dyn_*` presets in the same admin route all
+name tools that exist. The primary agent's catalogue is the 33 published tools
+plus `memory`, `conversation_history`, `conversation_transcript`.
+
+### F-25 — `specialist_subagent_blueprint` is a hand-authored clinical table · **P2 · certain · OPEN**
+`packages/mcp-medical/src/tools/orchestration.ts` carries `SPECIALTY_PROFILES`:
+six profiles, each a keyword regex mapped to recommended tools, `redFlags` written
+as clinical escalation advice, and `contextQuestions`, with one `/.*/` catch-all
+that silently absorbs every unmatched query. It also embeds a fixed list of crisis
+numbers (988 / 111 / 999 / Kaan Pete Roi). The tool presents this as generated
+specialist guidance and advertises a *"persistable LibreChat `agent_dyn_*`
+schema"*, but nothing in the repository consumes that id — the real dynamic
+specialists are the hand-written presets in the admin route, which do not use it.
+
+This is the same class of artifact as the deleted triage lexicon: an
+author-maintained table standing in for clinical knowledge. It is **not** deleted
+here because removing a shipping tool changes the public tool catalogue and is
+the owner's call. Options, in the order this audit would rank them: (1) delete the
+tool and its table — the deterministic parts it claims to provide already exist in
+`clinical_calculator` and `lab_result_interpreter`; (2) keep the tool but rename it
+to what it is — a template generator over an author-maintained profile list — and
+drop the red-flag text, which is the part that reads as advice.
+
+### F-26 — `LAB_RANGES` is unversioned clinical reference data · **P2 · probable · OPEN**
+`packages/mcp-medical/src/tools/calculators.ts:602` holds 26 analytes with
+reference ranges, `panicLow`/`panicHigh` thresholds and narrative notes
+("Thrombocytopenia — strictly avoid NSAIDs… emergency hospital evaluation if
+<50,000"). It feeds `lab_result_interpreter` and participates in how a critical
+value is presented. It carries no source, no effective date and no version, so a
+clinician cannot tell which laboratory standard a given build follows, and a
+change to a threshold is invisible in review. Reference data is the correct place
+for curated values — the defect is that they are unattributed and unversioned,
+not that they exist. Recommended: one source field per analyte, a
+`LAB_RANGES_VERSION` exported beside the table and surfaced in the tool result.
+
 ## H. Performance and scalability
 
 ### H.1 Measured results (this machine only)
@@ -824,5 +904,6 @@ naive keyword implementation would ship:
 | F-07 / F-08 | **NOT FIXED** | Require prompt-change validation via `eval/` and organisational controls respectively. |
 | Per-person memory budget (M-14) | **NOT FIXED** | `tokenLimit` is enforced per partition, so N people permit N× the configured memory. Fixing it means either inventing a total or reinterpreting the configured limit as a user-wide budget that every write must query for — a product decision plus a per-write aggregation, neither of which is mine to make silently. |
 | F-22 (lazy sub-agent descriptor identity) | **FIXED** | Allowlist inverted onto `AgentUpdateParams` with a compile-time exhaustiveness assertion and a generated per-field test. See F-22. |
+| F-25 / F-26 (blueprint table, lab reference data provenance) | **NOT FIXED** | Both need an owner decision — deleting a shipping tool changes the public catalogue, and adding source/version fields to clinical reference data needs the standard named. Documented with options in F-25 and F-26. |
 | `meld_na` rounding mismatch | **NOT FIXED** | Needs clinical sign-off; sub-1-point effect. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |
