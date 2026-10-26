@@ -979,6 +979,21 @@ society guideline) and a version surfaced in tool output. **Not done here:** pic
 a standard is an owner decision, and inventing one would be the same mistake in a
 different file.
 
+### F-45 — The alternation regexes that remain are parsers, not clinical semantics · **INFO · certain · BY DESIGN**
+After F-25/F-40–F-43 a sweep for `|`-alternation regexes over the medical surfaces
+returns 17 lines, and all of them do one of three non-semantic jobs:
+
+| Where | What it matches | Why it is not clinical semantics |
+| --- | --- | --- |
+| `jats-xml.ts`, `literature.ts` (SRC/TITLE/AND-OR-NOT) | XML tags, our own field prefixes, Boolean query operators | mark-up and query text, not a patient |
+| `formulary.ts`, `drugs.ts`, `medicalCommand.js` (dosage forms, salt suffixes) | `tab|cap|syp|inj…`, `hydrochloride|besylate…` | normalises a brand string to a generic so a price lookup finds the same molecule; a wrong match yields a wrong price, which the tool shows |
+| `literature.ts` (IMRaD headings), `conditions.ts` (`MONDO:`/`HP:` id prefixes) | paper section headings, ontology CURIE prefixes | structural parsing of *published text*, not of a person's words; no severity or specialty is derived |
+
+The distinction matters: a parser that mis-reads "Tab." is a display bug, while a
+lexicon that mis-reads "প্লাটিলেট কম" is a missed emergency. Only the second kind
+was removed. Anyone reviewing this sweep should re-run it — the script is
+`docs/sweep_keyword_lexicons.py`.
+
 ## H. Performance and scalability
 
 ### H.1 Measured results (this machine only)
@@ -1209,4 +1224,5 @@ naive keyword implementation would ship:
 | F-41 (CPIC population alerts by keyword) | **FIXED** | `POPULATION_PGX_NOTES` deleted; output derived from the CPIC rows. |
 | F-43 (preset blueprints carrying clinical instructions) | **FIXED** | Neutral instructions template; no clinical rules preloaded. |
 | F-44 (numeric clinical constants unversioned) | **NOT FIXED** | Recorded; needs an owner-chosen source per table. |
+| F-45 (remaining alternation regexes) | **BY DESIGN** | All 17 are mark-up/dosage-form/IMRaD parsers; sweep script committed alongside. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |
