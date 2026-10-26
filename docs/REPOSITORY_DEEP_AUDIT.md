@@ -577,13 +577,42 @@ their own name, and any label in another language that meant "me" opened a
 person. Self is now structural — blank, the published id `self`, or the name on
 the record — so there is nothing left to translate.
 
-### F-22 — A sub-agent's cached config ignores its profile flag · **P2 · probable · OPEN**
-`packages/api/src/agents/lazySubagents.ts` hashes a `VersionedAgent` for the lazy
-sub-agent cache id. The `Pick` includes `memory_scope` but not `memory_profiles`
-or `memory_policy`, so flipping either flag on a specialist does not change its
-cache key and a warm cache can keep serving the previous configuration. Not fixed
-here: it changes cache identity for every sub-agent, which deserves its own
-change and its own invalidation test.
+### F-22 — A sub-agent's descriptor identity ignored half of its memory config · **P1 · certain · FIXED**
+`packages/api/src/agents/lazySubagents.ts` fingerprinted a lazy sub-agent from a
+hand-written `Pick<Agent, ...>` to detect drift between descriptor construction
+and initialisation (`initialize.js:1246` — *"Subagent X changed before it could
+be initialized"*). `memory_scope` was in that list; `memory_policy` and
+`memory_profiles` were not, although both change what `initializeAgent`
+produces: the policy selects which memory-usage guard is appended
+(`initialize.ts:2123`) and the profile flag decides whether the memory tools take
+a `profile` argument, whether the profile tools are registered at all, and which
+guard text is appended (`initialize.ts:2113`, `2130-2137`). A descriptor built
+before such an edit and initialised after it passed the drift check — the check
+whose only job is to catch exactly that — and the child ran with two notions of
+its own memory behaviour.
+
+The underlying defect is the allowlist itself, so the list was inverted rather
+than extended. `AgentUpdateParams` in `librechat-data-provider` is the API's own
+declaration of which agent fields an editor may change, so it is the set that can
+drift. `LAZY_SUBAGENT_CONFIG_FIELDS` now mirrors it, and a compile-time assertion
+makes the binding mechanical:
+
+```ts
+type UncoveredUpdatableField = Exclude<keyof AgentUpdateParams, LazySubagentConfigField>;
+const _everyUpdatableFieldIsFingerprinted:
+  UncoveredUpdatableField extends never ? true : UncoveredUpdatableField = true;
+```
+
+Adding an updatable field upstream without fingerprinting it is now a type error
+rather than a silent hole; the assertion immediately surfaced two fields that a
+human reading the old list would not have noticed (`code_workspace_id` and
+`repositoryInstructions`). A generated test then mutates every listed field, one
+at a time, and requires the id to change — so a field that is listed but ignored
+also fails. That test is what caught `tool_kwargs` being dropped during this very
+refactor, minutes after the exhaustiveness assertion had passed.
+
+Fingerprints are per-request and never persisted, so re-hashing every sub-agent
+invalidates no stored state.
 
 ## H. Performance and scalability
 
@@ -793,5 +822,7 @@ naive keyword implementation would ship:
 | Inherited LibreChat test suites (`api`, `client`, `packages/*`) | **NOT RUN** | Large (1,834 spec files repo-wide); out of scope for the medical layer, and the sandbox's 1.9 GB RAM could not run them concurrently. |
 | F-05 (124 lint errors) | **NOT FIXED** | Formatting-only, in untouched files; should be an isolated commit. |
 | F-07 / F-08 | **NOT FIXED** | Require prompt-change validation via `eval/` and organisational controls respectively. |
+| Per-person memory budget (M-14) | **NOT FIXED** | `tokenLimit` is enforced per partition, so N people permit N× the configured memory. Fixing it means either inventing a total or reinterpreting the configured limit as a user-wide budget that every write must query for — a product decision plus a per-write aggregation, neither of which is mine to make silently. |
+| F-22 (lazy sub-agent descriptor identity) | **FIXED** | Allowlist inverted onto `AgentUpdateParams` with a compile-time exhaustiveness assertion and a generated per-field test. See F-22. |
 | `meld_na` rounding mismatch | **NOT FIXED** | Needs clinical sign-off; sub-1-point effect. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |

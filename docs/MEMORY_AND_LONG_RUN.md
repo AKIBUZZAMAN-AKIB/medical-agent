@@ -400,8 +400,8 @@ record.
 | M-10 | `updateProfile`/`deleteProfile` take `profileId`; mongoose **drops an undefined condition**, so an absent key made the filter `{ userId }` — an arbitrary record, and for delete the cascade went with it. | P1 | **FIXED** — exactly one of `profileId`/`isSelf`; delete refuses a blank key |
 | M-11 | Specialist sub-agents were seeded with MCP tools only — no memory capability, no `memory_profiles` — so they were profile-blind and had to be told the patient in prose. `memory_scope: 'agent'` per agent would also have put each agent's facts in a separate pool. | P1 | **FIXED** — every agent gets `memory` + `memory_profiles`, one shared pool |
 | M-12 | `SELF_PROFILE_ALIASES` was an English-only synonym table: a predefined vocabulary, in a deployment that must not carry one, and blind to the name the user actually uses. | P2 | **FIXED** — removed |
-| M-13 | `lazySubagents.ts` hashes a `VersionedAgent` that includes `memory_scope` but **not** `memory_profiles`, so changing the profile flag on a sub-agent does not change its cached config id. | P2 | **open** |
-| M-14 | `tokenLimit` is enforced **per partition**, so N people permit N× the configured memory. | P2 | **open** — a cap would be an invented number; see §8 |
+| M-13 | `lazySubagents.ts` fingerprinted `memory_scope` but not `memory_policy`/`memory_profiles`, so a sub-agent edited between descriptor build and initialisation kept a stale drift check. The whole allowlist was then inverted onto `AgentUpdateParams`, with a compile-time exhaustiveness assertion. See audit F-22. | P1 | **FIXED** |
+| M-14 | `tokenLimit` is enforced **per partition**, so N people permit N× the configured memory. | P2 | **open** — the two honest fixes are (a) a total the project has not justified, or (b) reinterpreting the configured limit as a user-wide budget, which makes every write aggregate across partitions. Both are decisions for the owner; documented rather than guessed. See §8 |
 
 ### 9.5 Verification for §9
 
