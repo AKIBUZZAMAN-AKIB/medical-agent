@@ -20,6 +20,9 @@ const {
   buildProfileTools,
   LIST_PROFILES_TOOL_NAME,
   READ_PROFILE_TOOL_NAME,
+  CREATE_PROFILE_TOOL_NAME,
+  UPDATE_PROFILE_TOOL_NAME,
+  DELETE_PROFILE_TOOL_NAME,
   getCodeApiAuthHeaders,
   buildImageToolContext,
   SET_MEMORY_TOOL_NAME,
@@ -82,6 +85,8 @@ const {
   getUserProfiles,
   ensureSelfProfile,
   createProfile,
+  updateProfile,
+  deleteProfile,
   getConvosByCursor,
   getConvo,
   getMessages,
@@ -519,7 +524,13 @@ const loadTools = async ({
           profileMethods,
         });
       continue;
-    } else if (tool === LIST_PROFILES_TOOL_NAME || tool === READ_PROFILE_TOOL_NAME) {
+    } else if (
+      tool === LIST_PROFILES_TOOL_NAME ||
+      tool === READ_PROFILE_TOOL_NAME ||
+      tool === CREATE_PROFILE_TOOL_NAME ||
+      tool === UPDATE_PROFILE_TOOL_NAME ||
+      tool === DELETE_PROFILE_TOOL_NAME
+    ) {
       requestedTools[tool] = () =>
         buildProfileTools({
           userId: user,
@@ -528,6 +539,8 @@ const loadTools = async ({
             getUserProfiles,
             ensureSelfProfile,
             createProfile,
+            updateProfile,
+            deleteProfile,
             getFormattedMemories,
             getUserMemories,
           },

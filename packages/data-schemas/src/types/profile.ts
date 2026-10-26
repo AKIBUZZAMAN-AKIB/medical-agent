@@ -37,7 +37,9 @@ export interface CreateProfileParams {
 
 export interface UpdateProfileParams {
   userId: string | Types.ObjectId;
-  profileId: string;
+  /** Absent for the user's own record, which is addressed by `isSelf`. */
+  profileId?: string;
+  isSelf?: boolean;
   name?: string;
   relationship?: string | null;
 }

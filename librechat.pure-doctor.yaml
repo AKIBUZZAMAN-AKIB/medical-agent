@@ -40,7 +40,7 @@ modelSpecs:
   list:
     - name: 'super-power-doctor-ai'
       label: '🩺 Super-Power Doctor AI'
-      description: 'Chief Multi-Specialty Doctor AI with On-Demand Specialist Sub-Agents & 27 Live Biomedical Evidence Tools'
+      description: 'Chief Multi-Specialty Doctor AI with On-Demand Specialist Sub-Agents & 33 Live Biomedical Evidence & Triage Tools'
       default: true
       preset:
         endpoint: 'agents'
@@ -61,18 +61,31 @@ balance:
 
 memory:
   disabled: false
+  # `validKeys` is a GLOBAL key namespace, enforced before the per-person
+  # partition is resolved (packages/api/src/agents/memory.ts). It therefore must
+  # not contain per-person keys: `family_member_mother` / `family_member_father`
+  # used to live here and defeated `memory_profiles`, because a model writing to
+  # them without a `profile` argument pooled a relative's medical history into the
+  # user's own record — the exact failure profiles exist to prevent — and there was
+  # no key at all for a third relative. Each person now gets their own partition
+  # and the same vocabulary inside it. Rows previously written under the removed
+  # keys still load and are still injected (they are read, not rewritten); they
+  # simply cannot be written again. See docs/MEMORY_AND_LONG_RUN.md.
   validKeys:
     - 'patient_profile'
-    - 'family_member_mother'
-    - 'family_member_father'
     - 'allergies_and_adverse_reactions'
     - 'chronic_conditions'
     - 'active_medications'
-    - 'recent_lab_results'
+    - 'lab_results'
     - 'clinical_preferences'
   tokenLimit: 12000
   personalize: true
   messageWindowSize: 8
+  # LONG_RUN: this is a SECOND model dependency, separate from the chat model.
+  # It is pinned to the same free-tier provider, so a provider outage silently
+  # stops memory consolidation while chat keeps working — the agent quietly stops
+  # learning with no user-visible error. Pin a paid model and add failover before
+  # production; see docs/MEMORY_AND_LONG_RUN.md.
   agent:
     enabled: true
     provider: 'OpenRouter (Free)'

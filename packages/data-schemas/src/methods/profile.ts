@@ -185,11 +185,21 @@ export function createProfileMethods(
   async function updateProfile({
     userId,
     profileId,
+    isSelf,
     name,
     relationship,
   }: t.UpdateProfileParams): Promise<t.ProfileResult> {
     const Profile = getModel();
-    const existing = await Profile.findOne({ userId, profileId }).lean();
+    /** The subject must be stated exactly once. A missing key is not "some
+     *  record": mongoose drops an undefined condition from the filter, so an
+     *  absent `profileId` would have matched whichever record came first and
+     *  edited a person the caller never named. The user's own record has no key
+     *  at all, which is why it is selected by `isSelf` instead. */
+    if ((profileId == null || profileId === '') === (isSelf !== true)) {
+      return { ok: false };
+    }
+    const filter = isSelf === true ? { userId, isSelf: true } : { userId, profileId };
+    const existing = await Profile.findOne(filter).lean();
     if (existing == null) {
       return { ok: false };
     }
@@ -205,7 +215,7 @@ export function createProfileMethods(
     if (Object.keys(update).length === 0) {
       return { ok: true, profile: existing as unknown as t.IProfileLean };
     }
-    const updated = (await Profile.findOneAndUpdate({ userId, profileId }, update, {
+    const updated = (await Profile.findOneAndUpdate(filter, update, {
       new: true,
     }).lean()) as unknown as t.IProfileLean | null;
     return updated != null ? { ok: true, profile: updated } : { ok: false };
@@ -219,6 +229,12 @@ export function createProfileMethods(
     profileId: string;
   }): Promise<t.ProfileResult> {
     const Profile = getModel();
+    /** An absent key must delete nothing. Without this the filter degrades to
+     *  `{ userId }` and the cascade below would erase the facts of whichever
+     *  record matched first. */
+    if (profileId == null || profileId === '') {
+      return { ok: false };
+    }
     const existing = (await Profile.findOne({ userId, profileId }).lean()) as t.IProfileLean | null;
     if (existing == null) {
       return { ok: false };

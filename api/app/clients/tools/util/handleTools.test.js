@@ -976,6 +976,9 @@ describe('Tool Handlers', () => {
           'delete_memory',
           'list_profiles',
           'read_profile',
+          'create_profile',
+          'update_profile',
+          'delete_profile',
           Tools.conversation_transcript,
         ],
       };
@@ -991,7 +994,15 @@ describe('Tool Handlers', () => {
       const toolMap = await loadTools({
         user: fakeUser._id.toString(),
         agent: medicalAgent,
-        tools: ['set_memory', 'list_profiles', 'read_profile', Tools.conversation_transcript],
+        tools: [
+          'set_memory',
+          'list_profiles',
+          'read_profile',
+          'create_profile',
+          'update_profile',
+          'delete_profile',
+          Tools.conversation_transcript,
+        ],
         returnMap: true,
         options: { req },
       });
@@ -1004,6 +1015,9 @@ describe('Tool Handlers', () => {
       const setMemoryTool = await toolMap.set_memory();
       const listProfilesTool = await toolMap.list_profiles();
       const readProfileTool = await toolMap.read_profile();
+      const createProfileTool = await toolMap.create_profile();
+      const updateProfileTool = await toolMap.update_profile();
+      const deleteProfileTool = await toolMap.delete_profile();
       const transcriptTool = await toolMap[Tools.conversation_transcript]();
 
       await setMemoryTool.invoke({
@@ -1024,6 +1038,41 @@ describe('Tool Handlers', () => {
       expect(fatherFacts).toContain('bp_regimen');
       expect(fatherFacts).toContain('Takes amlodipine 5 mg once daily.');
       expect(fatherFacts).not.toContain('Penicillin');
+
+      /** The record lifecycle, end to end: open, label, mislabel, correct, remove. */
+      const opened = await createProfileTool.invoke({ name: 'Amma', relationship: 'mother' });
+      expect(opened).toContain('Opened a record for "Amma"');
+      const duplicate = await createProfileTool.invoke({ name: 'Amma' });
+      expect(duplicate).toContain('already exists');
+
+      await setMemoryTool.invoke({
+        key: 'condition',
+        value: '2026-10-21 Type 2 diabetes on metformin.',
+        profile: 'Amma',
+      });
+      const amma = await readProfileTool.invoke({ profile: 'Amma' });
+      expect(amma).toContain('metformin');
+
+      /** A rename changes the label, never the partition the facts live in. */
+      const renamed = await updateProfileTool.invoke({ profile: 'Amma', name: 'Ammu' });
+      expect(renamed).toContain('did not move');
+      const afterRename = await readProfileTool.invoke({ profile: 'Ammu' });
+      expect(afterRename).toContain('metformin');
+      /** Both labels resolve to the one record: the new name by the name it
+       *  carries, the old one by the storage key that never moved. What must
+       *  never happen is a second record, or an empty read under either name. */
+      const byOldName = await readProfileTool.invoke({ profile: 'Amma' });
+      expect(byOldName).toContain('metformin');
+      const stranger = await readProfileTool.invoke({ profile: 'Nobody Here' });
+      expect(stranger).toContain('No facts are stored about Nobody Here yet');
+
+      /** Removing the record takes its facts with it, and only its facts. */
+      const removed = await deleteProfileTool.invoke({ profile: 'Ammu' });
+      expect(removed).toContain('cannot be undone');
+      const gone = await readProfileTool.invoke({ profile: 'Ammu' });
+      expect(gone).toContain('No facts are stored');
+      const fatherStillThere = await readProfileTool.invoke({ profile: 'father' });
+      expect(fatherStillThere).toContain('amlodipine');
 
       /** Shared-pool agents must NOT see isolated medical-agent facts. */
       const sharedMap = await loadTools({

@@ -26,6 +26,22 @@ const { logger } = require('@librechat/data-schemas');
 const AGENT_DIR = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'agent');
 const SERVER_ENTRY = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'dist', 'index.js');
 
+/**
+ * Appended to every specialist's instructions.
+ *
+ * A specialist used to receive the patient only as prose inside its task text,
+ * which is both a second copy of the record and a copy that can be summarized
+ * wrong. Reading the record itself keeps one source of truth, and lets the
+ * specialist notice when the task text and the record disagree.
+ */
+const subagentRecordInstruction = [
+  'You keep the same per-person records as the doctor agent, one record per person.',
+  'Before you reason about a named person, call `list_profiles` and then `read_profile` for that person: the facts are in their record, not in this prompt, and not something you already know.',
+  'If the record is empty, say so and work from the task text alone — never present an empty record as a known history.',
+  'Never merge two people. If the task text attributes something to a person the record contradicts, state the conflict instead of choosing one.',
+  'Write only when the task or the user explicitly asks you to remember something durable, and never to a person the user has not agreed to keep a record for.',
+].join('\n');
+
 const SPECIALIST_SUBAGENT_SPECS = [
   {
     id: 'agent_sub_emergency_triage',
@@ -311,9 +327,17 @@ async function main() {
   const seededSubagentIds = [];
 
   for (const subSpec of SPECIALIST_SUBAGENT_SPECS) {
-    const subTools = subSpec.toolNames
-      .map((name) => `${name}${Constants.mcp_delimiter}${serverName}`)
-      .filter((id) => availableSet.has(id));
+    /** The `memory` marker expands into `set_memory` + `delete_memory`, and
+     *  `memory_profiles` expands those into the per-person record tools. A
+     *  specialist that cannot read the record has to be told the patient's
+     *  facts in its task text instead, which both duplicates PHI across agents
+     *  and invites a summary to drift from the record. */
+    const subTools = [
+      ...subSpec.toolNames
+        .map((name) => `${name}${Constants.mcp_delimiter}${serverName}`)
+        .filter((id) => availableSet.has(id)),
+      Tools.memory,
+    ];
     await upsertAndGrantAgent({
       Agent,
       grantPermission,
@@ -323,7 +347,7 @@ async function main() {
         id: subSpec.id,
         name: subSpec.name,
         description: subSpec.description,
-        instructions: `${subSpec.focusPrompt}\n\n${instructions}`,
+        instructions: `${subSpec.focusPrompt}\n\n${subagentRecordInstruction}\n\n${instructions}`,
         provider: definition.model.provider,
         model: definition.model.id,
         model_parameters: definition.modelParameters,
@@ -334,6 +358,11 @@ async function main() {
         max_context_tokens: 200000,
         recursion_limit: 24,
         category: definition.category,
+        /** One shared pool, not one per agent: a specialist that files facts
+         *  under its own partition cannot read what the primary agent wrote,
+         *  and the patient would silently have two histories. */
+        memory_scope: MemoryScope.user,
+        memory_profiles: true,
       },
     });
     seededSubagentIds.push(subSpec.id);
@@ -368,7 +397,14 @@ async function main() {
         new Set([...(configuredSubagents.agent_ids ?? []), ...seededSubagentIds]),
       ),
     },
-    memory_scope: MemoryScope.agent,
+    /** The whole clinical record space is shared, not per agent: the specialist
+     *  sub-agents must read exactly the records the primary agent writes, so
+     *  one patient has one history across every agent. Person-level separation
+     *  is `memory_profiles`, which is the separation that matters clinically —
+     *  an agent-level pool would only hide the patient from the specialists.
+     *  Deployments that already stored facts under an agent partition must
+     *  re-key them before switching; see docs/MEMORY_AND_LONG_RUN.md. */
+    memory_scope: MemoryScope.user,
     memory_policy: MemoryPolicy.proactive,
     memory_profiles: true,
   };

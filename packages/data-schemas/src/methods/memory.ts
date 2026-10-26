@@ -130,7 +130,9 @@ export function createMemoryMethods(mongoose: typeof import('mongoose')): {
           value,
           tokenCount,
           ...(agentId ? { agentId } : {}),
-          ...(profileId ? { profileId } : {}),
+          /** Strictly null/undefined: an empty string is not "the user", it is
+           *  an unrepresentable partition and must never be silently coerced. */
+          ...(profileId != null && profileId !== '' ? { profileId } : {}),
           updated_at: new Date(),
         },
         {

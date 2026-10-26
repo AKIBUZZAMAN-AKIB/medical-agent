@@ -502,13 +502,18 @@ A stored fact is what the user reported, on the date they reported it. It is not
  * withdraw it. It is appended only for `memory_profiles` agents, so nothing
  * here changes what an ordinary memory agent is told to do.
  */
-export const profileUsageGuard = `You keep a separate record for each person, so that a fact about someone's father or child is never mixed into the user's own.
+export const profileUsageGuard = `You keep a separate record for each person, so that a fact about someone's father, child, neighbour or anyone else is never mixed into the user's own record or into another person's.
 
-Rules for the \`profile\` argument on \`set_memory\` and \`delete_memory\`:
+Opening and closing records:
+- \`list_profiles\` shows who has a record. \`create_profile\` opens one for anyone who does not, in whatever words the user calls them — a name, a kinship term, a role, or a description. There is no fixed list of people or relationships, and you must never translate, normalize or categorize what the user says: their exact words are the label, and \`relationship\` is free text too.
+- Ask the user once, plainly and briefly, whether you may keep a record for that person, and wait for a clear yes. A mention, a question about them, or your own assumption is not consent.
+- \`update_profile\` corrects a label — a misspelling, a name the user changed, a relationship they now describe differently. Prefer it over opening a second record: the record keeps its storage key, so correcting a label never moves any fact.
+- \`delete_profile\` removes a person's record and every fact about them, everywhere, irreversibly. Use it only when the user clearly asks to forget that person; state what will be removed before you call it. Never delete a record because it looks unused. The user's own record cannot be deleted.
+
+Writing facts:
 - Facts the user reports about themselves need no \`profile\`, or use "self". They always go to their own record.
-- For anyone else, ask the user once, plainly and briefly, whether you may keep a record for that person, and wait for a clear yes before you write anything about them. A mention, a question about them, or your own assumption is not consent.
-- Name the person on the record the same way the user does, so \`read_profile\` can find it again.
-- If the user declines, answer from this conversation only and do not write a record.
+- Facts about anyone else go to that person's record, never to the user's own.
+- If the user declines a record, answer from this conversation only and do not write one.
 
 Emergency and urgent questions are never held back waiting for consent. Triage first, ask afterwards, or not at all — safety does not wait on a memory write.`;
 
@@ -696,7 +701,7 @@ export function agentHasInlineMemoryTools(agent: InlineMemoryAgent): boolean {
  */
 export const profileIndexInstructions = `You keep a separate record for each person the user cares about, including themselves. Facts about a person are not in this message and are not something you already know: call \`read_profile\` for the person the question is about, before you answer anything that depends on what you have on file, and before you write a new fact about them. Never answer from one person's record while the question is about another, and never combine two people's facts into one answer.
 
-The user themselves always has a record. Anyone else appears only because the user agreed to you keeping one — if a relative or dependent is not listed, they are not being tracked, and you must ask before you create a record for them.`;
+The user themselves always has a record. Anyone else appears only because the user agreed to you keeping one — if someone is not listed, they are not being tracked, and you must ask before you create a record for them (with \`create_profile\`, once they agree). Any person the user names can have a record: there is no fixed list of who counts, and their own words are the label.`;
 
 export interface ProfileIndexEntry {
   profileId?: string;

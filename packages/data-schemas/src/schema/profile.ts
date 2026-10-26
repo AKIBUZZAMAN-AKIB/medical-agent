@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { Schema } from 'mongoose';
 import type { IProfile } from '~/types/profile';
 
@@ -12,14 +13,47 @@ import type { IProfile } from '~/types/profile';
  */
 const PROFILE_ID_REGEX = /^[a-z0-9_]{1,64}$/;
 
-/** Slugify a human label into a stable, storage-safe profile id. */
+/**
+ * Derives the storage key for a human label.
+ *
+ * A profile id is a storage key, not a display value: it is the partition that
+ * every memory row about that person is filed under, so it must be (a) total —
+ * defined for every label a user can type, (b) stable — the same label always
+ * yields the same key, and (c) discriminating — two different people must never
+ * share one. An ASCII slug satisfies none of these outside ASCII: a label in
+ * Bengali, Arabic, Devanagari, Han or Cyrillic slagged to the empty string, and
+ * the empty string is what the memory layer reads as "no partition at all" —
+ * i.e. the account holder's own record. One person's medical facts were then
+ * filed under another, with no error anywhere.
+ *
+ * The rule is therefore stated once, over Unicode, with nothing enumerated:
+ *
+ *   the key preserves every letter and digit of the label, and nothing else.
+ *
+ * Runs of letters and digits are kept in order and joined by a single
+ * underscore; this is the identity content of the label. Spacing, punctuation
+ * and ornament (which carry no letter or digit) are folded away, so "My
+ * Father" and "my father" are one person. If the identity content is already
+ * storage-safe it is the key, which keeps ids readable; if it is not (any
+ * non-Latin script) the key is a digest of that content, so two people whose
+ * names differ only in a script that the ASCII alphabet cannot spell still get
+ * separate partitions.
+ */
 export function toProfileId(name: string): string {
-  return name
-    .trim()
+  /** NFKC so composed and decomposed spellings of one name agree. */
+  const identity = name
+    .normalize('NFKC')
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 64);
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((run) => run !== '')
+    .join('_');
+  if (identity === '') {
+    return '';
+  }
+  if (/^[a-z0-9_]+$/.test(identity)) {
+    return identity.slice(0, 64);
+  }
+  return `u_${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
 }
 
 export function isValidProfileId(profileId: string): boolean {
