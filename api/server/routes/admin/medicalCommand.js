@@ -672,6 +672,13 @@ function searchFormularyCorpus({ query = '', manufacturer = '', emlOnly = false,
  * This is a triage *queue for humans*, not a triage decision — see F-23 in
  * `docs/REPOSITORY_DEEP_AUDIT.md`.
  */
+/** Ordered worst-last, so a matched rule can only ever raise a severity. */
+const SEVERITY_RANK = { unknown: 0, routine: 1, moderate: 2, high: 3, emergency: 4 };
+
+function raiseSeverity(current, next) {
+  return (SEVERITY_RANK[next] ?? 0) > (SEVERITY_RANK[current] ?? 0) ? next : current;
+}
+
 function classifyClinicalMessageRisk(text = '') {
   const s = String(text || '').toLowerCase();
   const flags = [];
@@ -699,22 +706,22 @@ function classifyClinicalMessageRisk(text = '') {
   }
   if (/dengue|platelet|hematocrit|ডেঙ্গু|প্লাটিলেট/.test(s)) {
     flags.push('Dengue Hemorrhagic & NSAID Contraindication Guard');
-    if (severity !== 'emergency') severity = 'high';
+    severity = raiseSeverity(severity, 'high');
     specialty = 'Tropical Medicine & Dengue';
   }
   if (/cyp2c19|hla-b|clopidogrel|carbamazepine|pharmacogenom|warfarin/.test(s)) {
     flags.push('CPIC Pharmacogenomics / High-Alert DDI Check');
-    if (severity === 'routine') severity = 'moderate';
+    severity = raiseSeverity(severity, 'moderate');
     if (specialty === 'General & Internal Medicine') specialty = 'Clinical Pharmacology & PGx';
   }
   if (/egfr|creatinine|ckd|dialysis|কিডনি/.test(s)) {
     flags.push('Renal eGFR / CrCl Drug Dosing Guard');
-    if (severity === 'routine') severity = 'moderate';
+    severity = raiseSeverity(severity, 'moderate');
     if (specialty === 'General & Internal Medicine') specialty = 'Nephrology & Metabolic';
   }
   if (/pregnant|pregnancy|breastfeed|lactation|গর্ভবতী|স্তন্যদান|শিশু|baby|child/.test(s)) {
     flags.push('Maternal-Fetal / LactMed / Pediatric Weight Guard');
-    if (severity === 'routine') severity = 'moderate';
+    severity = raiseSeverity(severity, 'moderate');
     if (specialty === 'General & Internal Medicine') specialty = 'Maternal & Pediatric Safety';
   }
   if (/rash|itching|eczema|psoriasis|dandruff|চুলকানি|খুশকি|চর্ম/.test(s)) {
@@ -1520,18 +1527,26 @@ function createMedicalCommandRouter(options = {}) {
   router.get('/triage-safety', async (_req, res) => {
     try {
       const db = getDb();
-      const [users, userMessages] = await Promise.all([
-        db
-          .collection('users')
-          .find({}, { projection: { name: 1, email: 1 } })
-          .toArray(),
-        db
-          .collection('messages')
-          .find({ isCreatedByUser: true })
-          .sort({ createdAt: -1 })
-          .limit(200)
-          .toArray(),
-      ]);
+      /** The 200 messages come first so the user lookup can be narrowed to the
+       *  people those messages mention. Reading the whole `users` collection to
+       *  decorate 200 rows put every account the deployment has into memory on
+       *  each request, which is an out-of-memory waiting to happen at scale. */
+      const userMessages = await db
+        .collection('messages')
+        .find({ isCreatedByUser: true })
+        .sort({ createdAt: -1 })
+        .limit(200)
+        .toArray();
+      const authorIds = [
+        ...new Set(userMessages.map((msg) => msg.user).filter((id) => id != null)),
+      ];
+      const users =
+        authorIds.length > 0
+          ? await db
+              .collection('users')
+              .find({ _id: { $in: authorIds } }, { projection: { name: 1, email: 1 } })
+              .toArray()
+          : [];
       const userMap = new Map(users.map((u) => [String(u.user || u._id), u]));
 
       const events = userMessages.map((msg) => {
@@ -1592,10 +1607,17 @@ function createMedicalCommandRouter(options = {}) {
           .collection('agents')
           .find({}, { projection: { id: 1, name: 1 } })
           .toArray(),
+        /** Scoped to the conversations actually being displayed. The previous
+         *  filter was `{}`, so every message in the database was streamed into
+         *  memory to describe 120 conversations. */
         db
           .collection('messages')
           .find(
-            {},
+            {
+              conversationId: {
+                $in: convos.map((conversation) => conversation.conversationId).filter(Boolean),
+              },
+            },
             {
               projection: {
                 conversationId: 1,

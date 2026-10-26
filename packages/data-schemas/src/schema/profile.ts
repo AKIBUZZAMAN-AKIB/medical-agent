@@ -11,7 +11,8 @@ import type { IProfile } from '~/types/profile';
  * named subject gets a `profileId` and its own partition, so the same fact
  * about two people never collides or leaks between them.
  */
-const PROFILE_ID_REGEX = /^[a-z0-9_]{1,64}$/;
+const PROFILE_ID_MAX_LENGTH = 64;
+const PROFILE_ID_REGEX = new RegExp(`^[a-z0-9_]{1,${PROFILE_ID_MAX_LENGTH}}$`);
 
 /**
  * Derives the storage key for a human label.
@@ -34,10 +35,18 @@ const PROFILE_ID_REGEX = /^[a-z0-9_]{1,64}$/;
  * underscore; this is the identity content of the label. Spacing, punctuation
  * and ornament (which carry no letter or digit) are folded away, so "My
  * Father" and "my father" are one person. If the identity content is already
- * storage-safe it is the key, which keeps ids readable; if it is not (any
- * non-Latin script) the key is a digest of that content, so two people whose
- * names differ only in a script that the ASCII alphabet cannot spell still get
+ * storage-safe and fits the column, it is the key, which keeps ids readable;
+ * otherwise (any non-Latin script, or a label too long to store whole) the key
+ * is a digest of the content, so two people whose names differ only past the
+ * length limit — or only in a script the ASCII alphabet cannot spell — still get
  * separate partitions.
+ *
+ * The length rule is not cosmetic. Truncating a 70-character identity to 64
+ * keeps the first 64 characters and throws the rest away, so "…ward father"
+ * and "…ward mother" produced one key and one partition: two people, one
+ * medical record, silently. Cutting a name to fit is the same class of mistake
+ * as slagging it to the empty string, so a key that cannot be stored whole is
+ * hashed instead of shortened.
  */
 export function toProfileId(name: string): string {
   /** NFKC so composed and decomposed spellings of one name agree. */
@@ -50,8 +59,8 @@ export function toProfileId(name: string): string {
   if (identity === '') {
     return '';
   }
-  if (/^[a-z0-9_]+$/.test(identity)) {
-    return identity.slice(0, 64);
+  if (identity.length <= PROFILE_ID_MAX_LENGTH && /^[a-z0-9_]+$/.test(identity)) {
+    return identity;
   }
   return `u_${createHash('sha256').update(identity).digest('hex').slice(0, 32)}`;
 }

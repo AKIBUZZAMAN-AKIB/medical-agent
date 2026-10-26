@@ -547,6 +547,44 @@ function formatFdaDate(value: string): string {
   return value;
 }
 
+/**
+ * Does a label section name *this* drug?
+ *
+ * The whole name is what gets matched, never its parts. Splitting "valproic
+ * acid" into words and accepting any one of them meant the token "acid" — which
+ * appears in "acetylsalicylic acid", "sodium" in half of every label, "chloride"
+ * in saline — counted as the drug being named. The tool then told the model to
+ * "treat it as a labelled interaction", inventing an interaction out of a shared
+ * chemical noun.
+ *
+ * Matching the full name is narrower than a pharmacist's eye: a label that says
+ * "valproate" for "valproic acid", or names the salt rather than the base, is
+ * reported as not naming it. That is the safe direction — the tool already says
+ * an unlabelled pair is not a cleared pair, so a miss costs a query to a
+ * pharmacist, while a fabricated hit invites a clinical decision on evidence
+ * that does not exist.
+ *
+ * Spacing and hyphenation inside the name are treated as equivalent
+ * ("amoxicillin-clavulanate" found by "amoxicillin clavulanate"), because that is
+ * the same name written two ways rather than two different names.
+ */
+function namesDrug(sectionText: string, drug: string): boolean {
+  const normalize = (value: string): string =>
+    value
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const haystack = ` ${normalize(sectionText)} `;
+  const needle = normalize(drug);
+  if (needle === '') {
+    return false;
+  }
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}([^\\p{L}\\p{N}]|$)`, 'u').test(haystack);
+}
+
 const drugInteractionCheck = defineTool({
   name: 'drug_interaction_check',
   group: 'drugs',
@@ -590,19 +628,12 @@ const drugInteractionCheck = defineTool({
       if (other == null) {
         return [];
       }
-      const haystack = side.text.toLowerCase();
-      const terms = [other.drug, ...other.drug.split(/[\s-]+/)].filter((term) => term.length > 3);
-      const named = terms.some((term) =>
-        new RegExp(`\\b${term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(
-          haystack,
-        ),
-      );
-      return named
+      return namesDrug(side.text, other.drug)
         ? [
             `${side.drug}'s label text names ${other.drug}: quote the passage and treat it as a labelled interaction until a pharmacist rules otherwise.`,
           ]
         : [
-            `${side.drug}'s interaction and contraindication text does not mention ${other.drug}. That is an unlabelled pair, not a cleared one — report it as such.`,
+            `${side.drug}'s interaction and contraindication text does not name ${other.drug}. That is an unlabelled pair, not a cleared one — report it as such.`,
           ];
     });
 

@@ -734,6 +734,157 @@ by `api/server/middleware/requireLocalAuth.spec.js` and, dependency-free, by
 `e2e/verify-require-local-auth.js` (6/6 checks including the regression guard that a
 rejected login is never `404`).
 
+### F-29 — `lab_result_interpreter` read SI values as conventional units and invented panic values · **P1 · certain · FIXED**
+`packages/mcp-medical/src/tools/calculators.ts` compared raw numbers against a table
+written in mg/dL, g/dL, mEq/L, U/L. Nothing asked what unit the caller used. A
+routine SI panel therefore produced this, reproduced against the built server:
+
+```
+values: { fasting_glucose: 5.5, creatinine: 88, bilirubin_total: 12, albumin: 42 }
+-> CRITICAL LOW Fasting Plasma Glucose: 5.5 mg/dL (critical threshold <=54 mg/dL)
+-> CRITICAL HIGH Serum Creatinine: 88 mg/dL (critical threshold >=5 mg/dL)
+```
+
+Those are mmol/L and µmol/L results for a healthy adult: two fabricated emergencies,
+each with "immediate emergency clinical assessment required". The mirror image is
+worse — sodium 140 mmol/L read as 140 mEq/L looks normal, and a genuine panic value
+expressed in SI units can fall inside the reference band and be reported as in-range.
+Fixed by accepting an optional `units` map and **refusing to interpret** any analyte
+whose declared unit differs from the unit the table is written in; those values are
+listed under "Not Interpreted — Unit Mismatch" with the unit that is expected, and a
+notice states that nothing should be inferred from them until converted. No
+conversion factors were invented. Guarded by
+`packages/mcp-medical/src/__tests__/audit-regressions.spec.ts` (4 cases, including µ
+vs μ vs u spellings). Residual risk, stated: a caller that omits `units` and passes SI
+numbers is still misread — the tool cannot detect that, which is why the description
+now demands units for anything not in the conventional set.
+
+### F-30 — `drug_interaction_check` invented a "labelled interaction" from a shared word · **P1 · certain · FIXED**
+The pair check split the other drug's name on whitespace and accepted **any single
+token longer than three characters** as proof that the label named the drug. For
+`aspirin + valproic acid` the token `acid` matched "Acetylsalicylic acid" in the
+aspirin label, and the tool told the model:
+
+```
+aspirin's label text names valproic acid: quote the passage and treat it as a labelled
+interaction until a pharmacist rules otherwise.
+```
+
+Nothing in that label concerns valproate. `sodium`, `chloride`, `potassium` and
+`acid` make the false positive reachable for a large share of real regimens. Fixed by
+matching the **whole** drug name (with hyphen/space equivalence), which is stricter
+than a pharmacist's eye and therefore errs toward "unlabelled pair, not a cleared
+pair" — the direction the tool's own notice demands. Guarded by 4 regression tests
+including the `amoxicillin clavulanate` / `Amoxicillin-clavulanate` equivalence.
+
+### F-31 — A long profile label was truncated into another person's record · **P1 · certain · FIXED**
+`toProfileId` kept the readable slug by slicing the identity content at 64
+characters. Two labels that agree for the first 64 and differ afterwards produced one
+key, one partition and one memory pool — the same "one person's facts under another"
+failure the empty-string bug caused, at the far end of the length range:
+
+```
+'A'*70 + ' father' -> aaaa…aaaa   (64 chars)
+'A'*70 + ' mother' -> aaaa…aaaa   (identical)
+```
+
+Fixed: a key is stored whole or hashed; it is never shortened. Regression test asserts
+non-collision, stability and storage validity for a 77-character label.
+
+### F-32 — An upstream outage was reported as "this paper has no full text" · **P1 · certain · FIXED**
+`read_full_text` wrapped the Europe PMC call in `.catch(() => { throw new EmptyResultError(…) })`.
+Every failure — timeout, 429, 5xx, DNS — became the factual claim:
+
+```
+Europe PMC has no full text for PMC8379165. The article exists in PubMed but its full
+text is not in the open-access archive
+```
+
+Reproduced by answering 503. During an outage the model would tell a clinician a paper
+has no open-access copy when nobody checked. Fixed to convert only `UpstreamError`
+with `status === 404`; everything else propagates. Both directions are tested.
+
+### F-33 — The admin matcher's graded severities were dead code · **P2 · certain · FIXED**
+`classifyClinicalMessageRisk` starts at `severity = 'unknown'` (correct, F-23) but its
+graded branches read `if (severity === 'routine') severity = 'moderate'` — a value the
+variable can never hold. Every pharmacogenomic, renal and maternal/pediatric match
+therefore produced a flag with `basis: keyword-match` and severity `unknown`, so the
+console showed an unassessed-looking row that had in fact matched a rule. Fixed with an
+explicit rank map (`raiseSeverity`); a matched rule now raises the row to `moderate`,
+and an unmatched message still reads `unknown` with `basis: none`. Both are asserted.
+
+### F-34 — Two admin endpoints loaded whole collections on every request · **P2 · certain · FIXED**
+* `/triage-safety` read **every account in the deployment** (`users.find({}).toArray()`)
+  to decorate 200 messages.
+* `/consultations` read **every message in the database** (`messages.find({}).toArray()`,
+  no filter at all) to describe 120 conversations.
+
+Neither is a correctness bug today, and both are an out-of-memory event at the first
+real deployment size. Narrowed: the panel looks up only the authors its 200 rows
+mention (`_id: { $in: … }`), and the consultation trace only fetches messages belonging
+to the conversations it is about to display. A test proves a message whose author has
+no user record still renders.
+
+### F-35 — `unknown` outranks `emergency`, so a partially-assessed emergency reports "NOT ASSESSED" · **P1 · probable · OPEN (needs an owner decision)**
+`Severity.unknown = 5`, above `emergency = 4`, and `join` is a max. One undecided
+finding in a batch therefore dominates a confident `emergency` finding in the same
+batch: the message reports `Triage severity: UNKNOWN`, the admin panel paints it grey
+`— NOT ASSESSED`, and `safetyAlerts` (which excludes unassessed rows, F-23) drops it.
+A classifier that is sure about a cardiac arrest and unsure about one secondary code
+produces exactly that. The intent behind the ordering — "we do not know must never lose
+to a confident clearance" — is sound; the cost is that a confident *emergency* loses
+too. Two options: (a) keep the enum and let `emergency` win the join while recording the
+undecided finding in `evidence` plus a limitation; (b) leave it, and make the console
+render "NOT ASSESSED — includes a confident emergency finding". Both change documented,
+tested behaviour (`src/__tests__/triage.spec.ts` asserts `join([emergency, unknown]) === unknown`),
+so neither is applied here without a decision.
+
+### F-36 — The response size budget is enforced after the whole body is buffered · **P2 · probable · OPEN**
+`readBounded` in `packages/mcp-medical/src/http.ts` checks `content-length`, then calls
+`await response.text()`, and only afterwards compares `text.length` to the budget. An
+upstream that streams without `content-length` is fully buffered before the check, so
+the documented 4 MB (12 MB hard) cap bounds nothing. Fix is to read the stream with a
+running byte counter and abort, not to raise the constant.
+
+### F-37 — Optional-enrichment failures are reported as "there is none" · **P3 · certain · OPEN**
+`drug_class_atc`, `drug_bioactivity`, `compound_properties` and `drug_lookup` swallow
+enrichment errors with `.catch(() => [])`. When ChEMBL is down, `drug_bioactivity`
+answers "no curated mechanism" — a false negative about a drug's mechanism rather than
+"ChEMBL could not be reached". Lower stakes than F-32 (the core answer is still shown)
+but the same shape.
+
+### F-38 — `Upstream.emptyOnNotFound` is a no-op · **P3 · certain · OPEN**
+`packages/mcp-medical/src/http.ts` documents the flag as "404s are reported to the
+caller as an empty result", but both branches of the `if` throw: the flag changes
+nothing. The 404→empty conversion actually lives in per-tool `asEmpty` helpers. Four
+tools pass the flag, so it reads as a guarantee that is not implemented.
+
+### F-39 — `updateProfile({ relationship: null })` cannot clear the field · **P3 · certain · OPEN**
+`packages/data-schemas/src/methods/profile.ts` sets `update.relationship = undefined` to
+mean "clear it", and mongoose strips `undefined` from updates:
+
+```
+M.findOneAndUpdate({…}, { name: 'x', relationship: undefined }).getUpdate()  ->  { name: 'x' }
+```
+
+The call then returns `{ ok: true }` with the unchanged document, so a caller that asked
+to clear the relationship is told it succeeded. Unreachable from
+`update_profile` today (the tool only passes non-empty strings), which is why it is
+recorded rather than changed.
+
+### F-40 — The admin triage panel is still an authored keyword lexicon · **P2 · certain · OPEN (requirement)**
+F-23 made an unmatched message read `unknown` instead of `routine`, but the matcher
+itself is still ~90 lines of hand-written symptom words in two languages plus hard-coded
+crisis numbers (`api/server/routes/admin/medicalCommand.js`, `classifyClinicalMessageRisk`).
+That is the "no predefined tables" rule the medical package already obeys: `safety/triage.ts`
+carries no clinical vocabulary and takes its semantics from a classifier. The admin panel
+cannot do that today because it has no classifier to call, so every row would read
+`unknown`. Two honest options: (a) source the queue from the agent's own persisted
+`emergency_triage_check` results, so severity comes from whatever classifier the
+deployment configured; (b) keep the matcher but label the panel as an unvalidated
+keyword screen. Not changed unilaterally — (a) is a feature change and (b) needs a
+wording decision.
+
 ## H. Performance and scalability
 
 ### H.1 Measured results (this machine only)
@@ -950,4 +1101,13 @@ naive keyword implementation would ship:
 | F-28 (failed login returned 404) | **FIXED** | `requireLocalAuth` now answers `401` with a message body; the `422` branch is untouched. SPA strings unchanged (`getLoginError` maps both 401 and the old 404 to the same key). Verified by `api/server/middleware/requireLocalAuth.spec.js` and the dependency-free `e2e/verify-require-local-auth.js` → 6/6. |
 | Browser-level auth E2E (`e2e/browser-auth-api.e2e.mjs`) | **12/12 PASS** | Chromium 151 via Playwright against a fresh database: signup, immediate login, ADMIN bootstrap, admin API, refresh, logout, wrong password, duplicate-email parity, USER denied, anonymous refused, foreign Origin refused. |
 | Browser-level **UI** E2E (`e2e/browser-auth.e2e.mjs`) | **NOT TESTED (blocked)** | The client bundle cannot be compiled on this 1.98 GB host — kernel OOM kill at `rendering chunks`. Script and instructions are committed; see `docs/e2e/README.md`. |
+| F-29 (lab values read in the wrong unit) | **FIXED** | Optional `units` map; a declared unit that differs from the table's unit is refused, not reinterpreted. 4 regression tests. See F-29. |
+| F-30 (interaction check invented a labelled interaction) | **FIXED** | Whole-name matching with hyphen/space equivalence; `acid`/`sodium` no longer count as naming a drug. 4 regression tests. See F-30. |
+| F-31 (long profile label truncated into another person) | **FIXED** | `toProfileId` stores the slug whole or hashes it; never slices. Regression test on a 77-character label. See F-31. |
+| F-32 (outage reported as "no full text") | **FIXED** | Only a 404 becomes `EmptyResultError`; 429/5xx/timeouts propagate. Both directions tested. See F-32. |
+| F-33 (dead graded-severity branches in the admin matcher) | **FIXED** | Rank-based `raiseSeverity`; matched rows reach `moderate`, unmatched stay `unknown`. See F-33. |
+| F-34 (admin endpoints scanning whole collections) | **FIXED** | `/triage-safety` looks up only the authors it displays; `/consultations` fetches messages only for the conversations shown. See F-34. |
+| F-35 (`unknown` outranking `emergency`) | **NOT FIXED** | Documented and tested behaviour; changing it needs an owner decision (F-35 lists both options). |
+| F-36 / F-37 / F-38 / F-39 (byte budget after buffering, swallowed enrichment, no-op flag, unclearable field) | **NOT FIXED** | Recorded with reproductions; each is small and independent. |
+| F-40 (admin triage panel is a keyword lexicon) | **NOT FIXED** | Requirement gap; F-40 lists the two honest options. |
 | 1M-concurrency validation | **NOT TESTED** | Cannot be simulated locally and would not be honest to claim. |

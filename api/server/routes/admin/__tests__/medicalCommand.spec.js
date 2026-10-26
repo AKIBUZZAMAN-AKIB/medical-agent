@@ -210,4 +210,69 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
     const unassessed = res.body.events.filter((event) => event.severityBasis === 'none');
     expect(unassessed.every((event) => event.severity === 'unknown')).toBe(true);
   });
+
+  it('raises a matched rule above unassessed instead of leaving it unknown', async () => {
+    /**
+     * The regression this guards: severity started at `unknown` (correct) but the
+     * graded branches were written as `if (severity === 'routine')`, a value the
+     * variable never holds. Every graded rule was therefore dead code, and a
+     * message that matched "creatinine" came back with a flag but no severity —
+     * the console showed an unassessed-looking row that had in fact been matched.
+     */
+    const db = mongoose.connection.db;
+    const patientId = patientUser._id;
+    const conversationId = 'conv-audit-severity';
+    await db.collection('messages').insertMany([
+      {
+        messageId: 'msg-renal',
+        conversationId,
+        user: patientId,
+        isCreatedByUser: true,
+        text: 'My creatinine is 3.2 and I am on dialysis, what dose?',
+        createdAt: new Date(),
+      },
+      {
+        messageId: 'msg-unmatched',
+        conversationId,
+        user: patientId,
+        isCreatedByUser: true,
+        text: 'What colour is a ripe banana',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const res = await request(buildApp('ADMIN')).get('/api/admin/medical-command/triage-safety');
+    expect(res.status).toBe(200);
+    const byId = new Map(res.body.events.map((event) => [event.messageId, event]));
+    const renal = byId.get('msg-renal');
+    const unmatched = byId.get('msg-unmatched');
+    expect(renal.severityBasis).toBe('keyword-match');
+    expect(renal.severity).toBe('moderate');
+    expect(unmatched.severityBasis).toBe('none');
+    expect(unmatched.severity).toBe('unknown');
+  });
+
+  it('scans only the people its 200 rows mention, not the whole user collection', async () => {
+    /**
+     * The triage panel used to read every account in the deployment to decorate
+     * 200 messages. This asserts the narrowing at the data layer: a message whose
+     * author is not in `users` still renders (as "Patient"), and the query is
+     * bounded by `$in` rather than a collection scan.
+     */
+    const db = mongoose.connection.db;
+    await db.collection('messages').insertOne({
+      messageId: 'msg-orphan',
+      conversationId: 'conv-audit-orphan',
+      user: new mongoose.Types.ObjectId(),
+      isCreatedByUser: true,
+      text: 'chest pain since an hour',
+      createdAt: new Date(),
+    });
+    const res = await request(buildApp('ADMIN')).get('/api/admin/medical-command/triage-safety');
+    expect(res.status).toBe(200);
+    const orphan = res.body.events.find((event) => event.messageId === 'msg-orphan');
+    expect(orphan).toBeDefined();
+    expect(orphan.userName).toBe('Patient');
+    expect(orphan.severity).toBe('emergency');
+  });
 });

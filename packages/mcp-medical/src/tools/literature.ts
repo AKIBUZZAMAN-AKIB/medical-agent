@@ -13,7 +13,7 @@ import {
 } from '../format.js';
 import { parseFullTextMetadata, parseFullTextSections, parseFullTextTables } from '../jats-xml.js';
 import { parsePubmedArticles } from '../pubmed-xml.js';
-import { EmptyResultError } from '../errors.js';
+import { EmptyResultError, UpstreamError } from '../errors.js';
 import { defineTool } from '../types.js';
 
 export const EUTILS = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
@@ -438,11 +438,21 @@ const readFullText = defineTool({
     };
     const xml = await http
       .getText(`${EPMC}/${pmcid}/fullTextXML`, upstream, {}, 'application/xml, text/xml;q=0.9')
-      .catch(() => {
-        throw new EmptyResultError(
-          'Europe PMC full text',
-          `Europe PMC has no full text for ${pmcid}. The article exists in PubMed but its full text is not in the open-access archive; the abstract from pubmed_article is what can be read.`,
-        );
+      .catch((error: unknown) => {
+        /**
+         * Only a 404 means "this article is not in the open-access archive".
+         * Every other failure — timeout, 429, 5xx, DNS — means the archive was
+         * not reached at all, and reporting that as an absent full text would
+         * state a fact nobody verified: the model would tell a clinician the
+         * paper has no open-access copy while Europe PMC was simply down.
+         */
+        if (error instanceof UpstreamError && error.status === 404) {
+          throw new EmptyResultError(
+            'Europe PMC full text',
+            `Europe PMC has no full text for ${pmcid}. The article exists in PubMed but its full text is not in the open-access archive; the abstract from pubmed_article is what can be read.`,
+          );
+        }
+        throw error;
       });
 
     const metadata = parseFullTextMetadata(xml);

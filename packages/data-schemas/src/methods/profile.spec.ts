@@ -3,7 +3,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { IProfile } from '~/types';
 import { createProfileMethods } from './profile';
 import { createMemoryMethods } from './memory';
-import { toProfileId } from '~/schema/profile';
+import { isValidProfileId, toProfileId } from '~/schema/profile';
 import { createModels } from '~/models';
 
 jest.mock('~/config/winston', () => ({
@@ -53,6 +53,32 @@ describe('toProfileId', () => {
   it('returns empty for a label with nothing usable in it', () => {
     expect(toProfileId('   ')).toBe('');
     expect(toProfileId('###')).toBe('');
+  });
+
+  it("never truncates a long label into another person's partition", () => {
+    /**
+     * The regression this guards: the readable branch sliced the identity at 64
+     * characters, so two labels that agree for the first 64 and differ afterwards
+     * produced one key. Facts about one person were then filed under the other
+     * with no error anywhere — the same failure the empty-string bug caused, just
+     * at the far end of the length range.
+     */
+    const shared = 'a'.repeat(70);
+    const father = `${shared} father`;
+    const mother = `${shared} mother`;
+    expect(toProfileId(father)).not.toBe(toProfileId(mother));
+    /** Both must still be storable: the schema rejects anything over 64 chars. */
+    expect(toProfileId(father).length).toBeLessThanOrEqual(64);
+    expect(toProfileId(mother).length).toBeLessThanOrEqual(64);
+    /** And a long label is stable: the same text always gives the same key. */
+    expect(toProfileId(father)).toBe(toProfileId(father));
+    expect(isValidProfileId(toProfileId(father))).toBe(true);
+  });
+
+  it('keeps a readable slug right up to the storage limit', () => {
+    const exactly64 = 'x'.repeat(64);
+    expect(toProfileId(exactly64)).toBe(exactly64);
+    expect(isValidProfileId(toProfileId('y'.repeat(65)))).toBe(true);
   });
 
   it('keeps every letter and digit of a label, whatever script it is written in', () => {

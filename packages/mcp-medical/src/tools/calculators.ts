@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  bulletList,
-  composeResult,
-  definitionList,
-  heading,
-  type SourceRef,
-} from '../format.js';
+import { bulletList, composeResult, definitionList, heading, type SourceRef } from '../format.js';
 import { defineTool } from '../types.js';
 
 const CALCULATOR_IDS = [
@@ -78,7 +72,14 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const age = num(inputs, 'age');
       const scr = num(inputs, 'creatinine_mg_dl') ?? num(inputs, 'creatinine');
       const sex = str(inputs, 'sex') || str(inputs, 'gender');
-      if (age == null || age < 18 || age > 120 || scr == null || scr <= 0 || !['male', 'female', 'm', 'f'].includes(sex)) {
+      if (
+        age == null ||
+        age < 18 ||
+        age > 120 ||
+        scr == null ||
+        scr <= 0 ||
+        !['male', 'female', 'm', 'f'].includes(sex)
+      ) {
         throw new Error(
           'ckd_epi_2021 requires adult `age` (18–120), positive `creatinine_mg_dl`, and `sex` ("male" or "female").',
         );
@@ -89,11 +90,7 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const sexFactor = isFemale ? 1.012 : 1.0;
       const ratio = scr / kappa;
       const egfr =
-        142 *
-        Math.min(ratio, 1) ** alpha *
-        Math.max(ratio, 1) ** -1.2 *
-        0.9938 ** age *
-        sexFactor;
+        142 * Math.min(ratio, 1) ** alpha * Math.max(ratio, 1) ** -1.2 * 0.9938 ** age * sexFactor;
       const egfrRounded = round(egfr, 1);
       const stage =
         egfr >= 90
@@ -133,7 +130,15 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const scr = num(inputs, 'creatinine_mg_dl') ?? num(inputs, 'creatinine');
       const heightCm = num(inputs, 'height_cm');
       const sex = str(inputs, 'sex') || str(inputs, 'gender');
-      if (age == null || age < 18 || weightKg == null || weightKg <= 0 || scr == null || scr <= 0 || !['male', 'female', 'm', 'f'].includes(sex)) {
+      if (
+        age == null ||
+        age < 18 ||
+        weightKg == null ||
+        weightKg <= 0 ||
+        scr == null ||
+        scr <= 0 ||
+        !['male', 'female', 'm', 'f'].includes(sex)
+      ) {
         throw new Error(
           'cockcroft_gault requires `age` (>=18), `weight_kg` (>0), `creatinine_mg_dl` (>0), and `sex` ("male" or "female").',
         );
@@ -182,14 +187,37 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const isFemale = ['female', 'f'].includes(str(inputs, 'sex') || str(inputs, 'gender'));
       let score = 0;
       const components: string[] = [];
-      if (bool(inputs, 'chf')) { score += 1; components.push('Congestive heart failure / LV dysfunction (+1)'); }
-      if (bool(inputs, 'hypertension')) { score += 1; components.push('Hypertension (+1)'); }
-      if (age >= 75) { score += 2; components.push(`Age ${age} >=75 (+2)`); }
-      else if (age >= 65) { score += 1; components.push(`Age ${age} (65–74) (+1)`); }
-      if (bool(inputs, 'diabetes')) { score += 1; components.push('Diabetes mellitus (+1)'); }
-      if (bool(inputs, 'stroke_tia_te')) { score += 2; components.push('Prior stroke / TIA / thromboembolism (+2)'); }
-      if (bool(inputs, 'vascular_disease')) { score += 1; components.push('Vascular disease (prior MI, PAD, aortic plaque) (+1)'); }
-      if (isFemale) { score += 1; components.push('Female sex category modifier (+1)'); }
+      if (bool(inputs, 'chf')) {
+        score += 1;
+        components.push('Congestive heart failure / LV dysfunction (+1)');
+      }
+      if (bool(inputs, 'hypertension')) {
+        score += 1;
+        components.push('Hypertension (+1)');
+      }
+      if (age >= 75) {
+        score += 2;
+        components.push(`Age ${age} >=75 (+2)`);
+      } else if (age >= 65) {
+        score += 1;
+        components.push(`Age ${age} (65–74) (+1)`);
+      }
+      if (bool(inputs, 'diabetes')) {
+        score += 1;
+        components.push('Diabetes mellitus (+1)');
+      }
+      if (bool(inputs, 'stroke_tia_te')) {
+        score += 2;
+        components.push('Prior stroke / TIA / thromboembolism (+2)');
+      }
+      if (bool(inputs, 'vascular_disease')) {
+        score += 1;
+        components.push('Vascular disease (prior MI, PAD, aortic plaque) (+1)');
+      }
+      if (isFemale) {
+        score += 1;
+        components.push('Female sex category modifier (+1)');
+      }
       const nonSexScore = isFemale ? score - 1 : score;
       const category =
         nonSexScore >= 2
@@ -216,7 +244,10 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const items: Array<[string, string]> = [
         ['hypertension_uncontrolled', 'Uncontrolled systolic BP >160 mmHg (+1)'],
         ['renal_disease', 'Abnormal renal function (dialysis, transplant, Cr >2.26 mg/dL) (+1)'],
-        ['liver_disease', 'Abnormal liver function (cirrhosis or bilirubin >2x + AST/ALT/ALP >3x ULN) (+1)'],
+        [
+          'liver_disease',
+          'Abnormal liver function (cirrhosis or bilirubin >2x + AST/ALT/ALP >3x ULN) (+1)',
+        ],
         ['stroke_history', 'Prior stroke history (+1)'],
         ['prior_bleeding', 'Prior major bleeding or anemia/predisposition (+1)'],
         ['labile_inr', 'Labile INR (<60% TTR on warfarin) (+1)'],
@@ -235,7 +266,10 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       return {
         title: 'HAS-BLED Major Bleeding Risk Score',
         primaryValue: `${score} / 9 points`,
-        riskCategory: score >= 3 ? 'High bleeding risk (>=3) — address modifiable risks & closer follow-up' : 'Low-to-moderate bleeding risk (<3)',
+        riskCategory:
+          score >= 3
+            ? 'High bleeding risk (>=3) — address modifiable risks & closer follow-up'
+            : 'Low-to-moderate bleeding risk (<3)',
         steps: matched.length > 0 ? matched : ['0 HAS-BLED factors marked'],
         interpretation: [
           'A HAS-BLED score >=3 flags closer monitoring and correction of modifiable factors (uncontrolled BP, unnecessary NSAIDs/antiplatelets, labile INR, alcohol).',
@@ -257,17 +291,30 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const dbp = num(inputs, 'diastolic_bp');
       const age = num(inputs, 'age') ?? 0;
 
-      if (bool(inputs, 'confusion')) { score += 1; steps.push('New mental confusion (+1)'); }
-      if ((bun != null && bun > 19) || (ureaMmol != null && ureaMmol > 7) || bool(inputs, 'urea_elevated')) {
+      if (bool(inputs, 'confusion')) {
+        score += 1;
+        steps.push('New mental confusion (+1)');
+      }
+      if (
+        (bun != null && bun > 19) ||
+        (ureaMmol != null && ureaMmol > 7) ||
+        bool(inputs, 'urea_elevated')
+      ) {
         score += 1;
         steps.push('Blood urea elevated (BUN >19 mg/dL or Urea >7 mmol/L) (+1)');
       }
-      if ((rr != null && rr >= 30) || bool(inputs, 'rr_ge_30')) { score += 1; steps.push(`Respiratory rate >=30/min (+1)`); }
+      if ((rr != null && rr >= 30) || bool(inputs, 'rr_ge_30')) {
+        score += 1;
+        steps.push(`Respiratory rate >=30/min (+1)`);
+      }
       if ((sbp != null && sbp < 90) || (dbp != null && dbp <= 60) || bool(inputs, 'low_bp')) {
         score += 1;
         steps.push('Hypotension (SBP <90 or DBP <=60 mmHg) (+1)');
       }
-      if (age >= 65 || bool(inputs, 'age_ge_65')) { score += 1; steps.push('Age >=65 years (+1)'); }
+      if (age >= 65 || bool(inputs, 'age_ge_65')) {
+        score += 1;
+        steps.push('Age >=65 years (+1)');
+      }
 
       const disposition =
         score <= 1
@@ -297,7 +344,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const naRaw = num(inputs, 'sodium_meq_l');
       const dialysis = bool(inputs, 'dialysis_twice_past_week');
       if (biliRaw == null || inrRaw == null || crRaw == null || naRaw == null) {
-        throw new Error('meld_na requires `bilirubin_mg_dl`, `inr`, `creatinine_mg_dl`, and `sodium_meq_l`.');
+        throw new Error(
+          'meld_na requires `bilirubin_mg_dl`, `inr`, `creatinine_mg_dl`, and `sodium_meq_l`.',
+        );
       }
       const bili = Math.max(1.0, biliRaw);
       const inr = Math.max(1.0, inrRaw);
@@ -325,7 +374,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
           `MELD(i) = 3.78×ln(${bili}) + 11.2×ln(${inr}) + 9.57×ln(${cr}) + 6.43 = ${round(meld, 2)} -> ${meldRounded}`,
           `MELD-Na = ${meldNa}`,
         ],
-        interpretation: ['Used for cirrhosis prognostic stratification and hepatology referral prioritization.'],
+        interpretation: [
+          'Used for cirrhosis prognostic stratification and hepatology referral prioritization.',
+        ],
         source: {
           name: 'Kim WR et al., NEJM 2008 (PMID 18768945)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/18768945/',
@@ -342,10 +393,23 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const pBili = bili > 3 ? 3 : bili >= 2 ? 2 : 1;
       const pAlb = alb < 2.8 ? 3 : alb <= 3.5 ? 2 : 1;
       const pInr = inr > 2.3 ? 3 : inr >= 1.7 ? 2 : 1;
-      const pAsc = ['moderate', 'severe', 'refractory', 'grade 3'].includes(ascites) ? 3 : ['mild', 'slight', 'controlled'].includes(ascites) ? 2 : 1;
-      const pEnc = ['grade 3', 'grade 4', 'severe'].includes(enceph) ? 3 : ['grade 1', 'grade 2', 'mild', 'moderate'].includes(enceph) ? 2 : 1;
+      const pAsc = ['moderate', 'severe', 'refractory', 'grade 3'].includes(ascites)
+        ? 3
+        : ['mild', 'slight', 'controlled'].includes(ascites)
+          ? 2
+          : 1;
+      const pEnc = ['grade 3', 'grade 4', 'severe'].includes(enceph)
+        ? 3
+        : ['grade 1', 'grade 2', 'mild', 'moderate'].includes(enceph)
+          ? 2
+          : 1;
       const total = pBili + pAlb + pInr + pAsc + pEnc;
-      const cls = total >= 10 ? 'Class C (Decompensated, 10–15 pts)' : total >= 7 ? 'Class B (Significant functional compromise, 7–9 pts)' : 'Class A (Well-compensated, 5–6 pts)';
+      const cls =
+        total >= 10
+          ? 'Class C (Decompensated, 10–15 pts)'
+          : total >= 7
+            ? 'Class B (Significant functional compromise, 7–9 pts)'
+            : 'Class A (Well-compensated, 5–6 pts)';
       return {
         title: 'Child-Pugh Cirrhosis Classification',
         primaryValue: `${total} / 15 points (${cls})`,
@@ -353,7 +417,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
         steps: [
           `Bilirubin (${bili} mg/dL -> +${pBili}), Albumin (${alb} g/dL -> +${pAlb}), INR (${inr} -> +${pInr}), Ascites (${ascites} -> +${pAsc}), Encephalopathy (${enceph} -> +${pEnc})`,
         ],
-        interpretation: ['Many hepatic drug labels specify Child-Pugh Class A/B/C dose adjustments or contraindications.'],
+        interpretation: [
+          'Many hepatic drug labels specify Child-Pugh Class A/B/C dose adjustments or contraindications.',
+        ],
         source: {
           name: 'Pugh RNH et al., Br J Surg 1973 (PMID 4541913)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/4541913/',
@@ -368,7 +434,11 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
         ['dvt_signs', 3.0, 'Clinical signs/symptoms of DVT (+3.0)'],
         ['pe_most_likely', 3.0, 'PE equally or more likely than alternative diagnosis (+3.0)'],
         ['hr_gt_100', 1.5, 'Heart rate >100 bpm (+1.5)'],
-        ['immobilization_or_surgery', 1.5, 'Immobilization >=3 days or surgery within 4 weeks (+1.5)'],
+        [
+          'immobilization_or_surgery',
+          1.5,
+          'Immobilization >=3 days or surgery within 4 weeks (+1.5)',
+        ],
         ['prior_dvt_pe', 1.5, 'Previous objective DVT or PE (+1.5)'],
         ['hemoptysis', 1.0, 'Hemoptysis (+1.0)'],
         ['malignancy', 1.0, 'Active or treated malignancy within 6 months (+1.0)'],
@@ -379,13 +449,18 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
           steps.push(label);
         }
       }
-      const twoTier = score > 4 ? 'PE Likely (>4.0 points — diagnostic CTPA evaluation)' : 'PE Unlikely (<=4.0 points — high-sensitivity D-dimer / PERC pathway)';
+      const twoTier =
+        score > 4
+          ? 'PE Likely (>4.0 points — diagnostic CTPA evaluation)'
+          : 'PE Unlikely (<=4.0 points — high-sensitivity D-dimer / PERC pathway)';
       return {
         title: 'Wells Criteria for Pulmonary Embolism',
         primaryValue: `${score.toFixed(1)} points`,
         riskCategory: twoTier,
         steps: steps.length > 0 ? steps : ['0 Wells PE criteria present'],
-        interpretation: ['Suspected acute pulmonary embolism is a medical emergency requiring immediate emergency department evaluation.'],
+        interpretation: [
+          'Suspected acute pulmonary embolism is a medical emergency requiring immediate emergency department evaluation.',
+        ],
         source: {
           name: 'Wells PS et al., Ann Intern Med 2001 (PMID 11453709)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/11453709/',
@@ -397,7 +472,14 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const h = Math.min(2, Math.max(0, num(inputs, 'history') ?? 0));
       const e = Math.min(2, Math.max(0, num(inputs, 'ecg') ?? 0));
       const age = num(inputs, 'age');
-      const a = age != null ? (age >= 65 ? 2 : age >= 45 ? 1 : 0) : Math.min(2, Math.max(0, num(inputs, 'age_points') ?? 0));
+      const a =
+        age != null
+          ? age >= 65
+            ? 2
+            : age >= 45
+              ? 1
+              : 0
+          : Math.min(2, Math.max(0, num(inputs, 'age_points') ?? 0));
       const r = Math.min(2, Math.max(0, num(inputs, 'risk_factors') ?? 0));
       const t = Math.min(2, Math.max(0, num(inputs, 'troponin') ?? 0));
       const total = h + e + a + r + t;
@@ -411,7 +493,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
               ? 'Moderate 6-week MACE risk (~12–16.6%) — hospital observation & serial troponin testing'
               : 'Low 6-week MACE risk (~0.9–1.7%) WITH serial negative high-sensitivity troponins',
         steps: [`History=${h}, ECG=${e}, Age=${a}, Risk factors=${r}, Troponin=${t}`],
-        interpretation: ['Active chest pain always requires emergency ECG and high-sensitivity troponin evaluation before outpatient disposition.'],
+        interpretation: [
+          'Active chest pain always requires emergency ECG and high-sensitivity troponin evaluation before outpatient disposition.',
+        ],
         source: {
           name: 'Six AJ et al., Neth Heart J 2008 (PMID 18665203)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/18665203/',
@@ -485,7 +569,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
                   ? 'Hypocalcemia (<8.5 mg/dL)'
                   : 'Reference range (8.5–10.5 mg/dL)',
         steps: [`Corrected Ca = ${ca} + 0.8 × (4.0 - ${alb}) = ${round(corrected, 2)} mg/dL`],
-        interpretation: ['Confirm borderline or critical abnormalities directly with ionized calcium.'],
+        interpretation: [
+          'Confirm borderline or critical abnormalities directly with ionized calcium.',
+        ],
         source: {
           name: 'Payne RB et al., BMJ 1973 (PMID 4758544)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/4758544/',
@@ -499,7 +585,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const hco3 = num(inputs, 'bicarbonate_meq_l');
       const alb = num(inputs, 'albumin_g_dl');
       if (na == null || cl == null || hco3 == null) {
-        throw new Error('anion_gap requires `sodium_meq_l`, `chloride_meq_l`, and `bicarbonate_meq_l`.');
+        throw new Error(
+          'anion_gap requires `sodium_meq_l`, `chloride_meq_l`, and `bicarbonate_meq_l`.',
+        );
       }
       const ag = na - (cl + hco3);
       const correctedAg = alb != null ? ag + 2.5 * (4.0 - alb) : ag;
@@ -512,9 +600,15 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
             : 'Normal Anion Gap (<=12 mEq/L)',
         steps: [
           `Uncorrected AG = ${na} - (${cl} + ${hco3}) = ${round(ag, 1)} mEq/L`,
-          ...(alb != null ? [`Figge Albumin-Corrected AG = ${round(ag, 1)} + 2.5 × (4.0 - ${alb}) = ${round(correctedAg, 1)} mEq/L`] : []),
+          ...(alb != null
+            ? [
+                `Figge Albumin-Corrected AG = ${round(ag, 1)} + 2.5 × (4.0 - ${alb}) = ${round(correctedAg, 1)} mEq/L`,
+              ]
+            : []),
         ],
-        interpretation: ['An elevated anion gap requires immediate arterial/venous blood gas, serum ketones/beta-hydroxybutyrate, lactate, renal panel, and toxicology review.'],
+        interpretation: [
+          'An elevated anion gap requires immediate arterial/venous blood gas, serum ketones/beta-hydroxybutyrate, lactate, renal panel, and toxicology review.',
+        ],
         source: {
           name: 'Figge J et al., Crit Care Med 1998 (PMID 9824071)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/9824071/',
@@ -545,7 +639,9 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
           `Fridericia QTcF = ${qtMs} / (${round(rrSec, 3)})^(1/3) = ${round(fridericia, 1)} ms (preferred in tachycardia/bradycardia)`,
           `Bazett QTcB = ${qtMs} / sqrt(${round(rrSec, 3)}) = ${round(bazett, 1)} ms`,
         ],
-        interpretation: ['Prefer Fridericia (QTcF) when heart rate is <60 or >100 bpm because Bazett over-corrects in tachycardia.'],
+        interpretation: [
+          'Prefer Fridericia (QTcF) when heart rate is <60 or >100 bpm because Bazett over-corrects in tachycardia.',
+        ],
         source: {
           name: 'AHA/ACC/HRS QT Interval Standardization Scientific Statement, Circulation 2009 (PMID 19221222)',
           url: 'https://pubmed.ncbi.nlm.nih.gov/19221222/',
@@ -559,11 +655,16 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
       const adultMaxSingleMg = num(inputs, 'adult_max_single_dose_mg');
       const suspensionMgPer5Ml = num(inputs, 'concentration_mg_per_5ml');
       if (weightKg == null || weightKg <= 0 || mgPerKgPerDose == null || mgPerKgPerDose <= 0) {
-        throw new Error('pediatric_dose_check requires positive `weight_kg` and `mg_per_kg_per_dose` from the official label.');
+        throw new Error(
+          'pediatric_dose_check requires positive `weight_kg` and `mg_per_kg_per_dose` from the official label.',
+        );
       }
       const rawMg = weightKg * mgPerKgPerDose;
       const cappedMg = adultMaxSingleMg != null ? Math.min(rawMg, adultMaxSingleMg) : rawMg;
-      const volumeMl = suspensionMgPer5Ml != null && suspensionMgPer5Ml > 0 ? (cappedMg * 5) / suspensionMgPer5Ml : null;
+      const volumeMl =
+        suspensionMgPer5Ml != null && suspensionMgPer5Ml > 0
+          ? (cappedMg * 5) / suspensionMgPer5Ml
+          : null;
       return {
         title: 'Weight-Based Pediatric Reference Math Verification',
         primaryValue: `${round(cappedMg, 1)} mg${volumeMl != null ? ` (${round(volumeMl, 2)} mL at ${suspensionMgPer5Ml} mg/5 mL)` : ''}`,
@@ -573,8 +674,16 @@ function runCalculator(calculator: CalculatorId, inputs: Record<string, unknown>
             : 'Weight-multiplied label reference value',
         steps: [
           `Raw weight multiplication: ${weightKg} kg × ${mgPerKgPerDose} mg/kg = ${round(rawMg, 2)} mg`,
-          ...(adultMaxSingleMg != null ? [`Adult ceiling check: min(${round(rawMg, 2)}, ${adultMaxSingleMg}) = ${round(cappedMg, 2)} mg`] : []),
-          ...(volumeMl != null ? [`Oral liquid volume: (${round(cappedMg, 2)} mg × 5 mL) / ${suspensionMgPer5Ml} mg = ${round(volumeMl, 2)} mL`] : []),
+          ...(adultMaxSingleMg != null
+            ? [
+                `Adult ceiling check: min(${round(rawMg, 2)}, ${adultMaxSingleMg}) = ${round(cappedMg, 2)} mg`,
+              ]
+            : []),
+          ...(volumeMl != null
+            ? [
+                `Oral liquid volume: (${round(cappedMg, 2)} mg × 5 mL) / ${suspensionMgPer5Ml} mg = ${round(volumeMl, 2)} mL`,
+              ]
+            : []),
         ],
         interpretation: [
           'Reference math check only — confirm exact indication, age minimum, renal/hepatic function, dosing interval, and concentration on the bottle with a pediatrician or pharmacist before administering any medicine.',
@@ -600,31 +709,224 @@ interface LabRange {
 }
 
 const LAB_RANGES: Record<string, LabRange> = {
-  hemoglobin: { label: 'Hemoglobin (Hb)', unit: 'g/dL', low: 12.0, high: 17.5, panicLow: 7.0, panicHigh: 20.0, noteLow: 'Anemia — evaluate iron/ferritin, B12/folate, blood loss, thalassemia trait, or CKD', noteHigh: 'Erythrocytosis / hemoconcentration (critical clue in Dengue plasma leakage)' },
-  hematocrit: { label: 'Hematocrit (Hct / PCV)', unit: '%', low: 36, high: 50, panicLow: 21, panicHigh: 60, noteLow: 'Decreased red cell mass / dilution / bleeding', noteHigh: 'Hemoconcentration (>=20% rise over baseline in fever strongly warns of Dengue capillary plasma leakage)' },
-  wbc: { label: 'White Blood Cell Count (WBC)', unit: '×10³/µL', low: 4.0, high: 11.0, panicLow: 1.5, panicHigh: 30.0, noteLow: 'Leukopenia (common in viral syndromes incl. Dengue, typhoid, drug marrow suppression)', noteHigh: 'Leukocytosis (bacterial infection, inflammation, stress, or hematologic disorder)' },
-  platelets: { label: 'Platelets', unit: '×10³/µL', low: 150, high: 450, panicLow: 20, panicHigh: 1000, noteLow: 'Thrombocytopenia — strictly avoid NSAIDs/aspirin; emergency hospital evaluation if <50,000, rapidly falling, or any bleeding', noteHigh: 'Thrombocytosis (reactive vs myeloproliferative)' },
-  sodium: { label: 'Serum Sodium (Na+)', unit: 'mEq/L', low: 135, high: 145, panicLow: 120, panicHigh: 160, noteLow: 'Hyponatremia', noteHigh: 'Hypernatremia' },
-  potassium: { label: 'Serum Potassium (K+)', unit: 'mEq/L', low: 3.5, high: 5.1, panicLow: 2.5, panicHigh: 6.0, noteLow: 'Hypokalemia — arrhythmia risk', noteHigh: 'Hyperkalemia — urgent ECG & arrhythmia risk' },
-  creatinine: { label: 'Serum Creatinine', unit: 'mg/dL', low: 0.6, high: 1.2, panicHigh: 5.0, noteHigh: 'Elevated creatinine — compute race-free eGFR via clinical_calculator (ckd_epi_2021)' },
-  bun: { label: 'Blood Urea Nitrogen (BUN)', unit: 'mg/dL', low: 7, high: 20, panicHigh: 80, noteHigh: 'Azotemia / dehydration / upper GI bleed / catabolism' },
-  fasting_glucose: { label: 'Fasting Plasma Glucose', unit: 'mg/dL', low: 70, high: 99, panicLow: 54, panicHigh: 400, noteLow: 'Hypoglycemia', noteHigh: 'Hyperglycemia (100–125 impaired fasting glucose; >=126 diabetes threshold on repeat testing)' },
-  hba1c: { label: 'HbA1c', unit: '%', low: 4.0, high: 5.6, panicHigh: 12.0, noteHigh: '5.7–6.4% prediabetes range; >=6.5% diabetes diagnostic range (verify hemoglobinopathies/thalassemia common in South Asia)' },
-  alt: { label: 'ALT (SGPT)', unit: 'U/L', low: 7, high: 45, panicHigh: 1000, noteHigh: 'Hepatocellular injury marker (viral hepatitis A/B/E, fatty liver MASLD, dengue, drug-induced)' },
-  ast: { label: 'AST (SGOT)', unit: 'U/L', low: 8, high: 40, panicHigh: 1000, noteHigh: 'Hepatic / muscle transaminase elevation' },
-  alp: { label: 'Alkaline Phosphatase (ALP)', unit: 'U/L', low: 44, high: 147, noteHigh: 'Cholestatic / biliary or bone turnover elevation' },
-  bilirubin_total: { label: 'Total Bilirubin', unit: 'mg/dL', low: 0.1, high: 1.2, panicHigh: 15.0, noteHigh: 'Hyperbilirubinemia / jaundice — fractionate direct vs indirect bilirubin' },
-  albumin: { label: 'Serum Albumin', unit: 'g/dL', low: 3.5, high: 5.0, panicLow: 2.0, noteLow: 'Hypoalbuminemia (chronic liver disease, nephrotic loss, malnutrition, inflammation)' },
-  tsh: { label: 'TSH', unit: 'mIU/L', low: 0.4, high: 4.0, panicLow: 0.01, panicHigh: 50.0, noteLow: 'Suppressed TSH — evaluate Free T4 & Free T3 for hyperthyroidism', noteHigh: 'Elevated TSH — evaluate Free T4 for hypothyroidism' },
-  free_t4: { label: 'Free T4', unit: 'ng/dL', low: 0.8, high: 1.8, noteLow: 'Low Free T4', noteHigh: 'Elevated Free T4' },
-  ldl: { label: 'LDL Cholesterol', unit: 'mg/dL', low: 0, high: 100, noteHigh: 'Elevated atherogenic LDL-C (interpret against overall ASCVD risk, diabetes, and CKD)' },
-  hdl: { label: 'HDL Cholesterol', unit: 'mg/dL', low: 40, high: 100, noteLow: 'Low HDL-C cardiometabolic marker' },
-  triglycerides: { label: 'Triglycerides', unit: 'mg/dL', low: 0, high: 149, panicHigh: 500, noteHigh: 'Hypertriglyceridemia (>=500 mg/dL carries acute pancreatitis risk)' },
-  inr: { label: 'INR', unit: 'ratio', low: 0.8, high: 1.2, panicHigh: 4.5, noteHigh: 'Prolonged INR (supratherapeutic anticoagulation or coagulopathy — bleeding risk)' },
-  crp: { label: 'C-Reactive Protein (CRP)', unit: 'mg/L', low: 0, high: 5.0, noteHigh: 'Systemic inflammation or infection marker' },
-  uric_acid: { label: 'Serum Uric Acid', unit: 'mg/dL', low: 3.0, high: 7.0, noteHigh: 'Hyperuricemia' },
-  vitamin_d: { label: '25-Hydroxy Vitamin D', unit: 'ng/mL', low: 30, high: 100, noteLow: 'Vitamin D insufficiency/deficiency (<20 ng/mL deficient; 20–29 ng/mL insufficient)' },
-  ferritin: { label: 'Serum Ferritin', unit: 'ng/mL', low: 30, high: 300, noteLow: 'Depleted iron stores', noteHigh: 'Elevated ferritin (acute-phase reactant, dengue hyperferritinemia, or iron overload)' },
+  hemoglobin: {
+    label: 'Hemoglobin (Hb)',
+    unit: 'g/dL',
+    low: 12.0,
+    high: 17.5,
+    panicLow: 7.0,
+    panicHigh: 20.0,
+    noteLow: 'Anemia — evaluate iron/ferritin, B12/folate, blood loss, thalassemia trait, or CKD',
+    noteHigh: 'Erythrocytosis / hemoconcentration (critical clue in Dengue plasma leakage)',
+  },
+  hematocrit: {
+    label: 'Hematocrit (Hct / PCV)',
+    unit: '%',
+    low: 36,
+    high: 50,
+    panicLow: 21,
+    panicHigh: 60,
+    noteLow: 'Decreased red cell mass / dilution / bleeding',
+    noteHigh:
+      'Hemoconcentration (>=20% rise over baseline in fever strongly warns of Dengue capillary plasma leakage)',
+  },
+  wbc: {
+    label: 'White Blood Cell Count (WBC)',
+    unit: '×10³/µL',
+    low: 4.0,
+    high: 11.0,
+    panicLow: 1.5,
+    panicHigh: 30.0,
+    noteLow:
+      'Leukopenia (common in viral syndromes incl. Dengue, typhoid, drug marrow suppression)',
+    noteHigh: 'Leukocytosis (bacterial infection, inflammation, stress, or hematologic disorder)',
+  },
+  platelets: {
+    label: 'Platelets',
+    unit: '×10³/µL',
+    low: 150,
+    high: 450,
+    panicLow: 20,
+    panicHigh: 1000,
+    noteLow:
+      'Thrombocytopenia — strictly avoid NSAIDs/aspirin; emergency hospital evaluation if <50,000, rapidly falling, or any bleeding',
+    noteHigh: 'Thrombocytosis (reactive vs myeloproliferative)',
+  },
+  sodium: {
+    label: 'Serum Sodium (Na+)',
+    unit: 'mEq/L',
+    low: 135,
+    high: 145,
+    panicLow: 120,
+    panicHigh: 160,
+    noteLow: 'Hyponatremia',
+    noteHigh: 'Hypernatremia',
+  },
+  potassium: {
+    label: 'Serum Potassium (K+)',
+    unit: 'mEq/L',
+    low: 3.5,
+    high: 5.1,
+    panicLow: 2.5,
+    panicHigh: 6.0,
+    noteLow: 'Hypokalemia — arrhythmia risk',
+    noteHigh: 'Hyperkalemia — urgent ECG & arrhythmia risk',
+  },
+  creatinine: {
+    label: 'Serum Creatinine',
+    unit: 'mg/dL',
+    low: 0.6,
+    high: 1.2,
+    panicHigh: 5.0,
+    noteHigh: 'Elevated creatinine — compute race-free eGFR via clinical_calculator (ckd_epi_2021)',
+  },
+  bun: {
+    label: 'Blood Urea Nitrogen (BUN)',
+    unit: 'mg/dL',
+    low: 7,
+    high: 20,
+    panicHigh: 80,
+    noteHigh: 'Azotemia / dehydration / upper GI bleed / catabolism',
+  },
+  fasting_glucose: {
+    label: 'Fasting Plasma Glucose',
+    unit: 'mg/dL',
+    low: 70,
+    high: 99,
+    panicLow: 54,
+    panicHigh: 400,
+    noteLow: 'Hypoglycemia',
+    noteHigh:
+      'Hyperglycemia (100–125 impaired fasting glucose; >=126 diabetes threshold on repeat testing)',
+  },
+  hba1c: {
+    label: 'HbA1c',
+    unit: '%',
+    low: 4.0,
+    high: 5.6,
+    panicHigh: 12.0,
+    noteHigh:
+      '5.7–6.4% prediabetes range; >=6.5% diabetes diagnostic range (verify hemoglobinopathies/thalassemia common in South Asia)',
+  },
+  alt: {
+    label: 'ALT (SGPT)',
+    unit: 'U/L',
+    low: 7,
+    high: 45,
+    panicHigh: 1000,
+    noteHigh:
+      'Hepatocellular injury marker (viral hepatitis A/B/E, fatty liver MASLD, dengue, drug-induced)',
+  },
+  ast: {
+    label: 'AST (SGOT)',
+    unit: 'U/L',
+    low: 8,
+    high: 40,
+    panicHigh: 1000,
+    noteHigh: 'Hepatic / muscle transaminase elevation',
+  },
+  alp: {
+    label: 'Alkaline Phosphatase (ALP)',
+    unit: 'U/L',
+    low: 44,
+    high: 147,
+    noteHigh: 'Cholestatic / biliary or bone turnover elevation',
+  },
+  bilirubin_total: {
+    label: 'Total Bilirubin',
+    unit: 'mg/dL',
+    low: 0.1,
+    high: 1.2,
+    panicHigh: 15.0,
+    noteHigh: 'Hyperbilirubinemia / jaundice — fractionate direct vs indirect bilirubin',
+  },
+  albumin: {
+    label: 'Serum Albumin',
+    unit: 'g/dL',
+    low: 3.5,
+    high: 5.0,
+    panicLow: 2.0,
+    noteLow: 'Hypoalbuminemia (chronic liver disease, nephrotic loss, malnutrition, inflammation)',
+  },
+  tsh: {
+    label: 'TSH',
+    unit: 'mIU/L',
+    low: 0.4,
+    high: 4.0,
+    panicLow: 0.01,
+    panicHigh: 50.0,
+    noteLow: 'Suppressed TSH — evaluate Free T4 & Free T3 for hyperthyroidism',
+    noteHigh: 'Elevated TSH — evaluate Free T4 for hypothyroidism',
+  },
+  free_t4: {
+    label: 'Free T4',
+    unit: 'ng/dL',
+    low: 0.8,
+    high: 1.8,
+    noteLow: 'Low Free T4',
+    noteHigh: 'Elevated Free T4',
+  },
+  ldl: {
+    label: 'LDL Cholesterol',
+    unit: 'mg/dL',
+    low: 0,
+    high: 100,
+    noteHigh:
+      'Elevated atherogenic LDL-C (interpret against overall ASCVD risk, diabetes, and CKD)',
+  },
+  hdl: {
+    label: 'HDL Cholesterol',
+    unit: 'mg/dL',
+    low: 40,
+    high: 100,
+    noteLow: 'Low HDL-C cardiometabolic marker',
+  },
+  triglycerides: {
+    label: 'Triglycerides',
+    unit: 'mg/dL',
+    low: 0,
+    high: 149,
+    panicHigh: 500,
+    noteHigh: 'Hypertriglyceridemia (>=500 mg/dL carries acute pancreatitis risk)',
+  },
+  inr: {
+    label: 'INR',
+    unit: 'ratio',
+    low: 0.8,
+    high: 1.2,
+    panicHigh: 4.5,
+    noteHigh: 'Prolonged INR (supratherapeutic anticoagulation or coagulopathy — bleeding risk)',
+  },
+  crp: {
+    label: 'C-Reactive Protein (CRP)',
+    unit: 'mg/L',
+    low: 0,
+    high: 5.0,
+    noteHigh: 'Systemic inflammation or infection marker',
+  },
+  uric_acid: {
+    label: 'Serum Uric Acid',
+    unit: 'mg/dL',
+    low: 3.0,
+    high: 7.0,
+    noteHigh: 'Hyperuricemia',
+  },
+  vitamin_d: {
+    label: '25-Hydroxy Vitamin D',
+    unit: 'ng/mL',
+    low: 30,
+    high: 100,
+    noteLow: 'Vitamin D insufficiency/deficiency (<20 ng/mL deficient; 20–29 ng/mL insufficient)',
+  },
+  ferritin: {
+    label: 'Serum Ferritin',
+    unit: 'ng/mL',
+    low: 30,
+    high: 300,
+    noteLow: 'Depleted iron stores',
+    noteHigh:
+      'Elevated ferritin (acute-phase reactant, dengue hyperferritinemia, or iron overload)',
+  },
 };
 
 export const calculatorTools = [
@@ -688,17 +990,28 @@ export const calculatorTools = [
       values: z
         .record(z.string(), z.number())
         .describe(
-          'Map of analyte keys to numeric values in standard units, e.g. {"hemoglobin": 15.8, "hematocrit": 49, "platelets": 68, "wbc": 3.1, "alt": 112, "ast": 148, "creatinine": 1.4, "potassium": 5.4, "hba1c": 7.8}',
+          'Map of analyte keys to numeric values in the conventional units the tool prints for each analyte (mg/dL, g/dL, mEq/L, U/L, %, ng/mL, ratio), e.g. {"hemoglobin": 15.8, "hematocrit": 49, "platelets": 68, "wbc": 3.1, "alt": 112, "ast": 148, "creatinine": 1.4, "potassium": 5.4, "hba1c": 7.8}',
+        ),
+      units: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe(
+          'Optional map of analyte key to the unit the laboratory reported, e.g. {"fasting_glucose": "mmol/L"}. An analyte whose unit is not the conventional unit this tool compares against is NOT interpreted and is listed for manual conversion — pass this whenever the report is in SI units (mmol/L, µmol/L, g/L).',
         ),
       clinical_context: z
         .string()
         .optional()
-        .describe('Optional clinical context such as fever day 4, anticoagulation, pregnancy, or chronic kidney disease'),
+        .describe(
+          'Optional clinical context such as fever day 4, anticoagulation, pregnancy, or chronic kidney disease',
+        ),
     },
     async handler(args, { env }) {
       const entries = Object.entries(args.values);
       if (entries.length === 0) {
-        return { text: 'Provide at least one numeric laboratory analyte in `values`.', isError: true };
+        return {
+          text: 'Provide at least one numeric laboratory analyte in `values`.',
+          isError: true,
+        };
       }
 
       const panicAlerts: string[] = [];
@@ -706,11 +1019,38 @@ export const calculatorTools = [
       const normalRows: string[] = [];
       const unrecognized: string[] = [];
 
+      const declaredUnits = args.units ?? {};
+      const normalizeUnit = (value: string): string =>
+        value
+          .normalize('NFKC')
+          .toLowerCase()
+          .replace(/[\u00b5\u03bc]/g, 'u')
+          .replace(/\s+/g, '')
+          .trim();
+      const unitMismatches: string[] = [];
+
       for (const [rawKey, val] of entries) {
         const key = rawKey.trim().toLowerCase();
         const spec = LAB_RANGES[key];
         if (spec == null) {
           unrecognized.push(`${rawKey}: ${val}`);
+          continue;
+        }
+        /**
+         * A number without a unit is not a laboratory result. A normal SI panel —
+         * glucose 5.5 mmol/L, creatinine 88 µmol/L — read as if it were mg/dL
+         * produced "CRITICAL LOW glucose 5.5 mg/dL" and "CRITICAL HIGH creatinine
+         * 88 mg/dL": two fabricated emergencies from a healthy report, and the
+         * mirror image (SI numbers that look harmless in conventional units) hides
+         * a real panic value. Converting here would mean inventing factors for
+         * every analyte, so a declared unit that is not the one this table is
+         * written in is refused instead of silently reinterpreted.
+         */
+        const declared = declaredUnits[rawKey] ?? declaredUnits[key];
+        if (declared != null && normalizeUnit(declared) !== normalizeUnit(spec.unit)) {
+          unitMismatches.push(
+            `${spec.label}: ${val} ${declared} — this tool compares in ${spec.unit}. Convert to ${spec.unit} (or read the value against your laboratory's own range) before it can be interpreted here.`,
+          );
           continue;
         }
         if (spec.panicLow != null && val <= spec.panicLow) {
@@ -732,7 +1072,9 @@ export const calculatorTools = [
             `HIGH ${spec.label}: ${val} ${spec.unit} (Adult reference ${spec.low}–${spec.high} ${spec.unit})${spec.noteHigh ? ` — ${spec.noteHigh}` : ''}`,
           );
         } else {
-          normalRows.push(`${spec.label}: ${val} ${spec.unit} (within ${spec.low}–${spec.high} ${spec.unit})`);
+          normalRows.push(
+            `${spec.label}: ${val} ${spec.unit} (within ${spec.low}–${spec.high} ${spec.unit})`,
+          );
         }
       }
 
@@ -748,12 +1090,16 @@ export const calculatorTools = [
       const hba1c = args.values.hba1c;
       if (hba1c != null && hba1c >= 4) {
         const eag = round(28.7 * hba1c - 46.7, 0);
-        patterns.push(`Estimated Average Glucose (Nathan ADAG formula) for HbA1c ${hba1c}%: ~${eag} mg/dL.`);
+        patterns.push(
+          `Estimated Average Glucose (Nathan ADAG formula) for HbA1c ${hba1c}%: ~${eag} mg/dL.`,
+        );
       }
       const ast = args.values.ast;
       const alt = args.values.alt;
       if (ast != null && alt != null && alt > 0 && (ast > 45 || alt > 45)) {
-        patterns.push(`AST/ALT (De Ritis) Ratio = ${round(ast / alt, 2)} (AST ${ast} U/L, ALT ${alt} U/L).`);
+        patterns.push(
+          `AST/ALT (De Ritis) Ratio = ${round(ast / alt, 2)} (AST ${ast} U/L, ALT ${alt} U/L).`,
+        );
       }
 
       const sections: string[] = [];
@@ -761,13 +1107,20 @@ export const calculatorTools = [
         sections.push([heading('CRITICAL PANIC VALUE ALERTS'), bulletList(panicAlerts)].join('\n'));
       }
       if (patterns.length > 0) {
-        sections.push([heading('Multi-Analyte Clinical Pattern Synthesis'), bulletList(patterns)].join('\n'));
+        sections.push(
+          [heading('Multi-Analyte Clinical Pattern Synthesis'), bulletList(patterns)].join('\n'),
+        );
       }
       if (abnormalRows.length > 0) {
         sections.push([heading('Out-of-Range Findings'), bulletList(abnormalRows)].join('\n'));
       }
       if (normalRows.length > 0) {
         sections.push([heading('Within Reference Interval'), bulletList(normalRows)].join('\n'));
+      }
+      if (unitMismatches.length > 0) {
+        sections.push(
+          [heading('Not Interpreted — Unit Mismatch'), bulletList(unitMismatches)].join('\n'),
+        );
       }
       if (unrecognized.length > 0) {
         sections.push(
@@ -792,6 +1145,12 @@ export const calculatorTools = [
           },
         ],
         notices: [
+          'Values are interpreted in the conventional units named on each line. A value reported in different units (mmol/L, µmol/L, g/L) must be converted or passed through `units`; passing such a number unconverted produces a wrong answer in either direction.',
+          ...(unitMismatches.length > 0
+            ? [
+                `${unitMismatches.length} value(s) were NOT interpreted because their unit differs from the unit this tool compares against. Do not infer severity from those numbers until they are converted.`,
+              ]
+            : []),
           'Always compare against the testing laboratory’s own age-, sex-, assay-, and pregnancy-specific reference intervals.',
           'Normal laboratory numbers NEVER rule out an acute clinical emergency (such as acute coronary syndrome, stroke, sepsis, or suicidal crisis).',
         ],
