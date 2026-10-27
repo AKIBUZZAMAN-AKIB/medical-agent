@@ -131,7 +131,37 @@ mcpServers:
       MEDICAL_TOOL_GROUPS: 'formulary,drugs,calculators,emergency'
 ```
 
-## 7. Operational gaps (read before calling this production-ready)
+## 7. Browser verification (the UI path)
+
+`config/ui-smoke.js` (`npm run verify-ui`) drives real Chromium against a running
+deployment and asserts 18 things; it exits non-zero on any failure and writes
+screenshots plus `results.json` to `SHOT_DIR` (default `/tmp/ui-shots`).
+
+```bash
+SHOT_DIR=/tmp/ui-shots UI_BASE=http://127.0.0.1:3090 npm run verify-ui
+```
+
+Two prerequisites, both easy to get wrong:
+
+- **`packages/client` must be built** (`npm run build:client-package`) before the
+  vite dev server will serve `@librechat/client/style.css`. Without it every
+  module import of `@librechat/client` fails with a 500 and the page renders
+  blank — a build step, not a deployment bug.
+- **Raise `LOGIN_MAX`** for the run, or repeated logins trip the limiter
+  (default `LOGIN_MAX=7` per `LOGIN_WINDOW=5` minutes) and every later check sees
+  429/401. `LOGIN_MAX=200 LOGIN_WINDOW=1` on the API process is enough.
+
+What it proved on this tree (18/18): the login surface renders, `POST /api/auth/login`
+returns 200 and sets an httpOnly `refreshToken`, `/api/models` serves the custom
+endpoint and the seeded model, the chat view offers **Super-Power Doctor AI** with
+its Bangla conversation starters, `/admin` renders *Medical Admin OS* with live
+data, all four admin endpoints answer 200, the console reports **33** tools — and
+the browser console has **no errors**, no failed requests and no 5xx.
+
+Screenshot: `docs/screenshots/` is intentionally not committed; regenerate with the
+command above.
+
+## 8. Operational gaps (read before calling this production-ready)
 
 1. **No backups.** `mongodump` is documented, no restore drill has been run.
 2. **MongoDB runs without authentication** inside the compose network and its
@@ -144,5 +174,7 @@ mcpServers:
    deterministic check runs. This is a known, documented design limit.
 6. **Not HIPAA/GDPR compliant.** No claim is made; no patient data was used in
    any test.
-7. **The client cannot be rebuilt in a 2 GB sandbox** (`vite build` OOMs); the
-   audit verified the API, the MCP server and the config, not a rendered UI.
+7. **A full `vite build` OOMs in a 2 GB sandbox.** The production client bundle was
+   therefore not built here; the UI was verified through the vite dev server
+   instead (§7), which compiles the same modules but skips the optimiser and
+   minifier.

@@ -1,12 +1,13 @@
 import { useState, useId } from 'react';
 import { useRecoilValue } from 'recoil';
 import * as Ariakit from '@ariakit/react';
+import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { BookmarkFilledIcon, BookmarkIcon } from '@radix-ui/react-icons';
 import { DropdownPopup, TooltipAnchor, Spinner } from '@librechat/client';
 import type { FC } from 'react';
 import { BookmarkContext } from '~/Providers/BookmarkContext';
 import useBookmarkItems from '~/hooks/Chat/useBookmarkItems';
-import { useLocalize } from '~/hooks';
+import { useHasAccess, useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 import store from '~/store';
 
@@ -15,8 +16,20 @@ const BookmarkMenu: FC = () => {
   const menuId = useId();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const conversationId = useRecoilValue(store.conversationByIndex(0))?.conversationId ?? '';
+  /**
+   * `/api/tags` is served behind the BOOKMARKS capability. Without this gate the
+   * hook fetched tags on every chat mount even in a deployment that switches
+   * bookmarks off, and the deployment got a 403 in the network log and the
+   * browser console each time — an error that described a disabled feature as if
+   * it were a broken one. The button was already hidden by `show`; only the query
+   * ran.
+   */
+  const hasAccessToBookmarks = useHasAccess({
+    permissionType: PermissionTypes.BOOKMARKS,
+    permission: Permissions.USE,
+  });
   const { show, items, bookmarks, hasBookmarks, isLoading, triggerAriaLabel, dialog } =
-    useBookmarkItems();
+    useBookmarkItems({ enabled: hasAccessToBookmarks === true });
 
   if (!show) {
     return null;

@@ -25,236 +25,203 @@ const PARENT_AGENT_ID = 'agent_medical_research';
 const DEFAULT_MODEL = 'super-power-doctor-pro';
 const requireMedicalAdminAccess = requireCapability(SystemCapabilities.ACCESS_ADMIN);
 
-const TOOL_GROUPS = [
+/**
+ * Presentation for the MCP tool lab.
+ *
+ * The tool list itself is **not** written here. It is read from the MCP server's own
+ * registry (`packages/mcp-medical/dist/tools/index.js`, `allTools`), which is the same
+ * list the model is given. A hand-maintained copy drifts silently: it said 32 tools
+ * while the server published 33, so `specialist_subagent_blueprint` was invisible in
+ * the admin console even though the agent could call it.
+ *
+ * These maps only supply labels, Bangla labels and the JSON prefill for a selected
+ * tool. A registry group missing from `TOOL_LAB_GROUPS` is still shown, under a
+ * humanised label, so a newly added tool can never disappear from the console.
+ */
+const TOOL_LAB_GROUPS = [
   {
     id: 'bd_formulary',
     label: 'Bangladesh Formulary & BDT Pricing',
     bnLabel: 'বাংলাদেশ ওষুধ ফর্মুলারি ও মূল্য',
-    tools: [
-      {
-        name: 'bd_medicine_lookup',
-        summary:
-          '24,725 Bangladeshi brands, 1,553 generics, WHO 2025 EML, BD NEML & cheapest BDT equivalents',
-        sampleArgs: { query: 'Bizoran 5/20', max_alternatives: 8 },
-      },
-    ],
+    registryGroups: ['formulary'],
   },
   {
     id: 'pharmacology',
     label: 'Pharmacology, Labels & Adverse Events',
-    bnLabel: 'ফার্মাকোলজি, এফডিএ লেবেল ও পার্শ্বপ্রতিক্রিয়া',
-    tools: [
-      {
-        name: 'drug_lookup',
-        summary: 'RxNorm + OpenFDA + ChEMBL normalized drug monograph lookup',
-        sampleArgs: { drug: 'empagliflozin', max_candidates: 5 },
-      },
-      {
-        name: 'drug_label',
-        summary:
-          'Structured FDA DailyMed prescribing sections (boxed warnings, renal dosing, pregnancy)',
-        sampleArgs: { drug: 'metformin' },
-      },
-      {
-        name: 'drug_interaction_check',
-        summary: 'Multi-drug DDI severity, mechanism & clinical management',
-        sampleArgs: { drug_a: 'warfarin', drug_b: 'amiodarone' },
-      },
-      {
-        name: 'drug_safety_actions',
-        summary: 'OpenFDA drug enforcement recalls & safety alerts',
-        sampleArgs: { drug: 'valsartan', max_results: 5 },
-      },
-      {
-        name: 'drug_adverse_event_summary',
-        summary: 'FAERS post-marketing adverse reaction frequency rankings',
-        sampleArgs: { drug: 'atorvastatin', top_n: 8 },
-      },
-      {
-        name: 'drug_class_atc',
-        summary: 'WHO Anatomical Therapeutic Chemical (ATC) hierarchy & peer agents',
-        sampleArgs: { drug: 'rosuvastatin' },
-      },
-      {
-        name: 'drug_bioactivity',
-        summary: 'ChEMBL receptor binding affinities (IC50 / Ki / EC50)',
-        sampleArgs: { drug: 'imatinib', max_activities: 6 },
-      },
-      {
-        name: 'compound_properties',
-        summary: 'PubChem molecular weight, LogP, SMILES & chemical structure properties',
-        sampleArgs: { compound: 'paracetamol', max_synonyms: 6 },
-      },
-      {
-        name: 'drug_lactation',
-        summary: 'NIH NLM LactMed maternal milk levels, infant safety & safe alternatives',
-        sampleArgs: { drug: 'sertraline' },
-      },
-    ],
+    bnLabel: 'ফার্মাকোলজি, এফডিএ লেবেল ও পার্শ্বপ্রতিক্রিয়া',
+    registryGroups: ['drugs'],
   },
   {
     id: 'pharmacogenomics',
     label: 'Precision Pharmacogenomics (CPIC)',
     bnLabel: 'জিনগত ওষুধ নিরাপত্তা (CPIC PGx)',
-    tools: [
-      {
-        name: 'pharmacogenomics_guideline',
-        summary:
-          'Live CPIC API v1 gene-drug dosing guidelines + South Asian HLA-B*15:02 / CYP2C19 alerts',
-        sampleArgs: { drug: 'clopidogrel', gene: 'CYP2C19' },
-      },
-    ],
+    registryGroups: ['pharmacogenomics'],
   },
   {
     id: 'calculators',
     label: 'Deterministic Calculators & Lab Panic Interpreter',
     bnLabel: 'ক্লিনিক্যাল ক্যালকুলেটর ও ল্যাব প্যানিক চেকার',
-    tools: [
-      {
-        name: 'clinical_calculator',
-        summary:
-          '14 verified formulas: 2021 CKD-EPI eGFR, CrCl, MELD-Na, CHA2DS2-VASc, CURB-65, QTc, Pediatric Dose',
-        sampleArgs: {
-          calculator: 'ckd_epi_2021',
-          inputs: { creatinine_mg_dl: 1.9, age: 62, sex: 'male' },
-        },
-      },
-      {
-        name: 'lab_result_interpreter',
-        summary:
-          '26-analyte critical panic thresholds & Dengue hematocrit/platelet plasma-leakage detector',
-        sampleArgs: {
-          values: {
-            platelets: 38,
-            hematocrit: 49,
-            alt: 185,
-            ast: 240,
-            potassium: 5.8,
-            creatinine: 1.7,
-          },
-          clinical_context: 'Day 5 fever in Dhaka',
-        },
-      },
-    ],
+    registryGroups: ['calculators'],
   },
   {
     id: 'literature',
     label: 'Biomedical Literature & Full-Text Synthesis',
     bnLabel: 'মেডিকেল রিসার্চ, পাবমেড ও ফুল-টেক্সট',
-    tools: [
-      {
-        name: 'pubmed_search',
-        summary: 'NIH NCBI PubMed peer-reviewed clinical trial & guideline search',
-        sampleArgs: { query: 'dengue fluid management warning signs guideline', max_results: 5 },
-      },
-      {
-        name: 'pubmed_article',
-        summary: 'Full structured abstract, MeSH headings, DOI & authors by PMID',
-        sampleArgs: { pmids: ['34449189'] },
-      },
-      {
-        name: 'read_full_text',
-        summary: 'Full-text PMC open-access article body reader',
-        sampleArgs: { id: 'PMC8929171' },
-      },
-      {
-        name: 'europe_pmc_search',
-        summary: 'Europe PMC biomedical articles, preprints & citation counts',
-        sampleArgs: { query: 'finerenone chronic kidney disease type 2 diabetes', max_results: 5 },
-      },
-      {
-        name: 'literature_citations',
-        summary: 'OpenAlex & Europe PMC forward/backward citation network',
-        sampleArgs: { pmids: ['34449189'], max_results: 5 },
-      },
-    ],
+    registryGroups: ['literature'],
   },
   {
     id: 'conditions_genomics',
     label: 'Conditions, Genomics & Precision Oncology',
-    bnLabel: 'রোগ নির্ণয়, জিনোমিক্স ও অনকোলজি',
-    tools: [
-      {
-        name: 'condition_lookup',
-        summary:
-          'Monarch Initiative + EBI OLS4 MONDO high-availability disease nosology & HPO phenotypes',
-        sampleArgs: { condition: 'beta thalassemia', max_results: 5 },
-      },
-      {
-        name: 'condition_targets_and_drugs',
-        summary: 'Open Targets druggable gene associations & investigational/approved therapeutics',
-        sampleArgs: { condition: 'non-small cell lung carcinoma', max_targets: 5, max_drugs: 5 },
-      },
-      {
-        name: 'gene_lookup',
-        summary: 'NCBI Gene + Ensembl locus, RefSeq transcripts & functional summary',
-        sampleArgs: { gene: 'BRCA1', max_diseases: 5 },
-      },
-      {
-        name: 'protein_lookup',
-        summary: 'UniProt human reviewed protein structure, domains & disease involvement',
-        sampleArgs: { protein: 'EGFR', max_results: 5 },
-      },
-      {
-        name: 'variant_clinical_significance',
-        summary: 'NCBI ClinVar pathogenicity classification & expert review stars',
-        sampleArgs: { gene_or_variant: 'BRCA1 c.68_69delAG', max_results: 5 },
-      },
-    ],
+    bnLabel: 'রোগ নির্ণয়, জিনোমিক্স ও অনকোলজি',
+    registryGroups: ['conditions'],
   },
   {
     id: 'coding_trials_public_health',
     label: 'ICD-10 Coding, Clinical Trials & WHO Public Health',
-    bnLabel: 'ICD-10 কোডিং, ক্লিনিক্যাল ট্রায়াল ও বিশ্ব স্বাস্থ্য',
-    tools: [
-      {
-        name: 'ontology_search',
-        summary: 'EBI OLS4 cross-ontology lookup (MONDO, HPO, EFO, ChEBI, GO)',
-        sampleArgs: { term: 'nephrotic syndrome', max_results: 5 },
-      },
-      {
-        name: 'icd10cm_code',
-        summary: 'NLM Clinical Tables official ICD-10-CM diagnosis codes',
-        sampleArgs: { code_prefix: 'E11', max_results: 8 },
-      },
-      {
-        name: 'clinical_trials',
-        summary: 'ClinicalTrials.gov v2 recruiting & completed interventional studies',
-        sampleArgs: { query: 'dengue', max_results: 5 },
-      },
-      {
-        name: 'health_statistics',
-        summary: 'WHO Global Health Observatory (GHO) country indicators (default BGD)',
-        sampleArgs: { search_indicators: 'maternal mortality', country: 'BGD', max_results: 5 },
-      },
-      {
-        name: 'device_approval',
-        summary: 'FDA 510(k) & PMA medical device clearance records',
-        sampleArgs: { device: 'continuous glucose monitor', max_results: 5 },
-      },
-      {
-        name: 'safety_recalls',
-        summary: 'FDA medical device recalls & field safety notices',
-        sampleArgs: { product: 'infusion pump', max_results: 5 },
-      },
-      {
-        name: 'provider_lookup',
-        summary: 'CMS NPPES National Provider Identifier (NPI) clinician directory',
-        sampleArgs: { specialty: 'Cardiology', state: 'NY', max_results: 5 },
-      },
-      {
-        name: 'plain_language_summary',
-        summary: 'NIH MedlinePlus patient-friendly plain-language education',
-        sampleArgs: { topic: 'high blood pressure' },
-      },
-      {
-        name: 'specialist_subagent_blueprint',
-        summary: 'Dynamic specialist sub-agent blueprint & MCP toolset synthesizer',
-        sampleArgs: { specialty: 'dermatology', clinical_focus: 'Psoriasis biologic screening' },
-      },
-    ],
+    bnLabel: 'ICD-10 কোডিং, ক্লিনিক্যাল ট্রায়াল ও বিশ্ব স্বাস্থ্য',
+    registryGroups: ['trials', 'epidemiology', 'devices'],
+  },
+  {
+    id: 'clinical_safety',
+    label: 'Emergency Screen, Provider & Plain-Language Tools',
+    bnLabel: 'জরুরি স্ক্রিন, প্রোভাইডার ও সহজ ভাষার টুল',
+    registryGroups: ['clinical'],
+  },
+  {
+    id: 'orchestration',
+    label: 'Specialist Sub-Agent Orchestration',
+    bnLabel: 'সাব-এজেন্ট অর্কেস্ট্রেশন',
+    registryGroups: ['orchestration'],
   },
 ];
+
+/** JSON prefilled into the console when a tool is picked. Presentation only. */
+const TOOL_SAMPLE_ARGS = {
+  emergency_triage_check: {
+    message: 'My father is sweating, has chest pain and cannot catch his breath.',
+    age: 62,
+  },
+  bd_medicine_lookup: { query: 'Bizoran 5/20', max_alternatives: 8 },
+  drug_lookup: { drug: 'empagliflozin', max_candidates: 5 },
+  drug_label: { drug: 'metformin' },
+  drug_interaction_check: { drug_a: 'warfarin', drug_b: 'amiodarone' },
+  drug_safety_actions: { drug: 'valsartan', max_results: 5 },
+  drug_adverse_event_summary: { drug: 'atorvastatin', top_n: 8 },
+  drug_class_atc: { drug: 'rosuvastatin' },
+  drug_bioactivity: { drug: 'imatinib', max_activities: 6 },
+  compound_properties: { compound: 'paracetamol', max_synonyms: 6 },
+  drug_lactation: { drug: 'sertraline' },
+  pharmacogenomics_guideline: { drug: 'clopidogrel', gene: 'CYP2C19' },
+  clinical_calculator: {
+    calculator: 'ckd_epi_2021',
+    inputs: { creatinine_mg_dl: 1.9, age: 62, sex: 'male' },
+  },
+  lab_result_interpreter: {
+    values: { platelets: 38, hematocrit: 49, alt: 185, ast: 240, potassium: 5.8, creatinine: 1.7 },
+    clinical_context: 'Day 5 fever in Dhaka',
+  },
+  pubmed_search: { query: 'dengue fluid management warning signs guideline', max_results: 5 },
+  pubmed_article: { pmids: ['34449189'] },
+  read_full_text: { id: 'PMC8929171' },
+  europe_pmc_search: { query: 'finerenone chronic kidney disease type 2 diabetes', max_results: 5 },
+  literature_citations: { pmids: ['34449189'], max_results: 5 },
+  condition_lookup: { condition: 'beta thalassemia', max_results: 5 },
+  condition_targets_and_drugs: {
+    condition: 'non-small cell lung carcinoma',
+    max_targets: 5,
+    max_drugs: 5,
+  },
+  gene_lookup: { gene: 'BRCA1', max_diseases: 5 },
+  protein_lookup: { protein: 'EGFR', max_results: 5 },
+  variant_clinical_significance: { gene_or_variant: 'BRCA1 c.68_69delAG', max_results: 5 },
+  ontology_search: { term: 'nephrotic syndrome', max_results: 5 },
+  icd10cm_code: { code_prefix: 'E11', max_results: 8 },
+  clinical_trials: { query: 'dengue', max_results: 5 },
+  health_statistics: { search_indicators: 'maternal mortality', country: 'BGD', max_results: 5 },
+  device_approval: { device: 'continuous glucose monitor', max_results: 5 },
+  safety_recalls: { product: 'infusion pump', max_results: 5 },
+  provider_lookup: { specialty: 'Cardiology', state: 'NY', max_results: 5 },
+  plain_language_summary: { topic: 'high blood pressure' },
+  specialist_subagent_blueprint: {
+    specialty: 'dermatology',
+    clinical_focus: 'Psoriasis biologic screening',
+  },
+};
+
+const HUMANISE_GROUP = (group) =>
+  group
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+/**
+ * Loads the MCP server's published tool list.
+ *
+ * The list comes from `packages/mcp-medical/dist/tool-catalog.json`, which the
+ * package's build emits from its own registry (`src/tools/index.ts`). Reading the
+ * JSON rather than importing the ESM bundle keeps this usable from the CommonJS
+ * API process and from jest, where a dynamic import of an ESM file is not
+ * available. The presentation maps above never add or remove tools.
+ */
+function loadPublishedToolCatalog() {
+  /**
+   * `__dirname` is <repo>/api/server/routes/admin in a checkout, but a jest run
+   * (or a bundled build) can sit one level shallower, so several anchors are
+   * tried. LibreChat itself launches the MCP server with
+   * `packages/mcp-medical/dist/index.js` relative to the repo root, so the
+   * working-directory candidate is the one that matches production.
+   */
+  const distDirCandidates = [
+    path.resolve(__dirname, '../../../../packages/mcp-medical/dist'),
+    path.resolve(__dirname, '../../../packages/mcp-medical/dist'),
+    path.resolve(process.cwd(), 'packages/mcp-medical/dist'),
+    path.resolve(process.cwd(), '../packages/mcp-medical/dist'),
+  ];
+  const catalogFile = distDirCandidates
+    .map((dir) => path.join(dir, 'tool-catalog.json'))
+    .find((file) => fs.existsSync(file));
+  if (!catalogFile) {
+    throw new Error(
+      'MCP medical tool catalogue is missing; run npm run build:mcp-medical (it emits dist/tool-catalog.json)',
+    );
+  }
+
+  let published;
+  try {
+    published = JSON.parse(fs.readFileSync(catalogFile, 'utf8')).tools;
+  } catch (err) {
+    throw new Error(`Cannot read the MCP tool catalogue at ${catalogFile}: ${err.message}`);
+  }
+  if (!Array.isArray(published) || published.length === 0) {
+    throw new Error(`MCP tool catalogue at ${catalogFile} is empty`);
+  }
+
+  const labGroupFor = (registryGroup) =>
+    TOOL_LAB_GROUPS.find((entry) => entry.registryGroups.includes(registryGroup)) ?? {
+      id: registryGroup,
+      label: HUMANISE_GROUP(registryGroup),
+      bnLabel: HUMANISE_GROUP(registryGroup),
+    };
+
+  const groups = new Map();
+  for (const tool of published) {
+    const lab = labGroupFor(tool.group);
+    if (!groups.has(lab.id)) {
+      groups.set(lab.id, { id: lab.id, label: lab.label, bnLabel: lab.bnLabel, tools: [] });
+    }
+    groups.get(lab.id).tools.push({
+      name: tool.name,
+      group: tool.group,
+      summary: tool.description ?? '',
+      sampleArgs: TOOL_SAMPLE_ARGS[tool.name] ?? {},
+    });
+  }
+
+  // Order the console by the mapping's order, then anything unmapped after it.
+  const order = new Map(TOOL_LAB_GROUPS.map((entry, i) => [entry.id, i]));
+  return [...groups.values()].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
+}
 
 /**
  * Preset specialty blueprints — scaffolds, not clinical knowledge.
@@ -863,6 +830,14 @@ function createMedicalCommandRouter(options = {}) {
         conversationAgentRows.map((row) => [row.conversationId, row.agent_id]),
       );
       const triageEvidence = collectTriageEvidence(messages);
+      /** Same source the MCP server publishes; a degraded bundle must not fail the dashboard. */
+      const toolCatalog = (() => {
+        try {
+          return loadPublishedToolCatalog();
+        } catch {
+          return [];
+        }
+      })();
 
       let promptTokens = 0;
       let completionTokens = 0;
@@ -996,8 +971,8 @@ function createMedicalCommandRouter(options = {}) {
           unassessedMessages,
           undecidedMessages,
           triageBasis: BASIS_PERSISTED,
-          mcpToolsTotal: 32,
-          mcpToolGroups: TOOL_GROUPS.length,
+          mcpToolsTotal: toolCatalog.reduce((sum, g) => sum + g.tools.length, 0),
+          mcpToolGroups: toolCatalog.length,
           bdBrandsTotal: formulary.totalBrands,
           bdGenericsTotal: formulary.totalGenerics,
         },
@@ -1063,7 +1038,7 @@ function createMedicalCommandRouter(options = {}) {
             name: 'Medical MCP Stdio Suite (@librechat/mcp-medical)',
             status: formulary.available ? 'healthy' : 'degraded',
             latencyMs: 3,
-            detail: `32 tools across ${TOOL_GROUPS.length} clinical groups · Zero API keys required`,
+            detail: `${toolCatalog.reduce((sum, g) => sum + g.tools.length, 0)} tools across ${toolCatalog.length} clinical groups · Zero API keys required`,
           },
         ],
       });
@@ -1078,6 +1053,13 @@ function createMedicalCommandRouter(options = {}) {
   router.get('/agents', async (_req, res) => {
     try {
       const db = getDb();
+      const toolCatalog = (() => {
+        try {
+          return loadPublishedToolCatalog();
+        } catch {
+          return [];
+        }
+      })();
       const [agents, convos, acls] = await Promise.all([
         db.collection('agents').find({}).sort({ createdAt: 1 }).toArray(),
         db
@@ -1128,7 +1110,7 @@ function createMedicalCommandRouter(options = {}) {
           ...bp,
           spawned: existingIds.has(bp.id),
         })),
-        mcpToolCatalog: TOOL_GROUPS.flatMap((g) =>
+        mcpToolCatalog: toolCatalog.flatMap((g) =>
           g.tools.map((t) => ({
             toolId: `${t.name}_mcp_${MCP_SERVER_NAME}`,
             shortName: t.name,
@@ -1392,12 +1374,17 @@ function createMedicalCommandRouter(options = {}) {
    * 3. 32-TOOL MCP MEDICAL LAB & UPSTREAM HEALTH PROBE
    */
   router.get('/mcp-tools', (_req, res) => {
-    res.json({
-      serverName: MCP_SERVER_NAME,
-      totalGroups: TOOL_GROUPS.length,
-      totalTools: TOOL_GROUPS.reduce((sum, g) => sum + g.tools.length, 0),
-      groups: TOOL_GROUPS,
-    });
+    try {
+      const groups = loadPublishedToolCatalog();
+      return res.json({
+        serverName: MCP_SERVER_NAME,
+        totalGroups: groups.length,
+        totalTools: groups.reduce((sum, g) => sum + g.tools.length, 0),
+        groups,
+      });
+    } catch (err) {
+      return res.status(503).json({ error: err.message });
+    }
   });
 
   router.post('/mcp-tools/execute', async (req, res) => {

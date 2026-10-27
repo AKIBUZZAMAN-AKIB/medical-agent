@@ -1,8 +1,10 @@
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
   QueryKeys,
+  Permissions,
   dataService,
   EModelEndpoint,
+  PermissionTypes,
   isAgentsEndpoint,
   defaultOrderQuery,
   defaultAssistantsVersion,
@@ -32,6 +34,7 @@ import type {
 import type t from 'librechat-data-provider';
 import type { ConversationCursorData } from '~/utils/convos';
 import { findConversationInInfinite, isNotFoundError } from '~/utils';
+import { useHasAccess } from '~/hooks/Roles';
 
 export const useGetPresetsQuery = (
   config?: UseQueryOptions<TPreset[]>,
@@ -241,9 +244,20 @@ export const useSharedLinksQuery = (
   });
 };
 
+/**
+ * `/api/tags` is served behind the BOOKMARKS capability, so a caller must not
+ * fetch it in a deployment that switches bookmarks off: the request is a 403, the
+ * browser console reports it as an error, and an operator reading the log cannot
+ * tell a disabled feature from a broken one. The permission is therefore the
+ * default `enabled`, and a caller may narrow it but not widen it.
+ */
 export const useConversationTagsQuery = (
   config?: UseQueryOptions<t.TConversationTagsResponse>,
 ): QueryObserverResult<t.TConversationTagsResponse> => {
+  const canUseBookmarks = useHasAccess({
+    permissionType: PermissionTypes.BOOKMARKS,
+    permission: Permissions.USE,
+  });
   return useQuery<t.TConversationTag[]>(
     [QueryKeys.conversationTags],
     () => dataService.getConversationTags(),
@@ -252,6 +266,7 @@ export const useConversationTagsQuery = (
       refetchOnReconnect: false,
       refetchOnMount: false,
       ...config,
+      enabled: (config?.enabled ?? true) && canUseBookmarks === true,
     },
   );
 };

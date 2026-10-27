@@ -27,7 +27,16 @@ export const useParentSubagentsQuery = (
     [QueryKeys.parentSubagents, parentConversationId],
     () => dataService.getParentSubagents(parentConversationId),
     {
+      ...config,
+      /**
+       * The guard has to survive `config`: spreading the caller's options last used
+       * to overwrite `enabled`, so `Presentation.tsx` passing `enabled: true` made
+       * this query fire for the placeholder conversation. On `/c/new` that meant a
+       * `GET /api/convos/new/subagents` on every mount, and a 404 in the console
+       * for a conversation that by definition does not exist yet.
+       */
       enabled:
+        (config?.enabled ?? true) &&
         parentConversationId !== '' &&
         parentConversationId !== Constants.NEW_CONVO &&
         parentConversationId !== Constants.PENDING_CONVO,
@@ -35,7 +44,6 @@ export const useParentSubagentsQuery = (
       refetchOnWindowFocus: true,
       refetchInterval: parentSubagentsRefetchInterval,
       refetchIntervalInBackground: false,
-      ...config,
     },
   );
 
@@ -111,12 +119,18 @@ export const useSubagentThreadQuery = (
     [QueryKeys.subagentThread, parentConversationId, threadId, taskId],
     () => dataService.getSubagentThread(parentConversationId, threadId, taskId),
     {
-      enabled: parentConversationId !== '' && threadId !== '',
+      ...config,
+      // Same ordering rule as the parent query above: the caller may narrow the
+      // guard, never widen it past an empty conversation or thread id.
+      enabled:
+        (config?.enabled ?? true) &&
+        parentConversationId !== '' &&
+        parentConversationId !== Constants.NEW_CONVO &&
+        threadId !== '',
       retry: false,
       refetchOnWindowFocus: true,
       refetchInterval: (view) =>
         subagentThreadRefetchInterval(view, readiness.deadline, Date.now(), taskId),
-      ...config,
     },
   );
 

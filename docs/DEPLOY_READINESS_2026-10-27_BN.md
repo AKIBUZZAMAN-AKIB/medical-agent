@@ -115,12 +115,40 @@ syntax is ok
 
 ---
 
+## ৩.১ ব্রাউজার টেস্ট — এখন সত্যিই চালানো হয়েছে
+
+আসল Chromium (Playwright) দিয়ে vite dev server + API-এর বিরুদ্ধে চালানো হয়েছে:
+
+```
+$ npm run verify-ui
+18/18 checks passed
+```
+
+যা প্রমাণ হয়েছে: `/login` রেন্ডার হয় ও ফর্ম কাজ করে; `POST /api/auth/login` → 200 এবং
+httpOnly `refreshToken` কুকি; `/api/models` কাস্টম এন্ডপয়েন্ট (OpenRouter (Free)) ও সিড
+করা মডেল সার্ভ করে; `/c/new`-এ **Super-Power Doctor AI** বাংলা স্টার্টারসহ দেখা যায়;
+`/admin` → *Medical Admin OS* লাইভ ডেটাসহ (২৪,৭২৫ ব্র্যান্ড, ৮ এজেন্ট, সার্ভিস হেলথ);
+চারটি admin এন্ডপয়েন্ট 200; টুল সংখ্যা **৩৩**; এবং **ব্রাউজার কনসোলে কোনো এরর নেই**।
+
+এই টেস্ট চালাতে গিয়ে আরও তিনটি আসল ত্রুটি ধরা পড়ে ও ঠিক করা হয়েছে:
+
+1. **অ্যাডমিন কনসোল ৩২ টুল দেখাত, সার্ভার ৩৩ দিত।** টুল তালিকাটি
+   `medicalCommand.js`-এ হাতে লেখা অ্যারে ছিল, ফলে `specialist_subagent_blueprint`
+   কনসোলে অদৃশ্য থাকত। এখন তালিকা MCP সার্ভারের নিজের রেজিস্ট্রি থেকে আসে: বিল্ডে
+   `packages/mcp-medical/scripts/emit-catalog.mjs` → `dist/tool-catalog.json`, আর
+   কনসোল সেটিই পড়ে। হাতে লেখা কিছুই নেই; রঙ/বাংলা লেবেল আলাদা ম্যাপে।
+2. **`GET /api/tags` প্রতি mount-এ 403।** `/api/tags` BOOKMARKS পারমিশনের পেছনে, অথচ
+   ক্লায়েন্ট পারমিশন না দেখেই কোয়েরি চালাত। এখন কোয়েরি নিজেই পারমিশন দেখে চলে।
+3. **`GET /api/convos/new/subagents` 404।** `useParentSubagentsQuery`-এর `enabled`
+   গার্ডের পরে caller-এর `...config` স্প্রেড হয়ে গার্ডটি মুছে দিত, তাই নতুন চ্যাট পেজেও
+   কোয়েরি চলত। এখন `enabled` সবশেষে হিসাব হয়।
+
 ## ৪. এখনও যা বাকি (সৎ তালিকা)
 
 | আইটেম | অবস্থা |
 | --- | --- |
 | `docker build` / `docker compose up` | **NOT TESTED** — স্যান্ডবক্সে Docker নেই |
-| রেন্ডার হওয়া UI (admin portal, login, chat) | **NOT TESTED** |
+| রেন্ডার হওয়া UI (admin portal, login, chat) | **PASS** — `npm run verify-ui` 18/18 (vite dev server; production `vite build` এই বক্সে OOM) |
 | লাইভ আপস্ট্রিম API (PubMed, openFDA, CPIC…) | **BLOCKED** — আউটবাউন্ড নেটওয়ার্ক নেই |
 | ১৯-কেস LLM ইভ্যালুয়েশন | **NOT TESTED** — কোনো মডেল-এন্ডপয়েন্ট নেই |
 | MongoDB অথেন্টিকেশন | ডিফল্টে বন্ধ (`--noauth`), পোর্ট পাবলিশ করা নেই — নেটওয়ার্ক প্রাইভেট থাকলে ঠিক, নইলে নয় |

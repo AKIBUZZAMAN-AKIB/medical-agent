@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 const request = require('supertest');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const {
@@ -134,6 +136,39 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
     );
     expect(delRes.status).toBe(200);
     expect(delRes.body.deleted).toBe(true);
+  });
+
+  /**
+   * The console's tool lab must show what the MCP server actually publishes.
+   *
+   * The list used to be a hand-maintained array: it held 32 entries while the
+   * server published 33, so `specialist_subagent_blueprint` — a tool the doctor
+   * agent can call — was missing from the admin surface, and the "32 live tools"
+   * figure on the dashboard was simply wrong. The catalogue is now derived from
+   * `packages/mcp-medical/dist/tools/index.js`, so this test compares the API to
+   * the package's own registry rather than to a copy of it.
+   */
+  it('serves the tool catalogue the MCP server actually publishes', async () => {
+    const app = buildApp('ADMIN');
+    const res = await request(app).get('/api/admin/medical-command/mcp-tools');
+    expect(res.status).toBe(200);
+
+    const catalogFile = [
+      path.resolve(__dirname, '../../../../../packages/mcp-medical/dist/tool-catalog.json'),
+      path.resolve(process.cwd(), '../packages/mcp-medical/dist/tool-catalog.json'),
+    ].find((file) => fs.existsSync(file));
+    expect(catalogFile).toBeTruthy();
+    const published = JSON.parse(fs.readFileSync(catalogFile, 'utf8')).tools.map((t) => t.name);
+    const served = res.body.groups.flatMap((group) => group.tools.map((tool) => tool.name));
+
+    expect(served.sort()).toEqual([...published].sort());
+    expect(res.body.totalTools).toBe(published.length);
+    expect(served).toContain('emergency_triage_check');
+    expect(served).toContain('specialist_subagent_blueprint');
+    for (const group of res.body.groups) {
+      expect(group.tools.length).toBeGreaterThan(0);
+      expect(group.label.length).toBeGreaterThan(0);
+    }
   });
 
   it('analyzes and searches 24,725+ Bangladesh formulary brands accurately', async () => {
