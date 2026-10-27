@@ -1,4 +1,4 @@
-version: 1.3.8
+version: 1.3.16
 cache: true
 
 interface:
@@ -100,15 +100,30 @@ mcpServers:
     # ("[MCP] Connection failed" at boot -> no medical tools at all).
     command: node
     args:
-      # Relative to the repository root, matching e2e/config/librechat.real.yaml.
+      # Repo-relative, and therefore resolved against the API process's working
+      # directory. Always start the API from the repository root:
+      #   host   npm run backend            (cwd = repo root)
+      #   docker deploy-compose.yml sets   working_dir: /app
+      # Starting it from `api/` (the upstream image default) resolves this to
+      # /app/api/packages/... and the server never connects — 0 tools, silently.
       - packages/mcp-medical/dist/index.js
+    # Inject the server's own standing instructions ("call emergency_triage_check
+    # first…") into the model context. Unset means **no instructions at all**:
+    # `resolveServerInstructions()` returns undefined unless this is set, so the
+    # safety preamble in packages/mcp-medical/src/server.ts never reaches the
+    # model. The tool-result notice still carries it, but the model would only
+    # see that after it had already decided not to call the screen.
+    serverInstructions: true
     timeout: 60000
     initTimeout: 30000
     chatMenu: false
-    title: 'Medical Evidence Suite - 27 Live Tools'
-    description: 'PubMed, Europe PMC, OpenFDA, RxNorm, DailyMed, LactMed, ChEMBL, Open Targets, ClinVar, ClinicalTrials.gov, MyGene.info, ICD-10-CM, WHO GHO, CMS NPI'
+    title: 'Medical Evidence Suite - 33 Live Tools'
+    description: 'PubMed, Europe PMC, OpenFDA, RxNorm, DailyMed, LactMed, ChEMBL, Open Targets, ClinVar, ClinicalTrials.gov, MyGene.info, ICD-10-CM, WHO GHO, CMS NPI, BDDrugBank, CPIC, MedCalc'
     env:
       MEDICAL_CONTACT_EMAIL: 'medical-agent@example.org'
+      # Uncomment to trim the catalogue for a small model (the emergency screen
+      # cannot be removed by either variable):
+      # MEDICAL_TOOL_GROUPS: 'formulary,drugs,calculators,emergency'
 
 endpoints:
   agents:
@@ -126,10 +141,27 @@ endpoints:
       - 'ocr'
       - 'conversation_history'
   custom:
+    # The chat model endpoint. It must be an OpenAI-compatible server that serves
+    # the model ids below; nothing in this repository provides one, so a fresh
+    # deployment does not answer until this is pointed at a real endpoint.
+    #
+    #  - host run:        MEDICAL_LLM_BASE_URL=http://127.0.0.1:4120/v1
+    #  - docker:          deploy-compose.yml defaults it to
+    #                     http://host.docker.internal:4120/v1 (inside a container
+    #                     127.0.0.1 is the container itself)
+    #  - hosted provider: set it to the provider's /v1 URL and put its key in
+    #                     MEDICAL_LLM_API_KEY, then set `model.id` in
+    #                     packages/mcp-medical/agent/agent.json to a model that
+    #                     provider actually serves, and re-run the seed.
+    #
+    # `node config/verify-deployment.js` checks that this endpoint answers before
+    # it declares the deployment ready.
     - name: 'OpenRouter (Free)'
-      apiKey: 'live-medical-local-key'
-      baseURL: 'http://127.0.0.1:4120/v1'
-      maxContextTokens: 262144
+      apiKey: '${MEDICAL_LLM_API_KEY}'
+      baseURL: '${MEDICAL_LLM_BASE_URL}'
+      # Matches agent.json `max_context_tokens`: the seeded agents declare
+      # 200,000, and this caps what the endpoint is allowed to receive.
+      maxContextTokens: 200000
       models:
         default:
           - 'nvidia/nemotron-3-ultra-550b-a55b:free'

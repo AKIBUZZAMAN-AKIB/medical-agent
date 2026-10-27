@@ -37,7 +37,7 @@ sibling workspace package.
 cd packages/mcp-medical
 
 npm run typecheck             # tsc --noEmit            → clean
-npm run test:ci               # jest                    → 152/152
+npm run test:ci               # jest                    → 157/157
 npm run build                 # tsc -p tsconfig.build   → clean
 npm run test:e2e-emergency    # real MCP stdio, offline → 19/19
 node scripts/benchmark-emergency.mjs 2000   # measured latency
@@ -172,16 +172,34 @@ MEDICAL_CONTACT_EMAIL=you@example.org
 
 ## 5. MCP server configuration
 
+> Deployment specifics — required env, seed ordering, preflight — live in
+> `docs/DEPLOYMENT.md`. This section only documents the MCP block itself.
+
 `librechat.pure-doctor.yaml` wires the server in:
 
 ```yaml
 mcpServers:
   medical:
     command: node
-    args: ['/absolute/path/to/packages/mcp-medical/dist/index.js']
+    args: ['packages/mcp-medical/dist/index.js']   # relative: resolved from the CWD
+    serverInstructions: true                        # inject the safety preamble
     env:
       MEDICAL_CONTACT_EMAIL: 'you@example.org'
 ```
+
+The `args` path is **relative to the API process working directory**, so the API
+must be started from the repository root (`npm run backend`; `deploy-compose.yml`
+sets `working_dir: /app`). Starting it from `api/` resolves the path to
+`api/packages/...`, the MCP server never connects, and the app comes up with
+**0 tools and no user-visible error**. This was reproduced, not inferred.
+
+Leaving `serverInstructions` unset is equally silent: the log says
+`Server Instructions: N/A` and the safety preamble in
+`packages/mcp-medical/src/server.ts` never reaches the model.
+
+See **`docs/DEPLOYMENT.md`** for the full deployment procedure (Compose,
+first-run seeding order, preflight, TLS) and `node config/verify-deployment.js`
+for the automated preflight.
 
 | Variable | Default | Effect |
 | --- | --- | --- |

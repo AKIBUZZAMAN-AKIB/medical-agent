@@ -40,7 +40,10 @@ dist/
 public/main.js
 public/main.js.map
 public/main.js.LICENSE.txt
-client/public/images/
+client/public/images/*
+# Dirs must exist in a clean checkout: deploy-compose.yml bind-mounts them, and a
+# missing source path makes Docker create a root-owned directory at the mount point.
+!client/public/images/.gitkeep
 client/public/main.js
 client/public/main.js.map
 client/public/main.js.LICENSE.txt
@@ -130,7 +133,8 @@ auth.json
 !client/src/components/Nav/SettingsTabs/Data/
 
 # User uploads
-uploads/
+/uploads/*
+!/uploads/.gitkeep
 
 # owner
 release/

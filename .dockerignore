@@ -9,7 +9,12 @@
 # Specific patterns to ignore
 data-node
 meili_data*
+# Upstream ignores every `librechat*` path so a developer's personal config and
+# API keys never bake into an image. This fork's config is shipped inside the
+# image on purpose (deploy-compose.yml also bind-mounts over it), and it contains
+# no secrets, so re-include exactly that one file.
 librechat*
+!librechat.pure-doctor.yaml
 Dockerfile*
 docs
 

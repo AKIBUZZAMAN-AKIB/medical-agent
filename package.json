@@ -34,6 +34,8 @@
     "upgrade": "node config/upgrade.js",
     "create-user": "node config/create-user.js",
     "seed-medical-agent": "node config/seed-medical-agent.js",
+    "verify-deployment": "node config/verify-deployment.js",
+    "preflight": "node config/verify-deployment.js",
     "invite-user": "node config/invite-user.js",
     "list-users": "node config/list-users.js",
     "reset-password": "node config/reset-password.js",

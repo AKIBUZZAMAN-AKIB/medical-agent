@@ -302,3 +302,119 @@ describe('medical deployment config — specialist sub-agent tool wiring', () =>
     expect(seed).toMatch(/Refusing to seed a specialist that would run with missing capabilities/);
   });
 });
+
+/**
+ * Deployment wiring that has failed in practice.
+ *
+ * Every assertion below corresponds to a defect reproduced during the deploy
+ * audit: each one is valid, silent, and leaves the app running with fewer
+ * capabilities than the operator believes it has. Configuration is the only
+ * layer where they can be caught — nothing throws at runtime.
+ */
+describe('medical deployment config — deployment wiring', () => {
+  const yaml = read('librechat.pure-doctor.yaml');
+  const compose = read('deploy-compose.yml');
+  const multiDockerfile = read('Dockerfile.multi');
+  const dockerignore = read('.dockerignore');
+  const serverBlock = (() => {
+    const start = yaml.indexOf('mcpServers:');
+    return start === -1 ? '' : yaml.slice(start, yaml.indexOf('\nendpoints:', start));
+  })();
+
+  it('pins the config version the code validates against', () => {
+    /**
+     * `loadCustomConfig` validates against `Constants.CONFIG_VERSION`. A mismatch
+     * logs "Outdated Config version" and validates the file against a schema the
+     * running code does not use.
+     */
+    const declared = /^version:\s*'?([\d.]+)'?\s*$/m.exec(yaml);
+    expect(declared).not.toBeNull();
+    // Read from source, not dist: this spec must run on a checkout where the
+    // workspace packages have not been built yet.
+    const source = read('packages/data-provider/src/config.ts');
+    const expected = /CONFIG_VERSION\s*=\s*'([\d.]+)'/.exec(source);
+    expect(expected).not.toBeNull();
+    expect(declared[1]).toBe(expected[1]);
+  });
+
+  it('injects the MCP server instructions into the model context', () => {
+    /**
+     * Without `serverInstructions`, `resolveServerInstructions()` returns
+     * undefined and the safety preamble never reaches the model — the log reads
+     * `Server Instructions: N/A` while everything else looks healthy.
+     */
+    expect(serverBlock).toMatch(/^\s+serverInstructions:\s*true\s*$/m);
+  });
+
+  it('uses a repo-relative MCP entry path that the documented start command satisfies', () => {
+    /**
+     * The path is resolved against the process working directory, so it must be
+     * the plain repo-relative path *and* the API must be started from the repo
+     * root (package.json `backend`, compose `working_dir`). An absolute path
+     * would only ever work on one machine.
+     */
+    expect(serverBlock).toMatch(/^\s+-\s+packages\/mcp-medical\/dist\/index\.js\s*$/m);
+    const { scripts } = require('../package.json');
+    expect(scripts.backend).toMatch(/node api\/server\/index\.js$/);
+  });
+
+  it('builds the API from this repository instead of upstream images', () => {
+    /** The published image has no mcp-medical package, no corpus, no seed script. */
+    expect(compose).toMatch(/dockerfile:\s*Dockerfile\.multi/);
+    expect(compose).toMatch(/target:\s*api-build/);
+    expect(compose).not.toMatch(
+      /image:\s*registry\.librechat\.ai\/[^\n]*\n\s+container_name:\s*LibreChat-API/,
+    );
+  });
+
+  it('starts the API from the repository root inside the container', () => {
+    /** /app/api makes every repo-relative path (MCP entry, BD corpus, logs) wrong. */
+    expect(compose).toMatch(/working_dir:\s*\/app\b/);
+    expect(multiDockerfile).toMatch(/^WORKDIR \/app$/m);
+    expect(multiDockerfile).toMatch(/CMD \["node", "api\/server\/index\.js"\]/);
+  });
+
+  it('mounts the config file that exists in this repository', () => {
+    /**
+     * A bind mount whose source is missing makes Docker create an empty directory,
+     * the YAML load fails, and the app runs with no custom config at all.
+     */
+    expect(compose).toMatch(/source:\s*\.\/librechat\.pure-doctor\.yaml/);
+    expect(compose).not.toMatch(
+      /source:\s*\.\/librechat\.ya?ml\b(?!)|source:\s*\.\/librechat\.yaml/,
+    );
+    expect(fs.existsSync(path.join(repoRoot, 'librechat.pure-doctor.yaml'))).toBe(true);
+  });
+
+  it('ships the BDDrugBank corpus in the production image', () => {
+    /** bd_medicine_lookup loads <pkg>/data at call time; without it the tool throws. */
+    expect(multiDockerfile).toMatch(
+      /COPY --from=mcp-medical-build \/app\/packages\/mcp-medical\/data/,
+    );
+    expect(
+      fs.existsSync(path.join(repoRoot, 'packages/mcp-medical/data/bddrugbank-compact.json.gz')),
+    ).toBe(true);
+  });
+
+  it('keeps the fork config in the docker build context', () => {
+    /** Upstream `.dockerignore` drops `librechat*`; the image bakes this one file. */
+    expect(dockerignore).toMatch(/^!librechat\.pure-doctor\.yaml$/m);
+  });
+
+  it('asserts a single scheduling replica for the single-container stack', () => {
+    /** Without it the scheduler never arms and every schedule write is a 503. */
+    expect(compose).toMatch(/SCHEDULES_SINGLE_PROCESS/);
+    expect(read('.env.example')).toMatch(/^SCHEDULES_SINGLE_PROCESS=true$/m);
+  });
+
+  it('resolves the chat endpoint from the environment, not from loopback', () => {
+    /**
+     * Inside a container 127.0.0.1 is the container; the endpoint must be
+     * configurable per deployment, and the compose file supplies a container-safe
+     * default.
+     */
+    expect(yaml).toMatch(/baseURL:\s*'\$\{MEDICAL_LLM_BASE_URL\}'/);
+    expect(compose).toMatch(/MEDICAL_LLM_BASE_URL/);
+    expect(read('.env.example')).toMatch(/^MEDICAL_LLM_BASE_URL=/m);
+  });
+});

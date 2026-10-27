@@ -126,6 +126,12 @@ COPY --from=data-schemas-build /app/packages/data-schemas/dist ./packages/data-s
 COPY --from=api-package-build /app/packages/api/dist ./packages/api/dist
 COPY --from=mcp-medical-build /app/packages/mcp-medical/dist ./packages/mcp-medical/dist
 COPY --from=mcp-medical-build /app/packages/mcp-medical/agent ./packages/mcp-medical/agent
+# The BDDrugBank corpus. `bd_medicine_lookup` resolves
+# `<mcp-medical>/data/bddrugbank-compact.json.gz` relative to its own dist
+# directory, so without this the flagship Bangladesh formulary tool throws
+# "BDDrugBank corpus archive ... was not found in the workspace" *inside the
+# image* while working perfectly on a developer's machine.
+COPY --from=mcp-medical-build /app/packages/mcp-medical/data ./packages/mcp-medical/data
 COPY --from=client-build /app/client/dist ./client/dist
 # Propagate build metadata into runtime env so /api/config can expose it.
 # Declared here (after the heavy install/copy steps) so that commit/date
@@ -136,7 +142,20 @@ ARG BUILD_DATE
 ENV BUILD_COMMIT=${BUILD_COMMIT}
 ENV BUILD_BRANCH=${BUILD_BRANCH}
 ENV BUILD_DATE=${BUILD_DATE}
-WORKDIR /app/api
+# Repo root, not /app/api. Three things resolve against the process working
+# directory and are wrong when it is /app/api:
+#   * the medical MCP server entry in librechat.pure-doctor.yaml
+#     (packages/mcp-medical/dist/index.js -> /app/api/packages/... = 0 tools),
+#   * api/server/routes/admin/medicalCommand.js (BD corpus + dist paths),
+#   * api/config/meiliLogger.js (`process.cwd() === '/app'` selects /app/logs).
+# The single-stage Dockerfile already behaves this way (`npm run backend`), so
+# both images now share one contract.
+WORKDIR /app
+# Bake the fork's config so the image is runnable without a bind mount. It holds
+# no secrets (endpoint key/URL come from ${MEDICAL_LLM_*} at runtime). .dockerignore
+# excludes `librechat*`, hence the explicit negation there for this one file.
+COPY librechat.pure-doctor.yaml ./librechat.yaml
+ENV CONFIG_PATH=/app/librechat.yaml
 EXPOSE 3080
 ENV HOST=0.0.0.0
-CMD ["node", "server/index.js"]
+CMD ["node", "api/server/index.js"]

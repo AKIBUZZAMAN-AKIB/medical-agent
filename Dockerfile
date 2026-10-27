@@ -77,6 +77,9 @@ ENV BUILD_BRANCH=${BUILD_BRANCH}
 ENV BUILD_DATE=${BUILD_DATE}
 
 # Node API setup
+# The fork's config is baked in by `COPY . .`; point the loader at it so the image
+# runs without a bind mount. Override CONFIG_PATH to use a different file.
+ENV CONFIG_PATH=/app/librechat.pure-doctor.yaml
 EXPOSE 3080
 ENV HOST=0.0.0.0
 CMD ["npm", "run", "backend"]

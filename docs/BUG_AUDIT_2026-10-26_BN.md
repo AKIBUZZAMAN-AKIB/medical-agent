@@ -71,7 +71,7 @@ sodium/chloride/potassium/acid — বাস্তব ওষুধের বড�
 | স্যুট | ফল |
 | --- | --- |
 | `packages/mcp-medical` (৯ ফাইল, নতুন `audit-regressions.spec.ts` সহ) | **153 / 153** |
-| `config/medical-deployment-config.spec.js` | **17 / 17** |
+| `config/medical-deployment-config.spec.js` | **27 / 27** (17 as of this audit + 10 deployment-wiring tests added 2026-10-27) |
 | `api/.../medicalCommand.spec.js` (২টি নতুন টেস্ট) | **8 / 8** |
 | `packages/data-schemas` (profile + memory) | **41 / 41** |
 | `packages/api` (profiles + agents/memory) | **90 / 90** |
