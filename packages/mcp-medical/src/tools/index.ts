@@ -6,6 +6,7 @@ import { epidemiologyTools } from './epidemiology.js';
 import { calculatorTools } from './calculators.js';
 import { literatureTools } from './literature.js';
 import { conditionTools } from './conditions.js';
+import { diseaseKnowledgeTools } from './diseaseKnowledge.js';
 import { formularyTools } from './formulary.js';
 import { clinicalTools } from './clinical.js';
 import { deviceTools } from './devices.js';
@@ -26,6 +27,7 @@ export const allTools: ToolSpec[] = [
   ...drugTools,
   ...pharmacogenomicsTools,
   ...calculatorTools,
+  ...diseaseKnowledgeTools,
   ...literatureTools,
   ...conditionTools,
   ...trialTools,

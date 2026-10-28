@@ -1870,7 +1870,10 @@ export default function useResumableSSE(
         syncStepMessage(updated);
       };
 
-      const baseUrl = `${apiBaseUrl()}/api/agents/chat/stream/${encodeURIComponent(currentStreamId)}`;
+      /** POST twin of GET /api/agents/chat/stream/:id. Cloudflare Quick Tunnels buffer
+       *  GET response bodies until the response ends, so over GET the reply, thinking
+       *  and tool calls only appeared at the very end; POST responses stream live. */
+      const baseUrl = `${apiBaseUrl()}/api/agents/stream/${encodeURIComponent(currentStreamId)}`;
       const query = new URLSearchParams();
       if (isResume) {
         query.set('resume', 'true');
@@ -1888,7 +1891,7 @@ export default function useResumableSSE(
           Authorization: `Bearer ${token}`,
           ...generationProtocolHeaders(),
         },
-        method: 'GET',
+        method: 'POST',
       });
       sseRef.current = sse;
       const isCurrentSubscription = () =>

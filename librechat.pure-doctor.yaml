@@ -2,15 +2,78 @@ version: 1.3.16
 cache: true
 
 interface:
-  customWelcome: '🩺 Super-Power Doctor AI — আপনার ব্যক্তিগত মাল্টি-স্পেশালিস্ট ক্লিনিক্যাল সহায়ক'
-  customFooter: '🩺 Super-Power Doctor AI · Multi-Specialty Clinical Assistant (PubMed · FDA · LactMed · ClinVar)'
+  customWelcome: 'Super-Power Doctor AI — বাংলা বা English-এ আপনার স্বাস্থ্য প্রশ্ন লিখুন'
+  customFooter: 'Super-Power Doctor AI · AI তথ্য সহায়ক, ডাক্তার নয় · Emergency: 999 · স্বাস্থ্য বাতায়ন 16263'
+  # Consent / Terms popup. Every user must accept it once before chatting;
+  # acceptance (termsAccepted + termsAcceptedAt) is stored on each user record.
+  # After changing this text, reset acceptance for every user so they see it:
+  #   db.users.updateMany({}, {$set: {termsAccepted: false}, $unset: {termsAcceptedAt: ''}})
+  # Text is not legal advice: have a lawyer check it against Bangladesh law.
+  termsOfService:
+    modalAcceptance: true
+    modalTitle: 'শর্তাবলী ও সম্মতি / Terms and consent'
+    modalContent: |
+      ## বাংলা
+
+      Super-Power Doctor AI ব্যবহারের আগে নিচের কথাগুলো পড়ুন।
+
+      **এটা কী করে**
+      - এটা একটি কৃত্রিম বুদ্ধিমত্তা (AI) স্বাস্থ্য-তথ্য সহায়ক। প্রতিটা প্রশ্নে এটা আগে WHO, NHS, DGHS, PubMed, ওষুধের label-এর মতো উৎস খুঁজে দেখে, তারপর সম্ভাব্য কারণ, এখনই কী করবেন, কোন বিপদচিহ্ন দেখবেন আর কোন পরীক্ষা লাগতে পারে, তা ধাপে ধাপে বলে, উৎসসহ।
+      - ল্যাব রিপোর্ট বা প্রেসক্রিপশনের ছবি/PDF দিলে সেটা পড়ে বুঝিয়ে বলতে পারে।
+
+      **এটা ডাক্তার নয়**
+      - এটা রোগ নির্ণয় (diagnosis) করে না, আর আপনাকে দেখে বা পরীক্ষা করে না। এর উত্তর ভুল বা অসম্পূর্ণ হতে পারে।
+      - এটা প্রেসক্রিপশন দেয় না, আর কারও জন্য ওষুধের ডোজ ঠিক বা বদল করে না। শুধু সরকারি/স্বীকৃত first aid নির্দেশনা যা বলে, অথবা ওষুধের label-এ যা লেখা, সেটা উৎসসহ জানায়।
+      - চিকিৎসা শুরু, বন্ধ বা বদলানোর সিদ্ধান্ত একজন নিবন্ধিত ডাক্তারের সাথে কথা বলে নিন।
+
+      **জরুরি অবস্থায়**
+      - বুকে ব্যথা, শ্বাসকষ্ট, অজ্ঞান হওয়া, খিঁচুনি, বেশি রক্তপাত, সাপে কাটা বা নিজেকে আঘাত করার চিন্তা হলে **আগে 999-এ কল করুন** অথবা নিকটস্থ হাসপাতালের জরুরি বিভাগে যান।
+      - সাহায্য আসা পর্যন্ত বা হাসপাতালে যাওয়ার পথে কী করবেন, তা জানতে এটা ব্যবহার করতে পারেন। কিন্তু এর জন্য কল করা বা রওনা দেওয়া দেরি করবেন না।
+      - ফোনে স্বাস্থ্য পরামর্শ: স্বাস্থ্য বাতায়ন 16263। মানসিক সহায়তা: কান পেতে রই 09612-119911।
+
+      **আপনার তথ্য**
+      - উত্তর তৈরির জন্য আপনার লেখা ও আপলোড করা file বিদেশি তৃতীয় পক্ষের বিনামূল্যের (free) AI model-এ পাঠানো হয়। সেই প্রতিষ্ঠানগুলো আপনার মেসেজ সংরক্ষণ (log) করতে পারে এবং নিজেদের model উন্নত করতে ব্যবহার করতে পারে।
+      - তাই নাম, ফোন নম্বর, ঠিকানা, NID বা অন্য পরিচয়ের তথ্য লিখবেন না। রিপোর্ট বা প্রেসক্রিপশন আপলোডের আগে সম্ভব হলে নাম ও ঠিকানা ঢেকে দিন।
+
+      "I accept" চাপলে আপনি জানাচ্ছেন যে আপনি এগুলো পড়েছেন, বুঝেছেন এবং এই শর্তে সেবাটি ব্যবহার করতে সম্মত। আপনি কখন সম্মতি দিয়েছেন তা আপনার account-এ সংরক্ষিত থাকবে।
+
+      ## English
+
+      Please read this before you use Super-Power Doctor AI.
+
+      **What it does**
+      - It is an artificial intelligence (AI) health-information assistant. For every question it first checks sources such as WHO, NHS, DGHS, PubMed and drug labels, then explains step by step, with sources, the possible causes, what to do now, the danger signs to watch for and which tests may be needed.
+      - It can read and explain a lab report or a prescription you upload as a photo or PDF.
+
+      **It is not a doctor**
+      - It does not diagnose, and it cannot see or examine you. Its answers can be wrong or incomplete.
+      - It does not prescribe, and it does not set or change anyone's dose. It only tells you, with the source, what official or recognised first-aid guidance says or what a medicine's label says.
+      - Talk to a registered doctor before starting, stopping or changing any treatment.
+
+      **In an emergency**
+      - For chest pain, trouble breathing, fainting, seizures, heavy bleeding, a snakebite or thoughts of self-harm, **call 999 first** or go to the nearest hospital emergency department.
+      - You can use this for guidance on what to do while help is on the way or on the way to hospital, but never delay calling or leaving because of it.
+      - Health advice by phone: Shasthyo Batayon 16263. Emotional support: Kaan Pete Roi 09612-119911.
+
+      **Your information**
+      - To produce answers, what you write and the files you upload are sent to free AI models run by third-party providers outside Bangladesh. Those providers may log your messages and may use them to train their models.
+      - Do not enter your name, phone number, address, NID or other identifying details. Where you can, cover the name and address on a report or prescription before uploading it.
+
+      By pressing "I accept" you confirm that you have read and understood this and agree to use the service on these terms. The time you accepted is recorded on your account.
   defaultPreset: false
   presets: false
   modelSelect: false
   parameters: false
   multiConvo: false
   bookmarks: false
+  # Clean UI for patients: no code runner, cost meter, build info or temporary chats.
+  runCode: false
+  contextCost: false
+  buildInfo: false
+  temporaryChat: false
   fileSearch: true
+  fileCitations: true
+  webSearch: true
   agents:
     use: true
     create: false
@@ -40,19 +103,22 @@ modelSpecs:
   list:
     - name: 'super-power-doctor-ai'
       label: '🩺 Super-Power Doctor AI'
-      description: 'Chief Multi-Specialty Doctor AI with On-Demand Specialist Sub-Agents & 33 Live Biomedical Evidence & Triage Tools'
+      description: 'বাংলা ও English স্বাস্থ্য সহায়ক · উৎসসহ উত্তর · Health assistant with sourced answers'
       default: true
       preset:
         endpoint: 'agents'
         agent_id: 'agent_medical_research'
         modelLabel: '🩺 Super-Power Doctor AI'
-        greeting: 'আসসালামু আলাইকুম! আমি আপনার **🩺 Super-Power Doctor AI**। উপসর্গ, প্রেসক্রিপশনের ওষুধের পার্শ্বপ্রতিক্রিয়া বা ইন্টারেকশন, ল্যাব রিপোর্ট, গর্ভাবস্থা/স্তন্যদান নিরাপত্তা কিংবা জটিল রোগ বিষয়ে বাংলায় বা ইংরেজিতে নির্দ্বিধায় লিখুন — প্রয়োজন অনুযায়ী বিশেষজ্ঞ **Sub-Agents** তৈরি ও সমন্বয় করে যাচাইকৃত মেডিকেল তথ্যসহ উত্তর দেব।'
+        greeting: 'আসসালামু আলাইকুম! উপসর্গ, ওষুধ, ল্যাব রিপোর্ট বা প্রেসক্রিপশন নিয়ে বাংলা বা English-এ লিখুন। আমি WHO, NHS, DGHS আর PubMed-এর মতো উৎস দেখে ধাপে ধাপে উত্তর দেব। জরুরি অবস্থায় আগে 999-এ কল করুন।'
 
 registration:
   socialLogins: []
 
+# Off: private single-user app on free models. The `kilo/free-pool` alias has no
+# price entry, so LibreChat billed it at the default rate (6 credits/token) and
+# a ~25k-token agent prompt drained the 250k start balance in two messages.
 balance:
-  enabled: true
+  enabled: false
   startBalance: 250000
   autoRefillEnabled: true
   refillIntervalValue: 30
@@ -89,7 +155,7 @@ memory:
   agent:
     enabled: true
     provider: 'OpenRouter (Free)'
-    model: 'nvidia/nemotron-3-ultra-550b-a55b:free'
+    model: 'kilo/free-pool'
     instructions: 'Extract structured clinical, medication, allergy, lab, and family member health context accurately.'
 
 mcpServers:
@@ -117,10 +183,16 @@ mcpServers:
     timeout: 60000
     initTimeout: 30000
     chatMenu: false
-    title: 'Medical Evidence Suite - 33 Live Tools'
+    title: 'Medical Evidence Suite - 34 Live Tools'
     description: 'PubMed, Europe PMC, OpenFDA, RxNorm, DailyMed, LactMed, ChEMBL, Open Targets, ClinVar, ClinicalTrials.gov, MyGene.info, ICD-10-CM, WHO GHO, CMS NPI, BDDrugBank, CPIC, MedCalc'
     env:
       MEDICAL_CONTACT_EMAIL: 'medical-agent@example.org'
+      # disease_knowledge_search: query embeddings + reranking come from the
+      # self-hosted medtools service (compose service name `medtools`, port 8000
+      # inside the network; 127.0.0.1:4134 from the host). Without these two the
+      # tool still works, keyword-only. The key is read from the API's own env.
+      MEDTOOLS_URL: 'http://medtools:8000'
+      MEDTOOLS_API_KEY: '${MEDTOOLS_API_KEY}'
       # Uncomment to trim the catalogue for a small model (the emergency screen
       # cannot be removed by either variable):
       # MEDICAL_TOOL_GROUPS: 'formulary,drugs,calculators,emergency'
@@ -140,6 +212,7 @@ endpoints:
       - 'chain'
       - 'ocr'
       - 'conversation_history'
+      - 'web_search'
   custom:
     # The chat model endpoint. It must be an OpenAI-compatible server that serves
     # the model ids below; nothing in this repository provides one, so a fresh
@@ -159,14 +232,79 @@ endpoints:
     - name: 'OpenRouter (Free)'
       apiKey: '${MEDICAL_LLM_API_KEY}'
       baseURL: '${MEDICAL_LLM_BASE_URL}'
-      # Matches agent.json `max_context_tokens`: the seeded agents declare
-      # 200,000, and this caps what the endpoint is allowed to receive.
-      maxContextTokens: 200000
+      # No predefined context size here: each model's real window is read from
+      # provider metadata (MODEL_CONTEXT_FILE, written daily from the providers'
+      # live model lists by ~/kilo-router/model_context.py). `kilo/free-pool` is
+      # the Bifrost routing alias over every passing Kilo free model.
       models:
         default:
-          - 'nvidia/nemotron-3-ultra-550b-a55b:free'
+          - 'kilo/free-pool'
           - 'medical-copilot-pro'
-        fetch: true
+        # Off: Bifrost lists only real provider models, not the `kilo/free-pool`
+        # routing alias, and LibreChat rejects an agent model missing from the list.
+        fetch: false
       titleConvo: true
-      titleModel: 'nvidia/nemotron-3-ultra-550b-a55b:free'
+      titleModel: 'kilo/free-pool'
       modelDisplayLabel: 'Super-Power Doctor AI Engine'
+
+# --- Free, self-hosted web search, OCR and voice (added 2026-10-28) ---------------
+# Search: SearXNG container (http://searxng:8080). Scraper: medtools exposes a
+# Firecrawl-compatible /v1/scrape (httpx + trafilatura, PDF text, keyless Jina
+# Reader fallback). Reranker: medtools exposes a Jina-compatible /v1/rerank backed
+# by a local multilingual cross-encoder. No paid keys; the "keys" are the shared
+# internal MEDTOOLS_API_KEY.
+webSearch:
+  searchProvider: 'searxng'
+  scraperProvider: 'firecrawl'
+  rerankerType: 'jina'
+  searxngInstanceUrl: '${SEARXNG_INSTANCE_URL}'
+  searxngApiKey: '${SEARXNG_API_KEY}'
+  firecrawlApiKey: '${FIRECRAWL_API_KEY}'
+  firecrawlApiUrl: '${FIRECRAWL_API_URL}'
+  firecrawlVersion: '${FIRECRAWL_VERSION}'
+  jinaApiKey: '${JINA_API_KEY}'
+  jinaApiUrl: '${JINA_API_URL}'
+  safeSearch: 1
+  scraperTimeout: 15000
+  allowedAddresses:
+    - 'searxng:8080'
+    - 'medtools:8000'
+
+# OCR: medtools exposes a Mistral-OCR-compatible API backed by Tesseract
+# (Bengali + English) and poppler, for images and scanned PDFs.
+ocr:
+  strategy: 'mistral_ocr'
+  apiKey: '${OCR_API_KEY}'
+  baseURL: '${OCR_BASEURL}'
+  mistralModel: 'mistral-ocr-latest'
+  allowedAddresses:
+    - 'medtools:8000'
+
+# Images uploaded in chat go through the OCR above (Tesseract, Bengali + English)
+# and reach the agent as text. Sending them to the free model as pictures made it
+# misread prescriptions (wrong name, age and days), and most free models have no vision.
+fileConfig:
+  endpoints:
+    agents:
+      defaultLLMDeliveryPath:
+        overrides:
+          'image/*': 'text'
+
+# Voice: the browser's own speech engines (free, no server). Defaults to Bengali
+# (Bangladesh); each user can switch the language under Settings > Speech.
+speech:
+  speechTab:
+    conversationMode: false
+    advancedMode: false
+    speechToText:
+      engineSTT: 'browser'
+      languageSTT: 'bn-BD'
+      autoTranscribeAudio: true
+      decibelValue: -45
+      autoSendText: -1
+    textToSpeech:
+      engineTTS: 'browser'
+      languageTTS: 'bn-BD'
+      automaticPlayback: false
+      playbackRate: 1.0
+      cacheTTS: false

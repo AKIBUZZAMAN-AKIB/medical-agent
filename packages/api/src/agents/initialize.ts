@@ -777,6 +777,7 @@ export type InitializedAgent = Agent & {
   provisionState?: ProvisionState;
 };
 
+/** Last resort only: used when no provider metadata or model table knows the model. */
 export const DEFAULT_MAX_CONTEXT_TOKENS = 32000;
 
 /** Returns true when a conversation-level choice disables an attached environment. */
@@ -1343,13 +1344,34 @@ export async function initializeAgent(
     llmConfig?.maxTokens as number | undefined,
     0,
   );
-  const agentMaxContextTokens = optionalChainWithEmptyCheck(
-    maxContextTokens,
+  /**
+   * Context window, most specific first: an explicit max_context_tokens the user
+   * set on this agent/conversation, then the model's REAL window from provider
+   * metadata, then LibreChat's published per-model table. The fixed default is
+   * used only when nothing anywhere knows the model, and that is logged loudly.
+   */
+  const realContextWindow = options.contextWindow;
+  const knownContextTokens =
+    realContextWindow?.contextTokens ??
     getModelMaxTokens(
       tokensModel ?? '',
       providerEndpointMap[overrideProvider as keyof typeof providerEndpointMap],
       options.endpointTokenConfig,
-    ),
+    );
+  if (maxContextTokens == null && knownContextTokens == null) {
+    logger.warn(
+      `[initializeAgent] No context window metadata for model "${tokensModel}" (${provider}); ` +
+        `falling back to ${DEFAULT_MAX_CONTEXT_TOKENS}. Add it to MODEL_CONTEXT_FILE or the endpoint tokenConfig.`,
+    );
+  } else if (maxContextTokens == null) {
+    logger.debug(
+      `[initializeAgent] Context window for "${tokensModel}": ${knownContextTokens} tokens ` +
+        `(${realContextWindow?.source ?? 'LibreChat model table'})`,
+    );
+  }
+  const agentMaxContextTokens = optionalChainWithEmptyCheck(
+    maxContextTokens,
+    knownContextTokens,
     DEFAULT_MAX_CONTEXT_TOKENS,
   );
 

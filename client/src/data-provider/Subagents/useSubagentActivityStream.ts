@@ -101,8 +101,10 @@ export default function useSubagentActivityStream(
     const connect = () => {
       retryTimer = undefined;
       if (disposed || terminal) return;
+      // POST, not GET: Cloudflare Quick Tunnels buffer GET response bodies until
+      // they end (the server serves the same stream on both methods).
       const next = new SSE(endpoint, {
-        method: 'GET',
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
       stream = next;

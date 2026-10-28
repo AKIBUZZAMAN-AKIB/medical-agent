@@ -680,7 +680,11 @@ const loadTools = async ({
     const validTool = requestedTools[tool];
     if (validTool) {
       toolPromises.push(
-        validTool().catch((error) => {
+        /* Some constructors (memory, profile, history tools) are plain functions, not
+         * async ones, so wrap the call: `.catch` on a non-promise threw and failed the turn. */
+        Promise.resolve()
+          .then(() => validTool())
+          .catch((error) => {
           logger.error(`Error loading tool ${tool}:`, error);
           return null;
         }),

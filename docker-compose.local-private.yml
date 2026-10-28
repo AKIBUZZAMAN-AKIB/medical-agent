@@ -1,0 +1,92 @@
+# Local-only override (not part of the repo).
+#  - Binds published ports to loopback so nothing is reachable from outside this machine.
+#  - Turns on verbose (debug) logging.
+#  - This VM cannot `docker exec` into containers (setns permission denied), so
+#    exec-based healthchecks always fail here. They are disabled and the
+#    dependency conditions relaxed to service_started; health is checked from the
+#    host with curl instead.
+#  - Containers whose image user is not root cannot start on this VM, see admin-panel.
+services:
+  api:
+    ports: !override
+      - '127.0.0.1:3080:3080'
+    environment:
+      - DEBUG_LOGGING=true
+      - DEBUG_CONSOLE=true
+      # Real context windows from the providers' live model lists, rewritten
+      # daily by ~/kilo-router/model_context.py (read per request, cached by mtime).
+      - MODEL_CONTEXT_FILE=/app/model-context/model_context.json
+    volumes:
+      - type: bind
+        source: /home/sprite/kilo-router/context
+        target: /app/model-context
+        read_only: true
+    healthcheck:
+      disable: true
+    depends_on: !override
+      mongodb:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+  seed:
+    depends_on: !override
+      api:
+        condition: service_started
+  client:
+    ports: !override
+      - '127.0.0.1:8080:80'
+    depends_on: !override
+      api:
+        condition: service_started
+  admin-panel:
+    # This VM's Docker cannot start containers whose user is not root
+    # ("bind-mount /proc/<pid>/ns/net ... permission denied"); the panel image
+    # runs as `bun`, so it is started as root here. Local-only workaround.
+    user: root
+    ports: !override
+      - '127.0.0.1:3000:3000'
+    depends_on: !override
+      api:
+        condition: service_started
+  mongodb:
+    healthcheck:
+      disable: true
+  meilisearch:
+    healthcheck:
+      disable: true
+  vectordb:
+    healthcheck:
+      disable: true
+  rag_api:
+    depends_on: !override
+      vectordb:
+        condition: service_started
+  # --- Free, self-hosted helpers for web search / RAG / OCR (added 2026-10-28) ---
+  # SearXNG: metasearch for the agents' web_search tool. Internal only (no port
+  # published); the API reaches it at http://searxng:8080. Config in ./searxng.
+  searxng:
+    image: searxng/searxng:latest
+    restart: always
+    environment:
+      - GRANIAN_HOST=0.0.0.0
+      - GRANIAN_WORKERS=2
+    volumes:
+      - ./searxng:/etc/searxng
+  # medtools: OpenAI-compatible embeddings for rag_api, Jina-compatible reranker
+  # and Firecrawl-compatible scraper for web_search, Mistral-compatible OCR
+  # (Tesseract ben+eng). Source in ./medtools, models in ./medtools/models.
+  medtools:
+    image: medical-medtools:local
+    build:
+      context: ./medtools
+    restart: always
+    environment:
+      - MEDTOOLS_API_KEY=${MEDTOOLS_API_KEY}
+      - MEDTOOLS_PUBLIC_BASE=http://medtools:8000
+      - MEDTOOLS_ORT_THREADS=4
+    volumes:
+      - ./medtools/models:/models:ro
+    ports:
+      - '127.0.0.1:4134:8000'
+    healthcheck:
+      disable: true

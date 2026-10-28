@@ -653,7 +653,11 @@ const UNASSIGNED_AGENT_LABEL = 'No agent recorded';
 function agentLabelFor(conversationId, conversationAgentIds, agentMap) {
   const agentId = conversationAgentIds.get(conversationId);
   if (!agentId) return UNASSIGNED_AGENT_LABEL;
-  return agentMap.get(agentId) || agentId;
+  /** `agentMap` may map an id to the agent record or to its name; the label is
+   *  always a string, never the record (React cannot render an object: #31). */
+  const entry = agentMap.get(agentId);
+  if (entry && typeof entry === 'object') return String(entry.name || agentId);
+  return entry ? String(entry) : agentId;
 }
 
 function probeLocalHttp(host, port, urlPath, timeoutMs = 1500) {
@@ -1860,7 +1864,9 @@ function createMedicalCommandRouter(options = {}) {
         provider: 'local',
         role: cleanRole,
         emailVerified: true,
-        termsAccepted: true,
+        // Admin-created users must see and accept the Terms popup themselves.
+        termsAccepted: false,
+        termsAcceptedAt: null,
         createdAt: now,
         updatedAt: now,
       });

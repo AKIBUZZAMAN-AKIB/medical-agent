@@ -204,3 +204,24 @@ scripts/activity-labels/results/
 # Track compiled BDDrugBank compact corpus for @librechat/mcp-medical
 !packages/mcp-medical/data/
 !packages/mcp-medical/data/**
+
+# --- private deployment: never commit secrets or local data ---
+.env
+.env.*
+!.env.example
+.local-admin-credentials
+*.pem
+*.key
+**/tailscaled.state
+**/ts-user/
+**/ts-admin/
+gate-password.txt
+gate.json
+# disease knowledge base: raw dataset and built index stay local (no licence)
+packages/mcp-medical/data/disease-kb/
+datasets/
+*.xlsx
+# medtools model weights
+medtools/models/
+# searxng settings carry the instance secret_key; commit the example instead
+searxng/settings.yml

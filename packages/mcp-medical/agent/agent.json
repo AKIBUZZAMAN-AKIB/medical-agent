@@ -6,7 +6,7 @@
   "mcpServer": "medical",
   "model": {
     "provider": "OpenRouter (Free)",
-    "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "id": "kilo/free-pool",
     "note": "Any OpenRouter model ending in `:free` that advertises the `tools` parameter works. The free roster rotates as providers add and drop hosting, so refresh it with: curl -s https://openrouter.ai/api/v1/models | jq -r '.data[] | select(.id|endswith(\":free\")) | select(.supported_parameters|index(\"tools\")) | .id' and update this file plus the endpoint in librechat.yaml. Small models degrade with a 27-tool catalogue; see MEDICAL_TOOL_GROUPS in the package README."
   },
   "modelParameters": {
@@ -36,6 +36,5 @@
     "বাবার CKD Stage 3a (eGFR 52) ও ডায়াবেটিস আছে — Semaglutide নিয়ে ক্লিনিক্যাল ট্রায়াল কী বলে?",
     "My father is choking and cannot speak — what do I do right now?",
     "What does ClinVar say about the BRCA1 c.68_69delAG variant, and how confident is that classification?"
-  ],
-  "max_context_tokens": 200000
+  ]
 }

@@ -157,6 +157,7 @@ const SPECIALIST_SUBAGENT_SPECS = [
       'drug_interaction_check',
       'pubmed_search',
       'health_statistics',
+      'disease_knowledge_search',
     ],
     focusPrompt:
       'Screen febrile illnesses with lab_result_interpreter and clinical_calculator (curb_65), enforce strict NSAID/aspirin avoidance in suspected Dengue or thrombocytopenia, check WHO Essential Medicines antimicrobial status via bd_medicine_lookup, and cite primary infectious disease guidelines.',
@@ -313,7 +314,10 @@ async function main() {
     `agent "${definition.id}" -> provider "${definition.model.provider}", model "${definition.model.id}"`,
   );
 
-  const allTools = [...tools, ...continuityTools];
+  // Web search (SearXNG + local scraper/reranker) and file_search (local RAG embeddings) are
+  // free, self-hosted tools configured in librechat.pure-doctor.yaml; added 2026-10-28.
+  const knowledgeTools = [Tools.web_search, Tools.file_search];
+  const allTools = [...tools, ...continuityTools, ...knowledgeTools];
   if (options.dryRun) {
     log(`dry run, nothing written. Tools: ${allTools.join(', ')}`);
     process.exit(0);
@@ -373,7 +377,6 @@ async function main() {
         authorName: author.name,
         tools: subTools,
         mcpServerNames: [serverName],
-        max_context_tokens: 200000,
         recursion_limit: 24,
         category: definition.category,
         /** One shared pool, not one per agent: a specialist that files facts
@@ -405,7 +408,6 @@ async function main() {
     authorName: author.name,
     tools: allTools,
     mcpServerNames: [serverName],
-    max_context_tokens: 200000,
     recursion_limit: definition.recursion_limit,
     category: definition.category,
     conversation_starters: definition.conversationStarters ?? [],

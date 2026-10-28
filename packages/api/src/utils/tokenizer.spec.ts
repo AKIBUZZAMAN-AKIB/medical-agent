@@ -1,5 +1,5 @@
 import { Tokenizer as AiTokenizer } from 'ai-tokenizer';
-import Tokenizer from './tokenizer';
+import Tokenizer, { splitForTokenCounting } from './tokenizer';
 
 jest.mock('@librechat/data-schemas', () => ({
   logger: {
@@ -14,10 +14,10 @@ describe('Tokenizer', () => {
   });
 
   describe('initEncoding', () => {
-    it('uses the established estimate while the encoding initializes', () => {
+    it('counts real tokens on cold start instead of a character estimate', () => {
       const text = 'Cold start token count';
-
-      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBe(Math.ceil(text.length / 4));
+      const exact = new AiTokenizer(require('ai-tokenizer/encoding/o200k_base')).count(text);
+      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBe(exact);
     });
 
     it('should load o200k_base encoding', async () => {
@@ -61,17 +61,21 @@ describe('Tokenizer', () => {
     });
 
     it.each([
-      { label: 'an uninterrupted non-whitespace run', text: '_'.repeat(4 * 1024 + 1) },
-      { label: 'an oversized input', text: 'word '.repeat(1024) },
-      { label: 'multibyte input', text: '界'.repeat(4 * 1024 + 1) },
-    ])('uses a conservative estimate without tokenizing $label', ({ text }) => {
-      const count = jest.spyOn(AiTokenizer.prototype, 'count');
-      try {
-        expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBe(Buffer.byteLength(text, 'utf8'));
-        expect(count).not.toHaveBeenCalled();
-      } finally {
-        count.mockRestore();
-      }
+      { label: 'prose', text: 'The patient reports mild fever and cough.  '.repeat(800) },
+      { label: 'pretty JSON', text: JSON.stringify(Array.from({ length: 400 }, (_, i) => ({ name: `tool_${i}`, type: 'object' })), null, 2) },
+      { label: 'Bengali', text: 'আমার মাথা ব্যথা করছে।\n\n  '.repeat(800) },
+    ])('counts long $label exactly (same as one whole pass)', ({ text }) => {
+      const whole = new AiTokenizer(require('ai-tokenizer/encoding/o200k_base')).count(text);
+      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBe(whole);
+      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBeLessThan(Buffer.byteLength(text, 'utf8'));
+    });
+
+    it('keeps pathological runs linear by cutting them into bounded pieces', () => {
+      const text = '_'.repeat(64 * 1024);
+      const pieces = splitForTokenCounting(text);
+      expect(pieces.join('')).toBe(text);
+      expect(Math.max(...pieces.map((p) => p.length))).toBeLessThanOrEqual(4 * 1024 + 1);
+      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBeGreaterThan(0);
     });
   });
 
@@ -89,16 +93,10 @@ describe('Tokenizer', () => {
       }
     });
 
-    it('uses a conservative estimate for unsafe input without invoking the tokenizer', async () => {
+    it('uses the real tokenizer for long input', async () => {
       const counter = await Tokenizer.createExactTokenCounter('o200k_base');
-      const count = jest.spyOn(AiTokenizer.prototype, 'count');
-      try {
-        const text = '_'.repeat(4 * 1024 + 1);
-        expect(counter(text)).toBe(Buffer.byteLength(text, 'utf8'));
-        expect(count).not.toHaveBeenCalled();
-      } finally {
-        count.mockRestore();
-      }
+      const text = 'word '.repeat(4096);
+      expect(counter(text)).toBe(Tokenizer.countExactTokens(text, 'o200k_base'));
     });
   });
 
@@ -108,14 +106,12 @@ describe('Tokenizer', () => {
     });
 
     it('tokenizes oversized input whole instead of falling back to byte length', () => {
-      /** The fast-path estimate is byte length, several times the real count on
-       *  ordinary text; a figure ADDED to provider accounting cannot carry that.
-       *  Nor can it carry a sum of slices: a BPE merge spanning a seam is charged
-       *  twice, so the whole input is tokenized in one pass. */
+      /** Naive fixed-size slices can split a BPE merge at a seam, so this
+       *  caller tokenizes the whole input in one pass. */
       const text = 'word '.repeat(4096);
       const exact = Tokenizer.countExactTokens(text, 'o200k_base');
       expect(exact).toBeGreaterThan(0);
-      expect(exact).toBeLessThan(Tokenizer.getTokenCount(text, 'o200k_base'));
+      expect(exact).toBe(Tokenizer.getTokenCount(text, 'o200k_base'));
       const bound = 4 * 1024;
       let sliced = 0;
       for (let index = 0; index < text.length; index += bound) {
@@ -132,11 +128,11 @@ describe('Tokenizer', () => {
       expect(Tokenizer.countExactTokens('', 'o200k_base')).toBe(0);
     });
 
-    it('returns nothing while the encoding is still cold', () => {
+    it('loads the encoding synchronously on cold start', () => {
       jest.isolateModules(() => {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const cold = require('./tokenizer').default as typeof Tokenizer;
-        expect(cold.countExactTokens('Uncounted tool result', 'o200k_base')).toBeUndefined();
+        expect(cold.countExactTokens('Uncounted tool result', 'o200k_base')).toBeGreaterThan(0);
       });
     });
   });

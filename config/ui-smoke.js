@@ -129,7 +129,7 @@ const step = (name, ok, detail) => {
   );
   step(
     'the model the agent was seeded with is available',
-    endpointModels.includes('nvidia/nemotron-3-ultra-550b-a55b:free'),
+    endpointModels.includes('kilo/free-pool'),
     endpointModels.join(','),
   );
 

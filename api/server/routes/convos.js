@@ -197,6 +197,12 @@ router.get(
   '/:parentConversationId/subagents/:threadId/tasks/:taskId/activity',
   subagentActivityStreamHandler,
 );
+// POST twin of the activity stream: Cloudflare Quick Tunnels buffer GET response
+// bodies until they end, but stream POST responses (see routes/agents/index.js).
+router.post(
+  '/:parentConversationId/subagents/:threadId/tasks/:taskId/activity',
+  subagentActivityStreamHandler,
+);
 router.post(
   '/:parentConversationId/subagents/:threadId/control',
   configMiddleware,

@@ -1,10 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { resultHints } from './language.js';
 import type { ToolSpec } from './types.js';
 import type { ServerEnv } from './env.js';
 import { describeError, EmptyResultError } from './errors.js';
 import { selectTools } from './tools/index.js';
 import { HttpClient } from './http.js';
 import { loadEnv } from './env.js';
+import { triageMode } from './tools/emergency.js';
 
 const SERVER_NAME = 'medical';
 
@@ -14,9 +16,21 @@ const SERVER_NAME = 'medical';
  * rules that govern a real answer live in the agent's own instructions, because
  * they are a property of the agent, not of the tool layer.
  */
-const SERVER_INSTRUCTIONS = `Call \`emergency_triage_check\` first, with the user's own words, on any message that describes symptoms, an injury, an ingestion, or emotional distress. It evaluates a deterministic triage policy over evidence from a classifier. This server has no model, so with no classifier configured it returns UNKNOWN — undecided, never ROUTINE — which must be treated as urgent and is never a clearance. Do not run a lookup before it, and never present an undecided result as reassurance.
+/**
+ * The first paragraph follows the triage mode (see tools/emergency.ts). In the
+ * default `signal` mode the red-flag check is an optional hint and the server
+ * no longer tells the model to run it first or to hold back lookups.
+ */
+const TRIAGE_PARAGRAPH =
+  triageMode() === 'signal'
+    ? `Research before answering. For every health question, look things up first (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on trusted sources) and answer with specific, practical help — emergencies included. \`emergency_triage_check\` is an optional internal red-flag signal: it returns a level and matched danger patterns, never an answer. On a life-threatening red flag, open the reply with one short 999 line and then give full, detailed help; never answer with a bare "go to a doctor".
 
-Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
+`
+    : `Call \`emergency_triage_check\` first, with the user's own words, on any message that describes symptoms, an injury, an ingestion, or emotional distress. It evaluates a deterministic triage policy over evidence from a classifier. This server has no model, so with no classifier configured it returns UNKNOWN — undecided, never ROUTINE — which must be treated as urgent and is never a clearance. Do not run a lookup before it, and never present an undecided result as reassurance.
+
+`;
+
+const SERVER_INSTRUCTIONS = `${TRIAGE_PARAGRAPH}Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
 
 Every tool returns live data with a Sources block; cite those URLs rather than the API host, and never present a figure you did not read in a tool result. Zero results, a 404, and a rate limit are answers, not failures: say what was searched and what was not found, and widen the query instead of guessing. Upstreams are free and shared, so prefer few, well-formed calls over many speculative ones.`;
 
@@ -53,8 +67,10 @@ export function createMedicalServer(env: ServerEnv = loadEnv()): CreatedServer {
       async (args) => {
         try {
           const output = await tool.handler(args as never, { env, http });
+          const hints = resultHints(args);
+          const text = hints.length ? `${output.text}\n\n---\n${hints.join('\n')}` : output.text;
           return {
-            content: [{ type: 'text' as const, text: output.text }],
+            content: [{ type: 'text' as const, text }],
             isError: output.isError === true,
           };
         } catch (error) {
@@ -63,8 +79,14 @@ export function createMedicalServer(env: ServerEnv = loadEnv()): CreatedServer {
            * failure, or the model retries the same query forever.
            */
           if (error instanceof EmptyResultError) {
+            const hints = resultHints(args);
             return {
-              content: [{ type: 'text' as const, text: `No result. ${error.message}` }],
+              content: [
+                {
+                  type: 'text' as const,
+                  text: `No result. ${error.message}${hints.length ? `\n\n---\n${hints.join('\n')}` : ''}`,
+                },
+              ],
               isError: false,
             };
           }

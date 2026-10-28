@@ -118,6 +118,15 @@ RUN attempt=1; \
       npm cache clean --force || true; \
       sleep 10; \
     done
+# Real token budget: @librechat/agents multiplies the exact token count of the
+# tool schemas by a fixed 1.4 guess for non-Anthropic models. The schemas are
+# counted with the real tokenizer, so use the real count (x1). Fails the build
+# if the constant moved, instead of silently keeping the guess.
+RUN set -e; for f in node_modules/@librechat/agents/dist/cjs/common/constants.cjs \
+                     node_modules/@librechat/agents/dist/esm/common/constants.mjs; do \
+      grep -q 'DEFAULT_TOOL_TOKEN_MULTIPLIER = 1.4;' "$f"; \
+      sed -i 's/DEFAULT_TOOL_TOKEN_MULTIPLIER = 1.4;/DEFAULT_TOOL_TOKEN_MULTIPLIER = 1;/' "$f"; \
+    done
 COPY api ./api
 COPY config ./config
 COPY skill ./skill

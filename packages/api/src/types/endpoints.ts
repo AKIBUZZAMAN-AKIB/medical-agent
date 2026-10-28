@@ -93,6 +93,8 @@ export interface InitializeResultBase {
   llmConfig: ClientOptions;
   configOptions?: OpenAIClientOptions['configuration'];
   endpointTokenConfig?: EndpointTokenConfig;
+  /** Real context window of the requested model, resolved from provider metadata. */
+  contextWindow?: { contextTokens: number; maxOutputTokens?: number; source: string };
   useLegacyContent?: boolean;
   provider?: string;
   tools?: unknown[];

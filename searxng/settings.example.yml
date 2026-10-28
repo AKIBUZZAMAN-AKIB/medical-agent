@@ -1,0 +1,78 @@
+# SearXNG for the medical agent (internal only; LibreChat API talks to it over the docker network)
+use_default_settings: true
+general:
+  instance_name: "medical-search"
+  debug: false
+  enable_metrics: true
+server:
+  secret_key: "change-me"  # set a long random value, or SEARXNG_SECRET
+  limiter: false          # only the LibreChat API calls this instance; no public access
+  public_instance: false
+  image_proxy: false
+  method: "GET"
+search:
+  safe_search: 1
+  autocomplete: ""
+  default_lang: "all"
+  formats:
+    - html
+    - json
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+outgoing:
+  request_timeout: 4.0
+  max_request_timeout: 8.0
+  pool_connections: 100
+  pool_maxsize: 20
+  enable_http2: true
+engines:
+  # Tested from this server on 2026-10-28: bing, brave, yahoo, yep and google cse answer;
+  # google, duckduckgo, qwant and mojeek return CAPTCHA / access denied, so they stay off.
+  # bing is good in English but returns unrelated pages for Bengali queries, so it weighs less.
+  - name: bing
+    disabled: false
+    weight: 0.6
+  - name: google cse
+    weight: 1.3
+  - name: yahoo
+    disabled: false
+  - name: yep
+    disabled: false
+  - name: google
+    disabled: true
+  - name: duckduckgo
+    disabled: true
+  - name: qwant
+    disabled: true
+  - name: mojeek
+    disabled: true
+hostnames:
+  high_priority:
+    - '(.*\.)?who\.int$'
+    - '(.*\.)?cdc\.gov$'
+    - '(.*\.)?nih\.gov$'
+    - '(.*\.)?medlineplus\.gov$'
+    - '(.*\.)?fda\.gov$'
+    - '(.*\.)?nice\.org\.uk$'
+    - '(.*\.)?nhs\.uk$'
+    - '(.*\.)?dghs\.gov\.bd$'
+    - '(.*\.)?mohfw\.gov\.bd$'
+    - '(.*\.)?iedcr\.gov\.bd$'
+    - '(.*\.)?icddrb\.org$'
+    - '(.*\.)?unicef\.org$'
+    - '(.*\.)?mayoclinic\.org$'
+    - '(.*\.)?clevelandclinic\.org$'
+    - '(.*\.)?cochrane\.org$'
+    - '(.*\.)?cochranelibrary\.com$'
+    - '(.*\.)?bmj\.com$'
+    - '(.*\.)?thelancet\.com$'
+    - '(.*\.)?nejm\.org$'
+    - '(.*\.)?europepmc\.org$'
+    - '(.*\.)?ema\.europa\.eu$'
+    - '(.*\.)?dgda\.gov\.bd$'
+  low_priority:
+    - '(.*\.)?pinterest\..*$'
+    - '(.*\.)?quora\.com$'
+    - '(.*\.)?facebook\.com$'
+    - '(.*\.)?tiktok\.com$'
+    - '(.*\.)?instagram\.com$'

@@ -22,6 +22,7 @@ import { getScopedTokenConfigKey } from '~/endpoints/keys';
 import { getCustomEndpointConfig } from '~/app/config';
 import { resolveEndpointRuntime } from '~/types';
 import { fetchModels } from '~/endpoints/models';
+import { resolveModelContextWindow } from '~/endpoints/modelContext';
 import { validateEndpointURL } from '~/auth';
 import { tokenConfigCache } from '~/cache';
 
@@ -346,6 +347,18 @@ export async function initializeCustom(
   const streamRate = clientOptions.streamRate as number | undefined;
   if (streamRate != null) {
     options.llmConfig._lc_stream_delay = streamRate;
+  }
+
+  /** The model's real context window, from provider metadata (no predefined number). */
+  const contextModel = (model_parameters?.model as string | undefined) ?? '';
+  if (options != null && contextModel) {
+    options.contextWindow = await resolveModelContextWindow({
+      model: contextModel,
+      baseURL,
+      apiKey: userProvidesURL ? undefined : apiKey,
+      endpointTokenConfig,
+      allowLiveLookup: !userProvidesURL,
+    });
   }
 
   return options;

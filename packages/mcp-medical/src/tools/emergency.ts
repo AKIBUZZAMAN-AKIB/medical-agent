@@ -8,6 +8,7 @@ import {
   renderDecision,
   triage,
 } from '../safety/emergency.js';
+import { RED_FLAG_LIMITATIONS, RED_FLAG_POLICY, redFlagClassifier } from '../safety/redflags-bd.js';
 
 /**
  * The triage tool.
@@ -59,13 +60,78 @@ const SOURCES = [
   },
 ];
 
+/**
+ * How much say the triage result has over the answer.
+ *
+ * - `signal` (default since 2026-10-28, "max-help mode"): the result is an
+ *   internal hint only — a level and the red flags that matched. It carries no
+ *   canned "go to hospital" text, never asks to be run first and never stops the
+ *   agent from researching. On a life-threatening red flag the agent writes ONE
+ *   short 999 line at the top and then gives full, researched help.
+ * - `control`: the original behaviour — policy guidance delivered verbatim,
+ *   before any lookup. Set MEDICAL_TRIAGE_MODE=control to restore it.
+ *
+ * The rule set (../safety/redflags-bd.ts) and the decision engine
+ * (../safety/triage.ts) are unchanged in both modes.
+ */
+export type TriageMode = 'signal' | 'control';
+export function triageMode(): TriageMode {
+  return (process.env.MEDICAL_TRIAGE_MODE ?? '').trim().toLowerCase() === 'control'
+    ? 'control'
+    : 'signal';
+}
+
+const SIGNAL_DESCRIPTION =
+  'Optional internal red-flag signal. Returns a level (emergency | urgent | routine | informational | none | unknown) and the danger patterns that matched in the message (English, Bangla, Banglish). It is NOT an answer and contains no advice: it never replaces research and never needs to run first. Use it, if you like, to decide whether the reply opens with one short 999 line. Pass the user\'s own words verbatim.';
+
+const CONTROL_DESCRIPTION =
+  'Evaluate a message through the deterministic triage policy and return the resulting severity, the evidence behind it, ordered guidance from the policy author, and the assessment’s limits. Call it before any lookup whenever the message describes symptoms, an injury, an ingestion, or emotional distress. This server holds no clinical rule set: severity comes from a classifier (a model or a clinically reviewed knowledge base) and the decision procedure is the auditable pure function in src/safety/triage.ts. Returns severity emergency | urgent | routine | informational | none | unknown. UNKNOWN means no classifier was available — it is a fail-safe, never a clearance, and it must be treated as urgent until a human decides otherwise. Every result includes its own limitations; carry them into the answer.';
+
+/** Compact rendering for `signal` mode: level + matched red flags, no guidance text. */
+export function renderSignal(decision: TriageDecision): string {
+  const flags = decision.evidence.filter(
+    (e) => !e.denied && (e.severity === Severity.emergency || e.severity === Severity.urgent),
+  );
+  const lines = [
+    `Red-flag level: ${Severity[decision.severity].toUpperCase()}` +
+      (decision.decided ? '' : ' (not assessed)'),
+  ];
+  if (flags.length > 0) {
+    lines.push('', 'Matched danger patterns:');
+    for (const f of flags) lines.push(`- ${f.code} [${Severity[f.severity]}]: ${f.rationale}`);
+  } else {
+    lines.push('', 'No danger pattern from the fixed list matched. That says nothing either way about the person.');
+  }
+  const denied = decision.evidence.filter((e) => e.denied);
+  if (denied.length > 0) {
+    lines.push('', 'Mentioned but denied / in the past:');
+    for (const d of denied) lines.push(`- ${d.code}: ${d.rationale}`);
+  }
+  lines.push('', `Pattern list: ${decision.policy}. Pattern matching, not clinician-reviewed, not a diagnosis.`);
+  return lines.join('\n');
+}
+
+function signalNotices(decision: TriageDecision): string[] {
+  const notices = [
+    (decision.decided && decision.severity >= Severity.emergency ? '' : 'Not a life-threatening red flag: do NOT add a 999 line; give full help and list the danger signs that would make it an emergency. ') + 'This is an internal hint, not the answer. Do NOT copy it to the user and do NOT reply with a generic "go to a doctor / hospital". Now research the question (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on WHO/CDC/NIH/NICE/NHS/DGHS) and give full, specific, practical help.',
+    "Write the whole reply in the language of the user's latest message: Bangla script or Banglish -> Bangla (বাংলা); English -> English. This tool's English text does not change that.",
+  ];
+  if (decision.decided && decision.severity >= Severity.emergency) {
+    notices.unshift(
+      'Life-threatening red flag matched: open the reply with ONE short line, copied exactly — Bangla: "🚨 এখনই 999-এ কল করুন।" / English: "🚨 Call 999 now." (the number is always 999 — write it with English digits "999" even in Bangla; for self-harm also Kaan Pete Roi 09612-119911) — then go straight into detailed first-aid steps for right now, what to do on the way / while waiting, danger signs, possible causes and what to tell the hospital. No further referral boilerplate after that line.',
+    );
+  }
+  return notices;
+}
+
 export const emergencyTools = [
   defineTool({
     name: 'emergency_triage_check',
     group: 'clinical',
-    title: 'Emergency triage decision procedure (classifier-backed)',
-    description:
-      'Evaluate a message through the deterministic triage policy and return the resulting severity, the evidence behind it, ordered guidance from the policy author, and the assessment’s limits. Call it before any lookup whenever the message describes symptoms, an injury, an ingestion, or emotional distress. This server holds no clinical rule set: severity comes from a classifier (a model or a clinically reviewed knowledge base) and the decision procedure is the auditable pure function in src/safety/triage.ts. Returns severity emergency | urgent | routine | informational | none | unknown. UNKNOWN means no classifier was available — it is a fail-safe, never a clearance, and it must be treated as urgent until a human decides otherwise. Every result includes its own limitations; carry them into the answer.',
+    title: triageMode() === 'signal'
+      ? 'Red-flag signal (optional, internal hint only)'
+      : 'Emergency triage decision procedure (classifier-backed)',
+    description: triageMode() === 'signal' ? SIGNAL_DESCRIPTION : CONTROL_DESCRIPTION,
     inputSchema: {
       message: z
         .string()
@@ -76,9 +142,24 @@ export const emergencyTools = [
         ),
     },
     handler: async (args, ctx) => {
+      /** Operator knowledge base (Bangladesh red flags, en/bn/Banglish) is the
+       *  deployment's classifier + policy; see src/safety/redflags-bd.ts. */
       const decision = await triage(args.message, {
+        classifier: redFlagClassifier,
+        policy: RED_FLAG_POLICY,
         timeoutMs: Math.min(ctx.env.requestTimeoutMs, 20_000),
       });
+      decision.limitations.push(...RED_FLAG_LIMITATIONS);
+
+      if (triageMode() === 'signal') {
+        return composeResult({
+          headline: `Red-flag signal: ${Severity[decision.severity].toUpperCase()} (internal hint, not an answer)`,
+          sections: [renderSignal(decision), renderDecisionSentinel(decision)],
+          sources: SOURCES,
+          notices: signalNotices(decision),
+          env: ctx.env,
+        });
+      }
 
       const inEmergencyBand = decision.severity >= Severity.emergency;
 

@@ -160,7 +160,7 @@ router.use(uaParser);
  * @description Sends sync event with resume state, replays missed chunks, then streams live
  * @query resume=true - Indicates this is a reconnection (sends sync event)
  */
-router.get('/chat/stream/:streamId', async (req, res) => {
+const agentChatStreamHandler = async (req, res) => {
   const { streamId } = req.params;
   const isResume = req.query.resume === 'true';
   const requestProtocolVersion = negotiateRequestGenerationProtocol(req);
@@ -418,7 +418,17 @@ router.get('/chat/stream/:streamId', async (req, res) => {
     onError('Failed to subscribe to stream');
     return;
   }
-});
+};
+router.get('/chat/stream/:streamId', agentChatStreamHandler);
+/**
+ * Same subscription over POST (no body; everything is in the path and query).
+ * Cloudflare Quick Tunnels (trycloudflare.com) buffer GET response bodies until
+ * the response ends, so a GET SSE stream reaches the browser in one burst at the
+ * end; POST responses are passed through as they are written. Mounted outside
+ * `/chat` so the chat-start ingress, telemetry and readiness gates (which treat
+ * every POST under /api/agents/chat as a new generation) do not see it.
+ */
+router.post('/stream/:streamId', agentChatStreamHandler);
 
 /**
  * @route GET /chat/active
