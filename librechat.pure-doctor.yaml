@@ -289,6 +289,9 @@ fileConfig:
       defaultLLMDeliveryPath:
         overrides:
           'image/*': 'text'
+          # PDFs too: text extraction (OCR for scans) instead of the raw file, which
+          # text-only models in the free pool reject ("does not support file input").
+          'application/pdf': 'text'
 
 # Voice: the browser's own speech engines (free, no server). Defaults to Bengali
 # (Bangladesh); each user can switch the language under Settings > Speech.
