@@ -579,25 +579,38 @@ export function snippet(raw: string, phrase: string, width = 70): string {
 
 const FIELD_BY_LABEL = new Map(FIELDS.map(([f, label]) => [label, f]));
 
+/** Most compact line level (ID, name and the keywords that matched). */
+export const MAX_COMPACT_LEVEL = 4;
+
 /**
  * One line per record: ID, name, where each keyword matched, the symptoms, and
  * the text around matches outside the name and symptoms. Level 0 is complete;
- * higher levels shorten symptoms and snippets so very long lists still fit.
+ * higher levels shorten symptoms and snippets so very long lists still fit, and
+ * level 4 keeps only the ID, the name and the keywords that matched.
  */
 export function compactLine(m: DiseaseMatch, level: number): string {
   const r = m.record;
-  const tag = r.superseded
-    ? ` (older version of ${r.superseded_by})`
-    : r.name_only
-      ? ' — name only, no details in the dataset'
-      : r.category
-        ? ` (${r.category})`
-        : '';
+  if (level >= 4) {
+    let short = '';
+    if (r.superseded) short = ` (older version of ${r.superseded_by})`;
+    else if (r.name_only) short = ' (name only)';
+    const kws = m.where.map((w) => w.keyword).join(', ');
+    return `- ${r.key} ${r.name}${short} | matched: ${kws}`;
+  }
+  let tag = '';
+  if (r.superseded) {
+    tag = ` (older version of ${r.superseded_by})`;
+  } else if (r.name_only) {
+    tag = ' — name only, no details in the dataset';
+  } else if (r.category) {
+    tag = ` (${r.category})`;
+  }
   const matched = m.where.map((w) => `${w.keyword} → ${w.fields.join('/')}`).join('; ');
   let line = `- ${r.key} ${r.name}${tag} | matched: ${matched}`;
   if (level <= 2 && !r.name_only && r.symptoms?.length) {
     let sym = r.symptoms.join('; ');
-    const cap = level === 0 ? Infinity : level === 1 ? 160 : 70;
+    const caps = [Infinity, 160, 70];
+    const cap = caps[level] ?? 70;
     if (sym.length > cap) sym = `${sym.slice(0, cap).replace(/\s+\S*$/, '')}…`;
     line += ` | symptoms: ${sym}`;
   }
@@ -685,9 +698,11 @@ function matchNote(m: DiseaseMatch): string {
 }
 
 /** Default size of one disease_knowledge_search result (characters, about 40k tokens). */
-export const DEFAULT_DISEASE_KB_MAX_CHARS = 160_000;
+export const DEFAULT_DISEASE_KB_MAX_CHARS = 120_000;
 /** Minimum number of top-ranked records given with every field. */
 const MIN_FULL = 5;
+/** Full records kept before compact lines lose their symptoms. */
+const KEEP_FULL = 12;
 /** Records fetchable in full by ID in one call. */
 const MAX_IDS = 40;
 
@@ -715,7 +730,9 @@ export function layoutMatches(
 ): LayoutPlan {
   const fullBudget = Math.floor(budget * 0.4);
   const isFull = new Array<boolean>(matches.length).fill(false);
-  const lineLen = [0, 1, 2, 3].map((level) => matches.map((m) => compactLine(m, level).length + 1));
+  const lineLen = [0, 1, 2, 3, 4].map((level) =>
+    matches.map((m) => compactLine(m, level).length + 1),
+  );
   const shownNames = new Set<string>();
   const shownIds = new Set<string>();
   const nameKey = (r: DiseaseRecord) => normalizeText(r.name).trim();
@@ -729,7 +746,9 @@ export function layoutMatches(
   const texts = new Map<number, string>();
   let used = 0;
   let count = 0;
+  const fullOrder: number[] = [];
   const take = (k: number, t: string) => {
+    fullOrder.push(k);
     isFull[k] = true;
     texts.set(k, t);
     used += t.length;
@@ -745,8 +764,26 @@ export function layoutMatches(
     take(k, t);
   }
   // 2. The best compact level that fits the rest.
-  let level = 0;
-  while (level < 3 && used + compactLen(level) > budget) level += 1;
+  const bestLevel = (): number => {
+    let l = 0;
+    while (l < MAX_COMPACT_LEVEL && used + compactLen(l) > budget) l += 1;
+    return l;
+  };
+  let level = bestLevel();
+  // 2b. Long lists: give fewer records in full so the lines keep their symptoms
+  // (level 2) while at least KEEP_FULL records stay full, then never below
+  // MIN_FULL so that every match still fits as a line.
+  const tooBig = () =>
+    (level > 2 && fullOrder.length > KEEP_FULL) ||
+    (used + compactLen(level) > budget && fullOrder.length > MIN_FULL);
+  while (tooBig()) {
+    const k = fullOrder.pop()!;
+    isFull[k] = false;
+    used -= texts.get(k)!.length;
+    texts.delete(k);
+    count -= 1;
+    level = bestLevel();
+  }
   // 3. Spare room at level 0: give more records in full (still one per disease).
   if (level === 0) {
     for (let k = 0; k < matches.length; k++) {
@@ -928,6 +965,7 @@ export const diseaseKnowledgeTools = [
           'symptoms shortened to 160 characters and one match excerpt',
           'symptoms shortened to 70 characters',
           'ID, name and the fields each keyword matched',
+          'ID, name and the keywords that matched',
         ][plan.level];
         sections.push(
           `${heading(`The other ${plan.compact.length} matching records, ranked (one line each: ${what})`)}\n${plan.compactText.join('\n')}`,

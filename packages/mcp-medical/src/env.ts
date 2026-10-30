@@ -104,7 +104,7 @@ export function loadEnv(source: EnvSource = process.env): ServerEnv {
       1_000,
       400_000,
     ),
-    diseaseKbMaxChars: readInt(source, 'MEDICAL_DISEASE_KB_MAX_CHARS', 160_000, 20_000, 350_000),
+    diseaseKbMaxChars: readInt(source, 'MEDICAL_DISEASE_KB_MAX_CHARS', 120_000, 20_000, 350_000),
     groups: readList(source, 'MEDICAL_TOOL_GROUPS'),
     excludedTools: readList(source, 'MEDICAL_TOOL_EXCLUDE') ?? new Set<string>(),
     ncbiApiKey: source.NCBI_API_KEY?.trim() || undefined,

@@ -208,7 +208,7 @@ describe('disease_knowledge_search tool output', () => {
     expect(full.length).toBeGreaterThanOrEqual(5);
     expect(text).toMatch(new RegExp(`COMPLETE: all ${expected.length} matching disease records`));
     expect(text).not.toMatch(/next_offset/);
-    expect(text.length).toBeLessThanOrEqual((env.diseaseKbMaxChars ?? 160_000) + 40_000);
+    expect(text.length).toBeLessThanOrEqual((env.diseaseKbMaxChars ?? 120_000) + 40_000);
   });
 
   it('keeps every match even when the budget is small (compact lines shrink instead)', async () => {
