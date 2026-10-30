@@ -10337,7 +10337,7 @@ describe('AgentClient memory_profiles isolation', () => {
       '- self: Rahim (the user themselves) — 2 stored facts',
     );
     expect(medicalAgent.additional_instructions).toContain(
-      '- father: Father, parent — 1 stored fact',
+      '- father: Father (relationship: parent) — 1 stored fact',
     );
     expect(medicalAgent.additional_instructions).not.toContain('# Existing memory about the user:');
   });

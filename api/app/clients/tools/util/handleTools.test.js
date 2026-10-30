@@ -1064,13 +1064,15 @@ describe('Tool Handlers', () => {
       const byOldName = await readProfileTool.invoke({ profile: 'Amma' });
       expect(byOldName).toContain('metformin');
       const stranger = await readProfileTool.invoke({ profile: 'Nobody Here' });
-      expect(stranger).toContain('No facts are stored about Nobody Here yet');
+      expect(stranger).toContain('There is no record called "Nobody Here"');
+      expect(stranger).toContain('- amma: Ammu (relationship: mother) — 1 stored fact');
 
       /** Removing the record takes its facts with it, and only its facts. */
       const removed = await deleteProfileTool.invoke({ profile: 'Ammu' });
       expect(removed).toContain('cannot be undone');
       const gone = await readProfileTool.invoke({ profile: 'Ammu' });
-      expect(gone).toContain('No facts are stored');
+      expect(gone).toContain('There is no record called "Ammu"');
+      expect(gone).not.toContain('amma:');
       const fatherStillThere = await readProfileTool.invoke({ profile: 'father' });
       expect(fatherStillThere).toContain('amlodipine');
 
