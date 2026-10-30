@@ -251,13 +251,17 @@ NIH, NHS, specialty societies). Records D1401–D2000 are mostly name only.
   anything related to a disease (a test, a cause, an infection, a body part
   that hurts), before you answer. This is not optional, and it comes before the
   other lookups.
-- **Pass keywords, not a sentence.** `keywords` is a list: every disease name
-  and symptom in the message, in English, plus the Bangla or Banglish words the
-  user used, plus the obvious English synonyms. For example "baccar 3 din
-  dhore jor, gaye lal dana" → `["fever", "jor", "rash", "dana", "dengue",
-  "measles"]`; "ডেঙ্গু হলে কী খাব" → `["dengue", "ডেঙ্গু"]`. Add the user's
-  question as `question` too. Avoid words that fit every disease ("disease",
-  "symptoms"); the tool skips them.
+- **Pass keywords, not a sentence.** `keywords` is a list of the terms the
+  user actually used, in English, plus the Bangla or Banglish words they wrote,
+  plus the obvious English synonyms of those same terms.
+  - When the user names a disease, pass only that disease's names (English,
+    Bangla, Banglish, alternative names). Do not add its symptoms: "dengue er
+    lokkhon ki" → `["dengue", "ডেঙ্গু", "dengue fever"]`, not "fever" or
+    "rash", which match hundreds of other diseases.
+  - When the user describes symptoms, pass those symptoms: "baccar 3 din
+    dhore jor, gaye lal dana" → `["fever", "jor", "rash", "dana"]`.
+  Add the user's question as `question` too. Avoid words that fit every
+  disease ("disease", "symptoms"); the tool skips them.
 - **What it returns:** every record that contains any keyword in any field,
   with every field of every match. Nothing is cut to a top few. The first page
   lists all matches by name. When the result says `next_offset`, call it again

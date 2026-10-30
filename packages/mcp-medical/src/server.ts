@@ -24,7 +24,7 @@ const URGENCY_PARAGRAPH = `Research before answering. For every health question,
 
 `;
 
-const DISEASE_KB_PARAGRAPH = `Disease dataset: whenever the user mentions a disease, a symptom or anything related to a disease, you MUST call disease_knowledge_search before answering, with keywords — every disease name and symptom in the message, in English plus the user's Bangla/Banglish words (e.g. ["dengue", "ডেঙ্গু", "fever", "jor"]). It returns every record of the local Global Disease Master Chart (about 2,000 records) that contains any keyword, with every field. Use all the returned data, and when the result gives next_offset, call it again with the same keywords and that offset until it says Complete. It is a compiled table: never take a dose or a treatment choice from it.
+const DISEASE_KB_PARAGRAPH = `Disease dataset: whenever the user mentions a disease, a symptom or anything related to a disease, you MUST call disease_knowledge_search before answering, with keywords — the disease names and symptoms the user actually mentioned, in English plus the user's Bangla/Banglish words. For a named disease pass only its names, not its symptoms (e.g. ["dengue", "ডেঙ্গু"]); for described symptoms pass the symptoms (e.g. ["fever", "jor", "rash"]). It returns every record of the local Global Disease Master Chart (about 2,000 records) that contains any keyword, with every field. Use all the returned data, and when the result gives next_offset, call it again with the same keywords and that offset until it says Complete. It is a compiled table: never take a dose or a treatment choice from it.
 
 `;
 

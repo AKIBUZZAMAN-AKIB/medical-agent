@@ -525,7 +525,7 @@ export const diseaseKnowledgeTools = [
     title: 'Disease knowledge base keyword search (Global Disease Master Chart, full dataset)',
     description:
       'Keyword lookup over the whole local disease dataset ("Global Disease Master Chart": every workbook snapshot and name list; about 2,000 disease records D0001–D2000 plus the categories and source register). ' +
-      'MUST be called, before answering, whenever the user mentions a disease, a symptom or anything related to a disease. Pass `keywords`: every disease name and symptom in the message, in English plus the Bangla/Banglish words the user used (e.g. ["dengue", "ডেঙ্গু", "fever", "jor", "rash"]). ' +
+      'MUST be called, before answering, whenever the user mentions a disease, a symptom or anything related to a disease. Pass `keywords`: the disease names and symptoms the user actually mentioned, in English plus the Bangla/Banglish words the user used. For a named disease pass only its names, not its symptoms (e.g. ["dengue", "ডেঙ্গু"]); for described symptoms pass the symptoms (e.g. ["fever", "jor", "rash"]). ' +
       'It returns EVERY record that contains any keyword in any field (name, alternative names, symptoms, other signs, causes, risk factors, transmission, age group, severity, warning signs, diagnosis, prevention), with every field of every match — no top-k. The first page lists all matches by name; when the result says there is a next page, call again with the same keywords and `offset` = next_offset to get the rest. ' +
       'Records D1401–D2000 are mostly name-only (no details in the dataset). It is a compiled reference table, not a guideline: never take a dose, a threshold or a treatment decision from it — use drug_label / pubmed_search / web_search (DGHS, WHO) for those.',
     readOnly: true,
@@ -535,7 +535,7 @@ export const diseaseKnowledgeTools = [
         .min(1)
         .max(40)
         .describe(
-          'All disease names, symptoms and related terms from the user message: English names plus the user\'s Bangla/Banglish words, one per item, e.g. ["typhoid", "enteric fever", "টাইফয়েড", "fever", "jor"]. A match on any keyword returns the record.',
+          'The disease names and symptoms the user mentioned: English names plus the user\'s Bangla/Banglish words, one per item. A named disease gets only its names, e.g. ["typhoid", "enteric fever", "টাইফয়েড"]; described symptoms get the symptoms, e.g. ["fever", "jor"]. A match on any keyword returns the record.',
         ),
       question: z
         .string()
