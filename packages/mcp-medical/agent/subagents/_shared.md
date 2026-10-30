@@ -28,10 +28,16 @@ and list the missing facts under "Still needed" in your report.
   first whenever the task mentions a disease, a symptom or anything related to
   a disease. Pass `keywords`: every disease name and symptom in the task, in
   English plus any Bangla/Banglish words in it. It returns every record that
-  contains a keyword, with every field. Use all of it, and when it gives
-  `next_offset`, call again with the same keywords and that offset until it
-  says "Complete". It is a compiled table: never take a dose or a treatment
+  contains a keyword, all in one result: the top-ranked diseases with every
+  field and every other match as one compact line (ID, name, where it matched,
+  symptoms). Read the whole list; for a compact-line record that fits the task
+  better, call it again with `ids` (e.g. `["D0052"]`) for its fields. Cite
+  records by ID. It is a compiled table: never take a dose or a treatment
   choice from it.
+- Sources: name only sources that appear in a tool result you received for
+  this task (a Sources block, a record ID, a PMID, a web-search citation, a
+  page a tool returned). Never name WHO, DGHS, CDC, NHS or a guideline from
+  memory; if a search failed or returned nothing, say so and leave it out.
 
 ## Urgency
 

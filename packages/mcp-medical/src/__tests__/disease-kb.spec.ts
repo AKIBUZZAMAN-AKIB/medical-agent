@@ -64,29 +64,22 @@ function bruteForce(phrase: string): Set<string> {
   return out;
 }
 
-async function allPages(
-  keywords: string[],
-): Promise<{ keys: string[]; pages: number; texts: string[] }> {
-  const keys: string[] = [];
-  const texts: string[] = [];
-  let offset = 0;
-  let pages = 0;
-  for (;;) {
-    const out = await tool.handler({ keywords, offset }, { env, http });
-    const text = String(out.text ?? out);
-    texts.push(text);
-    pages += 1;
-    for (const m of text.matchAll(
-      /^(.+) \[(D\d{4}(?:@v[\d.]+|-[a-z])?)\](?: \(older version[^)]*\))?\n-+$/gm,
-    )) {
-      keys.push(m[2]);
-    }
-    const next = /next_offset=(\d+)/.exec(text);
-    if (!next) break;
-    offset = Number(next[1]);
-    if (pages > 200) throw new Error('runaway paging');
-  }
-  return { keys, pages, texts };
+const FULL_RE = /^(.+) \[(D\d{4}(?:@v[\d.]+|-[a-z])?)\](?: \(older version[^)]*\))?\n-+$/gm;
+const COMPACT_RE = /^- (D\d{4}(?:@v[\d.]+|-[a-z])?) .* \| matched: /gm;
+
+async function oneCall(
+  args: Record<string, unknown>,
+  callEnv = env,
+): Promise<{ full: string[]; names: string[]; compact: string[]; text: string }> {
+  const out = await tool.handler(args, { env: callEnv, http });
+  const text = String(out.text ?? out);
+  const full = [...text.matchAll(FULL_RE)];
+  return {
+    full: full.map((m) => m[2]),
+    names: full.map((m) => m[1]),
+    compact: [...text.matchAll(COMPACT_RE)].map((m) => m[1]),
+    text,
+  };
 }
 
 describe('disease knowledge base index (full dataset)', () => {
@@ -174,6 +167,19 @@ describe('disease_knowledge_search keyword matching', () => {
     for (const k of bruteForce('dengue')) expect(keys.has(k)).toBe(true);
   });
 
+  it('groups spellings of one symptom into one concept', () => {
+    const plans = planKeywords(['fever', 'jor', 'জ্বর', 'body ache', 'gaye betha']);
+    expect(new Set(plans.slice(0, 3).map((p) => p.concept)).size).toBe(1);
+    expect(plans[3].concept).toBe(plans[4].concept);
+    expect(plans[3].concept).not.toBe(plans[0].concept);
+    expect(plans[4].readAs).toContain('myalgia');
+  });
+
+  it('keeps Bangla words whole when normalizing', () => {
+    expect(normalizeText('জ্বর').trim()).toBe('জ্বর');
+    expect(normalizeText('গায়ে ব্যথা').trim().split(' ')).toHaveLength(2);
+  });
+
   it('skips keywords that would match everything', () => {
     const plans = planKeywords(['disease', 'symptoms']);
     expect(plans.every((p) => p.skipped)).toBe(true);
@@ -190,15 +196,58 @@ describe('disease_knowledge_search keyword matching', () => {
 });
 
 describe('disease_knowledge_search tool output', () => {
-  it('pages through every match without losing or repeating one', async () => {
-    const expected = keywordMatches(kb(), planKeywords(['fever'])).matches.map((m) => m.record.key);
-    expect(expected.length).toBeGreaterThan(50);
-    const { keys, pages, texts } = await allPages(['fever']);
-    expect(pages).toBeGreaterThan(1);
-    expect(keys).toEqual(expected);
-    expect(texts[0]).toMatch(new RegExp(`All ${expected.length} keyword-matched disease records`));
-    expect(texts[texts.length - 1]).toMatch(/Complete: results/);
-    for (const t of texts) expect(t.length).toBeLessThanOrEqual(env.maxResultChars);
+  const SYMPTOMS = ['fever', 'jor', 'body ache', 'gaye betha'];
+
+  it('puts every match in one result, with no paging', async () => {
+    const expected = keywordMatches(kb(), planKeywords(SYMPTOMS)).matches.map((m) => m.record.key);
+    expect(expected.length).toBeGreaterThan(200);
+    const { full, compact, text } = await oneCall({ keywords: SYMPTOMS });
+    const got = [...full, ...compact];
+    expect(new Set(got).size).toBe(got.length);
+    expect(new Set(got)).toEqual(new Set(expected));
+    expect(full.length).toBeGreaterThanOrEqual(5);
+    expect(text).toMatch(new RegExp(`COMPLETE: all ${expected.length} matching disease records`));
+    expect(text).not.toMatch(/next_offset/);
+    expect(text.length).toBeLessThanOrEqual((env.diseaseKbMaxChars ?? 160_000) + 40_000);
+  });
+
+  it('keeps every match even when the budget is small (compact lines shrink instead)', async () => {
+    const expected = keywordMatches(kb(), planKeywords(SYMPTOMS)).matches.map((m) => m.record.key);
+    const { full, compact, text } = await oneCall(
+      { keywords: SYMPTOMS },
+      { ...env, diseaseKbMaxChars: 20_000 },
+    );
+    expect(new Set([...full, ...compact])).toEqual(new Set(expected));
+    expect(text).toMatch(/one line each: (symptoms shortened|ID, name)/);
+  });
+
+  it('ranks records that cover more of the described symptoms first', () => {
+    const { matches } = keywordMatches(kb(), planKeywords(SYMPTOMS));
+    const cover = matches.map((m) => m.coreConcepts);
+    expect(cover[0]).toBe(2);
+    for (let i = 1; i < cover.length; i += 1) expect(cover[i]).toBeLessThanOrEqual(cover[i - 1]);
+  });
+
+  it('gives one record per disease in full and leaves other chart versions in the list', async () => {
+    const { names, compact } = await oneCall({ keywords: ['dengue'] });
+    const plain = names.map((n) => normalizeText(n).trim());
+    expect(new Set(plain).size).toBe(plain.length);
+    expect(compact.length).toBeGreaterThan(0);
+  });
+
+  it('returns full records by ID', async () => {
+    const { full, text } = await oneCall({ ids: ['D0052', 'd0051', 'D9999'] });
+    expect(full).toEqual(expect.arrayContaining(['D0052', 'D0051']));
+    expect(text).toContain('No record with ID: D9999');
+    expect(text).toContain('Symptoms:');
+  });
+
+  it('tells the model what it may cite', async () => {
+    const { text } = await oneCall({ keywords: ['dengue'] });
+    expect(text).toMatch(
+      /CITING: you may cite only what this turn's tool results actually contain/,
+    );
+    expect(text).toMatch(/Sources/);
   });
 
   it('returns every field of a match', async () => {

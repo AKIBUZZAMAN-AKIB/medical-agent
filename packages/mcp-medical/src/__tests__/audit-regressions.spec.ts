@@ -336,6 +336,17 @@ describe('no predefined clinical keyword list drives behaviour', () => {
     }
   });
 
+  it('quotes the pages behind the fever home-care note and names no unread guideline', () => {
+    const hints = resultHints({ query: 'baccar 3 din dhore jor' }).join('\n');
+    expect(hints).toContain('FEVER HOME CARE');
+    expect(hints).toContain(
+      'https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue',
+    );
+    expect(hints).toContain('https://www.nhs.uk/conditions/fever-in-children/');
+    expect(hints).not.toMatch(/DGHS/);
+    expect(hints).not.toMatch(/sponging with lukewarm/i);
+  });
+
   it('names no diagnosis and no treatment in the lab panel', async () => {
     const labTool = requireTool(calculatorTools, 'lab_result_interpreter');
     const out = await labTool.handler(

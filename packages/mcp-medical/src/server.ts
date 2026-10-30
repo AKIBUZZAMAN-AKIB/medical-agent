@@ -24,7 +24,9 @@ const URGENCY_PARAGRAPH = `Research before answering. For every health question,
 
 `;
 
-const DISEASE_KB_PARAGRAPH = `Disease dataset: whenever the user mentions a disease, a symptom or anything related to a disease, you MUST call disease_knowledge_search before answering, with keywords — the disease names and symptoms the user actually mentioned, in English plus the user's Bangla/Banglish words. For a named disease pass only its names, not its symptoms (e.g. ["dengue", "ডেঙ্গু"]); for described symptoms pass the symptoms (e.g. ["fever", "jor", "rash"]). It returns every record of the local Global Disease Master Chart (about 2,000 records) that contains any keyword, with every field. Use all the returned data, and when the result gives next_offset, call it again with the same keywords and that offset until it says Complete. It is a compiled table: never take a dose or a treatment choice from it.
+const DISEASE_KB_PARAGRAPH = `Disease dataset: whenever the user mentions a disease, a symptom or anything related to a disease, you MUST call disease_knowledge_search before answering, with keywords — the disease names and symptoms the user actually mentioned, in English plus the user's Bangla/Banglish words. For a named disease pass only its names, not its symptoms (e.g. ["dengue", "ডেঙ্গু"]); for described symptoms pass the symptoms (e.g. ["fever", "jor", "rash"]). One call returns every record of the local Global Disease Master Chart (about 2,000 records) that contains any keyword — no pages: the top-ranked diseases with every field and every other match as one compact line (ID, name, where it matched, symptoms). Read the whole list, and call again with ids=[...] for the full fields of compact-line records that fit the person's story. It is a compiled table: never take a dose or a treatment choice from it.
+
+Sources: name only sources that appear in a tool result you received in this turn (a Sources block, a record ID such as [D0051], a PMID, a web-search citation, a page a tool returned). Never name WHO, DGHS, CDC, NHS or any guideline from memory; when a search failed or returned nothing, say so and cite only what you have.
 
 `;
 

@@ -18,6 +18,12 @@ export interface ServerEnv {
   cacheMaxEntries: number;
   /** Hard cap on characters returned to the model from one tool result. */
   maxResultChars: number;
+  /**
+   * Size of one disease_knowledge_search result in characters. That tool returns
+   * every match in one result (full records for the top, one line for the rest)
+   * and sizes itself to this budget instead of `maxResultChars`.
+   */
+  diseaseKbMaxChars?: number;
   /** Tool groups to expose, or null for all of them. */
   groups: Set<string> | null;
   /** Individual tool names to hide. */
@@ -98,6 +104,7 @@ export function loadEnv(source: EnvSource = process.env): ServerEnv {
       1_000,
       400_000,
     ),
+    diseaseKbMaxChars: readInt(source, 'MEDICAL_DISEASE_KB_MAX_CHARS', 160_000, 20_000, 350_000),
     groups: readList(source, 'MEDICAL_TOOL_GROUPS'),
     excludedTools: readList(source, 'MEDICAL_TOOL_EXCLUDE') ?? new Set<string>(),
     ncbiApiKey: source.NCBI_API_KEY?.trim() || undefined,

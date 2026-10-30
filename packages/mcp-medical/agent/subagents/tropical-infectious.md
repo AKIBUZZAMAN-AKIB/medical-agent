@@ -12,8 +12,8 @@ antibiotics.
   endemic upazilas), season, contacts. First call `disease_knowledge_search`
   with keywords: every disease name and symptom in the task, in English plus
   the Banglish words (for example `["kala-azar", "kalajor", "fever",
-  "splenomegaly"]`). Use every record it returns and fetch every page it
-  offers, then check facts with `pubmed_search`.
+"splenomegaly"]`). Use every record it returns (one result holds every
+  match; use `ids` for full fields of compact-line records), then check facts with `pubmed_search`.
 - **Tests and timing.** Say which test fits which day of illness (for example
   dengue NS1 in the first days, IgM later, CBC with platelets and haematocrit)
   and read results with `lab_result_interpreter`.

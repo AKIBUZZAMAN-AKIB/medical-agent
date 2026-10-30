@@ -213,7 +213,10 @@ export function resultHints(args: unknown): string[] {
   }
   if (FEVER.test(text)) {
     hints.push(
-      'FEVER HOME CARE (WHO, NHS, DGHS dengue guideline): Paracetamol IS the right medicine for fever and pain, including in children and in suspected dengue; dose by weight from the pack or a pharmacist. Never tell the user not to give paracetamol. Avoid ibuprofen, aspirin, diclofenac and other NSAIDs when dengue is possible (bleeding risk), and never give aspirin to children under 16. Fluids (ORS, water, soup), rest, light clothing, sponging with lukewarm water.' +
+      'FEVER HOME CARE. Quoted sources (the only two this note is based on; cite them only for what these quotes say): ' +
+        'WHO, "Dengue and severe dengue" fact sheet (https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue): "pain can be managed with medication such as paracetamol (acetaminophen). Non-steroidal anti-inflammatory medicines such as ibuprofen and aspirin should be avoided as they can increase the risk of bleeding." ' +
+        'NHS, "High temperature (fever) in children" (https://www.nhs.uk/conditions/fever-in-children/): "give them plenty of fluids"; "do not give aspirin to children under 16 years of age"; "do not undress your child or sponge them down to cool them". ' +
+        "Rules: paracetamol IS the right medicine for fever and pain, including in children and in suspected dengue; dose by weight from the pack or a pharmacist. Never tell the user not to give paracetamol. While dengue is possible (any fever in Bangladesh in season), avoid ibuprofen, aspirin, diclofenac and other NSAIDs. Never aspirin under 16. Fluids (ORS, water, soup), rest, light clothing; do not sponge to cool. The danger signs and rules beyond these quotes are this app's own guidance, not a quote: do not attribute them to WHO or NHS." +
         (CHILD.test(text)
           ? ' CHILD: danger signs are a baby under 3 months with fever, drowsiness or hard to wake, not drinking or no urine for 8 hours, repeated vomiting, fast or difficult breathing, fits, a rash that does not fade when pressed, bleeding, cold hands and feet.'
           : ''),
