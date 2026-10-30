@@ -240,18 +240,50 @@ describe('medical deployment config — specialist sub-agent tool wiring', () =>
    *  Comments are stripped first: the declarations carry load-bearing rationale,
    *  and a parser that reads them as tool names would fail on its own prose. */
   const declarativeSeed = seed.replace(/\/\*[\s\S]*?\*\//g, '');
+  const skillDir = path.join(repoRoot, 'packages/mcp-medical/agent/subagents');
   const specialists = [
     ...declarativeSeed.matchAll(
-      /id: '([^']+)',[\s\S]*?toolNames: \[([\s\S]*?)\][\s\S]*?focusPrompt/g,
+      /id: '([^']+)',[\s\S]*?toolNames: \[([\s\S]*?)\][\s\S]*?skillFile: '([^']+)'/g,
     ),
-  ].map((match) => ({
-    id: match[1],
-    tools: match[2]
-      .split(',')
-      .map((entry) => entry.trim().replace(/^'|'$/g, ''))
-      .filter(Boolean),
-    block: match[0],
-  }));
+  ].map((match) => {
+    const skillPath = path.join(skillDir, match[3]);
+    const skill = fs.existsSync(skillPath) ? fs.readFileSync(skillPath, 'utf8') : null;
+    return {
+      id: match[1],
+      tools: match[2]
+        .split(',')
+        .map((entry) => entry.trim().replace(/^'|'$/g, ''))
+        .filter(Boolean),
+      skillFile: match[3],
+      skill,
+      block: `${match[0]}\n${skill ?? ''}`,
+    };
+  });
+  const shared = fs.readFileSync(path.join(skillDir, '_shared.md'), 'utf8');
+
+  it('gives every specialist a skill file that exists', () => {
+    expect(specialists.filter((spec) => spec.skill == null).map((spec) => spec.skillFile)).toEqual(
+      [],
+    );
+  });
+
+  it('names only tools a specialist can actually call in its skill file', () => {
+    /** Backticked snake_case names in a skill file are tool references. */
+    const extra = new Set(['list_profiles', 'read_profile']);
+    const broken = specialists.flatMap((spec) =>
+      [...spec.skill.matchAll(/`([a-z][a-z0-9]*(?:_[a-z0-9]+)+)`/g)]
+        .map((match) => match[1])
+        .filter((tool) => !spec.tools.includes(tool) && !extra.has(tool))
+        .map((tool) => `${spec.skillFile}: ${tool}`),
+    );
+    expect(broken).toEqual([]);
+  });
+
+  it('keeps scripted emergency lines and the retired triage system out of every skill file', () => {
+    for (const text of [shared, ...specialists.map((spec) => spec.skill)]) {
+      expect(text).not.toMatch(/\b999\b|৯৯৯|🚨|triage|red.?flag|keyword list decides/i);
+    }
+  });
 
   it('reads a plausible tool catalogue and specialist board', () => {
     expect(published.size).toBeGreaterThan(20);

@@ -3,7 +3,7 @@ cache: true
 
 interface:
   customWelcome: 'Super-Power Doctor AI — বাংলা বা English-এ আপনার স্বাস্থ্য প্রশ্ন লিখুন'
-  customFooter: 'Super-Power Doctor AI · AI তথ্য সহায়ক, ডাক্তার নয় · Emergency: 999 · স্বাস্থ্য বাতায়ন 16263'
+  customFooter: 'Super-Power Doctor AI · AI তথ্য সহায়ক, ডাক্তার নয় · স্বাস্থ্য বাতায়ন 16263'
   # Consent / Terms popup. Every user must accept it once before chatting;
   # acceptance (termsAccepted + termsAcceptedAt) is stored on each user record.
   # After changing this text, reset acceptance for every user so they see it:
@@ -26,9 +26,9 @@ interface:
       - এটা প্রেসক্রিপশন দেয় না, আর কারও জন্য ওষুধের ডোজ ঠিক বা বদল করে না। শুধু সরকারি/স্বীকৃত first aid নির্দেশনা যা বলে, অথবা ওষুধের label-এ যা লেখা, সেটা উৎসসহ জানায়।
       - চিকিৎসা শুরু, বন্ধ বা বদলানোর সিদ্ধান্ত একজন নিবন্ধিত ডাক্তারের সাথে কথা বলে নিন।
 
-      **জরুরি অবস্থায়**
-      - বুকে ব্যথা, শ্বাসকষ্ট, অজ্ঞান হওয়া, খিঁচুনি, বেশি রক্তপাত, সাপে কাটা বা নিজেকে আঘাত করার চিন্তা হলে **আগে 999-এ কল করুন** অথবা নিকটস্থ হাসপাতালের জরুরি বিভাগে যান।
-      - সাহায্য আসা পর্যন্ত বা হাসপাতালে যাওয়ার পথে কী করবেন, তা জানতে এটা ব্যবহার করতে পারেন। কিন্তু এর জন্য কল করা বা রওনা দেওয়া দেরি করবেন না।
+      **গুরুতর অবস্থায়**
+      - এটা কোনো জরুরি সেবা নয়। এটা কাউকে খবর দেয় না, অ্যাম্বুলেন্স পাঠায় না, আর আপনার অবস্থার ওপর নজর রাখে না।
+      - গুরুতর অবস্থায় এটা ধাপে ধাপে কী করতে হবে আর কখন হাসপাতালে যেতে হবে তা জানায়। কিন্তু চিকিৎসা নেওয়ার সিদ্ধান্ত আপনার, আর এখানে উত্তরের অপেক্ষায় চিকিৎসা নিতে দেরি করবেন না।
       - ফোনে স্বাস্থ্য পরামর্শ: স্বাস্থ্য বাতায়ন 16263। মানসিক সহায়তা: কান পেতে রই 09612-119911।
 
       **আপনার তথ্য**
@@ -50,9 +50,9 @@ interface:
       - It does not prescribe, and it does not set or change anyone's dose. It only tells you, with the source, what official or recognised first-aid guidance says or what a medicine's label says.
       - Talk to a registered doctor before starting, stopping or changing any treatment.
 
-      **In an emergency**
-      - For chest pain, trouble breathing, fainting, seizures, heavy bleeding, a snakebite or thoughts of self-harm, **call 999 first** or go to the nearest hospital emergency department.
-      - You can use this for guidance on what to do while help is on the way or on the way to hospital, but never delay calling or leaving because of it.
+      **In a serious situation**
+      - This is not an emergency service. It does not alert anyone, send an ambulance or monitor your condition.
+      - In a serious situation it tells you step by step what to do and when to go to hospital, but the decision to get care is yours, and never delay care while waiting for an answer here.
       - Health advice by phone: Shasthyo Batayon 16263. Emotional support: Kaan Pete Roi 09612-119911.
 
       **Your information**
@@ -109,7 +109,7 @@ modelSpecs:
         endpoint: 'agents'
         agent_id: 'agent_medical_research'
         modelLabel: '🩺 Super-Power Doctor AI'
-        greeting: 'আসসালামু আলাইকুম! উপসর্গ, ওষুধ, ল্যাব রিপোর্ট বা প্রেসক্রিপশন নিয়ে বাংলা বা English-এ লিখুন। আমি WHO, NHS, DGHS আর PubMed-এর মতো উৎস দেখে ধাপে ধাপে উত্তর দেব। জরুরি অবস্থায় আগে 999-এ কল করুন।'
+        greeting: 'আসসালামু আলাইকুম! উপসর্গ, ওষুধ, ল্যাব রিপোর্ট বা প্রেসক্রিপশন নিয়ে বাংলা বা English-এ লিখুন। আমি WHO, NHS, DGHS আর PubMed-এর মতো উৎস দেখে ধাপে ধাপে উত্তর দেব।'
 
 registration:
   socialLogins: []

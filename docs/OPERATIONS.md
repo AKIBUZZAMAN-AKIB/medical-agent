@@ -12,12 +12,15 @@ instead of stopping at "see a doctor".
 - Urgency is the model's own judgement. There is no triage tool, no red-flag
   list and no keyword or regex rule anywhere that labels a message as an
   emergency. The model reads the whole message and decides.
-- When the model judges a life-threatening situation, the reply starts with one line, `🚨 এখনই 999-এ কল করুন।`
-  (plus Kaan Pete Roi for self-harm), followed by the full step-by-step help:
-  what to do now, on the way, danger signs, likely causes, what to tell the
-  hospital, what to do if the hospital is far, and questions.
-- Non-emergencies never get the 999 line, and neither does a definition
-  question such as "what is a seizure" or "heart attack ki".
+- No reply carries a scripted emergency-call line, alarm emoji or forced
+  phone number. When the model judges a life-threatening situation, it opens
+  with the first thing to do and gives the full step-by-step help: what to do
+  now, getting to care (it says plainly when a hospital is needed, where and
+  why), danger signs, likely causes, what to tell the hospital, what to do if
+  the hospital is far, and questions. For self-harm it offers the Kaan Pete Roi
+  emotional-support line.
+- A definition question such as "what is a seizure" or "heart attack ki" gets
+  a normal informative answer.
 - Every tool result carries short hints added by the server
   (`src/language.ts`): a reply-language note when the user writes Bangla or
   Banglish, and correct fever home care (paracetamol is the right medicine
@@ -25,11 +28,14 @@ instead of stopping at "see a doctor".
   aspirin and other NSAIDs when dengue is possible; no aspirin under 16).
 - Doses: only what an official first-aid guideline or the drug label says,
   with the source. The consent text says the same.
-- `MEDICAL_TRIAGE_MODE=control` restores the old triage-first behaviour.
 
-Agent instructions live in `packages/mcp-medical/agent/instructions.md`; the
-copies stored in MongoDB (main agent + specialist sub-agents, each with its
-own prefix) must be updated whenever that file changes.
+The main agent's instructions live in `packages/mcp-medical/agent/instructions.md`.
+Each specialist sub-agent has its own skill file in
+`packages/mcp-medical/agent/subagents/` (role, method, tools, limits), followed
+by the shared rules in `_shared.md` and the person-record rules from
+`config/seed-medical-agent.js`. Specialists report to the main agent and do not
+carry its user-facing instructions. The copies stored in MongoDB must be
+updated whenever any of these files change.
 
 ## Tools stack
 

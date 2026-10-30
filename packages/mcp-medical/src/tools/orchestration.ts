@@ -1,37 +1,14 @@
 /**
  * Specialist sub-agent blueprint generator.
  *
- * This file used to hold `SPECIALTY_PROFILES`: five hand-written profiles, each
- * with a `keywords: RegExp` of clinical vocabulary (dengue/fever/platelet,
- * heart/bp/egfr, pregnan/breastfeed, migraine/stroke, and a catch-all that matched everything)
- * plus a fixed `redFlags`, `contextQuestions` and `recommendedTools` list. The
- * "dynamic specialist" was therefore not dynamic at all: the specialist was
- * whichever profile happened to be listed first whose regex matched, and every
- * clinical statement the sub-agent was told to make was author-invented text
- * keyed on that match.
- *
- * It has been removed deliberately, for the same reason the emergency keyword
- * lists were removed from this package:
- *
- *  - The caller already knows the specialty. It arrives as `args.specialty`, in
- *    the user's own words and language. A regex list of English (and no Bangla)
- *    disease words could only ever *disagree* with the person who asked.
- *  - A red-flag list is a clinical claim. Copying five hand-written claim sets
- *    into every spawned specialist is not a safety guarantee; it is untraceable
- *    clinical content with no author, no review and no version.
- *  - First-match-wins over an ordered array makes behaviour depend on array
- *    order — invisible, untestable, and impossible to audit.
- *
- * What the tool does now: it renders a blueprint from what it is *given* — the
- * specialty label, the clinical focus, and (optionally) the red flags, context
- * questions and tool subset that the calling agent chose. It matches nothing,
- * enumerates nothing clinical, and says so in its own output. Tool names are
- * read from the live registry, so the catalogue cannot drift from the server.
- *
- * Consequence, stated where it cannot be missed: with no `red_flags` supplied,
- * the blueprint contains **no red-flag triggers** and says so, instead of
- * silently substituting an author's list. Urgency is not decided by this tool
- * or by any word list: the model reads the whole message and judges it.
+ * Renders a persistable `agent_dyn_*` specification from what the calling agent
+ * supplies: the specialty label (in the user's own words and language), the
+ * clinical focus, and optionally the danger signs, context questions and tool
+ * subset it chose. The tool holds no clinical profiles, matches no keywords and
+ * enumerates nothing clinical; fields the caller leaves empty come back empty
+ * with a notice saying so. Tool names are read from the live registry, so the
+ * catalogue cannot drift from the server. Urgency is judged by the model from
+ * the whole case, never by this tool.
  */
 import { z } from 'zod';
 import { bulletList, composeResult, definitionList, heading } from '../format.js';
@@ -58,7 +35,7 @@ export const orchestrationTools = [
     group: 'orchestration',
     title: 'Specialist sub-agent blueprint renderer (no built-in clinical profiles)',
     description:
-      'Render a persistable LibreChat `agent_dyn_*` specialist sub-agent specification from the specialty label and clinical focus you supply, plus any red flags, context-seeking questions and tool subset you choose. This tool holds no clinical profiles, no keyword matcher and no red-flag list of its own: unmatched or unspecified fields come back empty with a notice saying so, never filled in from an author-authored table. Available MCP tool names are read from the live registry so the catalogue cannot drift.',
+      'Render a persistable LibreChat `agent_dyn_*` specialist sub-agent specification from the specialty label and clinical focus you supply, plus any danger signs, context-seeking questions and tool subset you choose. This tool holds no clinical profiles, no keyword matcher and no danger-sign list of its own: unmatched or unspecified fields come back empty with a notice saying so, never filled in from an author-authored table. Available MCP tool names are read from the live registry so the catalogue cannot drift.',
     readOnly: true,
     inputSchema: {
       specialty: z
@@ -71,11 +48,11 @@ export const orchestrationTools = [
         .string()
         .min(3)
         .describe('Specific patient question or clinical problem this sub-agent must investigate'),
-      red_flags: z
+      danger_signs: z
         .array(z.string().min(1))
         .optional()
         .describe(
-          'Red-flag escalation triggers for this sub-agent, chosen by the calling agent from the evidence it gathered (for example the danger signs it found in the case). Omitted = the blueprint ships no red-flag triggers and says so; nothing is invented here.',
+          'Danger signs that should make this sub-agent advise hospital or urgent in-person care, chosen by the calling agent from the evidence it gathered for this case. Omitted = the blueprint ships none and says so; nothing is invented here.',
         ),
       context_questions: z
         .array(z.string().min(1))
@@ -101,7 +78,7 @@ export const orchestrationTools = [
       const requestedTools = cleanList(args.tools);
       const unknownTools = requestedTools.filter((name) => !catalogNames.has(name));
       const grantedTools = requestedTools.filter((name) => catalogNames.has(name));
-      const redFlags = cleanList(args.red_flags);
+      const dangerSigns = cleanList(args.danger_signs);
       const contextQuestions = cleanList(args.context_questions);
 
       const cleanSlug = slugify(args.specialty);
@@ -124,11 +101,12 @@ export const orchestrationTools = [
         ].join('\n'),
       ];
 
-      if (redFlags.length > 0) {
+      if (dangerSigns.length > 0) {
         sections.push(
-          [heading('Red-Flag Escalation Triggers (caller-supplied)'), bulletList(redFlags)].join(
-            '\n',
-          ),
+          [
+            heading('Danger Signs Needing Urgent Care (caller-supplied)'),
+            bulletList(dangerSigns),
+          ].join('\n'),
         );
       }
 
@@ -156,11 +134,11 @@ export const orchestrationTools = [
           name: `${args.specialty.trim()} Specialist Sub-Agent`,
           category: 'medical-specialist',
           mcpTools: grantedTools.length > 0 ? grantedTools : [],
-          redFlagTriggers: redFlags,
+          dangerSigns,
           contextQuestions: contextQuestions.length > 0 ? contextQuestions : [],
           safetyInvariants: [
-            'Never diagnose or prescribe/adjust doses',
-            'Judge urgency from the whole message and escalate a life-threatening situation with a concrete time window',
+            'Never diagnose; give a dose only as an official guideline or the drug label states it, with the source',
+            'Judge urgency from the whole case and say plainly when hospital care is needed, where and how fast; no scripted emergency-call line',
             'Never cite unverified sources or retired FDA pregnancy letter categories',
           ],
         },
@@ -171,11 +149,11 @@ export const orchestrationTools = [
 
       const notices: string[] = [
         'This blueprint contains no clinical vocabulary of its own. Everything clinical in it was supplied by the caller; fields the caller left empty came back empty on purpose.',
-        'The rendered sub-agent has no keyword-based emergency screen. It must judge urgency itself from the whole message, never from a word list.',
+        'The rendered sub-agent judges urgency itself from the whole case, never from a word list.',
       ];
-      if (redFlags.length === 0) {
+      if (dangerSigns.length === 0) {
         notices.push(
-          'No red-flag triggers were supplied, so this sub-agent spec has none. Do not read that as "no red flags exist" — derive them from the facts of this case.',
+          'No danger signs were supplied, so this sub-agent spec has none. Do not read that as "no danger signs exist" — derive them from the facts of this case.',
         );
       }
       if (unknownTools.length > 0) {
@@ -189,8 +167,8 @@ export const orchestrationTools = [
         sections,
         sources: [
           {
-            name: 'HealthBench Clinical Evaluation Rubric (Arora et al., OpenAI 2025)',
-            url: 'https://arxiv.org/abs/2505.08775',
+            name: 'LibreChat Agents documentation',
+            url: 'https://www.librechat.ai/docs/features/agents',
           },
         ],
         notices,

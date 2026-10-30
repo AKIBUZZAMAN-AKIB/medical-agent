@@ -47,8 +47,9 @@ The server has no emergency triage tool, no red-flag knowledge base and no
 keyword or regex rule that labels a message as an emergency. Earlier revisions
 had both a word list and a classifier-backed triage tool; both were removed
 because a word match cannot tell "what is a seizure" from "my child is having a
-seizure now". The model reads the whole message and decides; the agent
-instructions say when to open with the one 999 line and when not to.
+seizure now". The model reads the whole message and decides. No scripted emergency-call line
+is forced on any reply; when someone needs a hospital, the agent says so as
+part of its medical advice.
 
 - **Emergencies get actions, not a phone number.**
 

@@ -84,14 +84,15 @@ user message
    │
    └─► the model reads the whole message, researches with the lookup tools,
        and judges urgency itself
-          life-threatening now → one 999 line, then full step-by-step help
-          anything else        → normal answer, danger signs listed, no 999 line
+          life-threatening now → first action first, full step-by-step help,
+                                 says plainly when a hospital is needed
+          anything else        → normal answer, danger signs listed
 ```
 
 There is no triage tool, red-flag knowledge base or keyword/regex rule. An
 earlier revision had a pattern-list screen (`emergency_triage_check`); it was
 removed because a word match cannot tell "what is a seizure" from "my child is
-having a seizure now". The rules for when to open with 999 live in
+having a seizure now". No reply carries a scripted emergency-call line. The urgency rules live in
 `packages/mcp-medical/agent/instructions.md` and are pinned by
 `instructions.spec.ts`.
 

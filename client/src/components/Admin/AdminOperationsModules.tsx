@@ -567,12 +567,12 @@ export function GovernanceRbacAndBanners({
             type="button"
             onClick={() =>
               setBannerText(
-                '🆘 জরুরি মেডিকেল সেবা: বুকে চাপ ব্যথা, শ্বাসকষ্ট বা স্ট্রোকের লক্ষণে সাথে সাথে ৯৯৯ (999) নম্বরে কল করুন।',
+                '🏥 বুকে চাপ ব্যথা, শ্বাসকষ্ট বা স্ট্রোকের লক্ষণ দেখা দিলে দেরি না করে নিকটস্থ হাসপাতালের জরুরি বিভাগে যান।',
               )
             }
             className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-[11px] text-rose-300"
           >
-            + 999 Emergency Template
+            + Urgent Care Template
           </button>
         </div>
 

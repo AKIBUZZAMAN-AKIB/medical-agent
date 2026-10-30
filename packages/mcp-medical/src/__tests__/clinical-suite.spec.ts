@@ -351,7 +351,7 @@ describe('Dynamic specialist_subagent_blueprint & 33-tool registry', () => {
     expect(blueprint.text).toContain('Tropical Infectious Diseases & Dengue');
     expect(blueprint.text).toContain('Live MCP Tool Catalogue');
     expect(blueprint.text).toContain('lab_result_interpreter');
-    expect(blueprint.text).toContain('No red-flag triggers were supplied');
+    expect(blueprint.text).toContain('No danger signs were supplied');
     expect(allTools.map((tool) => tool.name)).not.toContain('emergency_triage_check');
   });
 

@@ -26,7 +26,7 @@ SYSTEM = (
     'Always look things up with the tools before answering. Reply in the user\'s language: '
     'if the user writes Bangla or Banglish (Bangla in Latin letters), reply in Bangla script. '
     'Give practical, structured help with short headings and bullets, cite sources, '
-    'and write phone numbers with English digits (999, 16263).')
+    'and write every number with English digits (500 mg, 16263).')
 
 TOOLS = [{'type': 'function', 'function': {
     'name': 'disease_knowledge_search',

@@ -41,8 +41,8 @@ describe('agent instructions — safety rules that must survive editing', () => 
     expect(instructions).toMatch(/You are an AI, and you say so plainly if asked/);
   });
 
-  it('treats under-triage as the more dangerous error', () => {
-    expect(instructions).toMatch(/under-triage/i);
+  it('treats underestimating urgency as the more dangerous error', () => {
+    expect(instructions).toMatch(/Underestimating urgency is the dangerous error/i);
     expect(instructions).toMatch(/When you cannot tell, give the higher urgency/i);
     /** The sentence that ends a conversation before the illness does. */
     expect(instructions).toMatch(/Never close with reassurance you have not earned/i);
@@ -60,31 +60,42 @@ describe('agent instructions — safety rules that must survive editing', () => 
     expect(instructions).toMatch(/Pregnancy and Lactation Labeling Rule/i);
   });
 
-  it('gives the crisis contact on every mention of self-harm', () => {
-    expect(instructions).toMatch(/Give the crisis contact every time/i);
+  it('offers the emotional-support line on every mention of self-harm', () => {
+    expect(instructions).toMatch(/Whenever self-harm comes up, offer the Kaan Pete Roi/i);
   });
 
   it('leaves urgency to the model, with no keyword screen or triage tool', () => {
     expect(instructions).toMatch(
-      /No tool, keyword list or pattern decides whether a message is an emergency/i,
+      /No tool, keyword list or pattern decides whether a situation is urgent/i,
     );
     expect(instructions).toMatch(/A single word is never\s+enough/i);
     expect(instructions).not.toMatch(/emergency_triage_check/);
   });
 
-  it('opens a real emergency with exactly one 999 line and keeps it off everything else', () => {
-    expect(instructions).toMatch(/open the reply with \*\*one short line\*\*/i);
-    expect(instructions).toMatch(/🚨 এখনই 999-এ কল করুন।/);
-    expect(instructions).toMatch(/🚨 Call 999 now\./);
-    expect(instructions).toMatch(/\*\*Anything else\*\*: no 999 line/i);
+  it('has no scripted emergency-call line and gives the help itself', () => {
+    /** Calling services is the user's decision; the agent's job is the medical
+     *  help. No fixed opener, alarm emoji or emergency number is scripted. */
+    expect(instructions).not.toMatch(/999|৯৯৯|🚨/);
+    expect(instructions).not.toMatch(/call emergency services/i);
+    expect(instructions).toMatch(
+      /Do not tell the user to phone an emergency or\s+ambulance number/i,
+    );
+    expect(instructions).toMatch(
+      /There is no fixed opening line, no alarm emoji and no scripted\s+sentence/i,
+    );
+    expect(instructions).toMatch(/Open with the first thing to do right now/i);
+    /** A doctor still says plainly when hospital care is needed. */
+    expect(instructions).toMatch(
+      /When\s+a person needs hospital or urgent in-person care, say so plainly/i,
+    );
     /** A definition question is information, not an emergency. */
-    expect(instructions).toMatch(/a normal informative answer\s+with no 999 line/i);
+    expect(instructions).toMatch(
+      /\(a definition, education, general knowledge\): a normal informative answer/i,
+    );
   });
 
-  it('writes out the danger signs when it is not an emergency', () => {
-    expect(instructions).toMatch(
-      /List the danger signs that\s+would make it an emergency instead/i,
-    );
+  it('writes out the danger signs when it is not urgent', () => {
+    expect(instructions).toMatch(/with the danger signs\s+that would make it urgent/i);
   });
 
   it('keeps clinical facts out of memory and personal facts out of databases', () => {

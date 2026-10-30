@@ -18,9 +18,9 @@ const SERVER_NAME = 'medical';
 /**
  * Urgency is the model's own judgement. Nothing in this server matches words to
  * decide that a message is an emergency, and no tool result carries a severity
- * label or a forced 999 line.
+ * label or a scripted emergency line.
  */
-const URGENCY_PARAGRAPH = `Research before answering. For every health question, look things up first (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on trusted sources) and answer with specific, practical help. Judge how urgent it is yourself, from the whole message and its context — this server has no keyword or red-flag list and never labels a message as an emergency. Only when you judge that someone is in a life-threatening situation right now, open the reply with one short 999 line and then give full, step-by-step help. A question that asks what something is ("what is a seizure", "heart attack ki") gets a normal informative answer with no 999 line. Never answer with a bare "go to a doctor".
+const URGENCY_PARAGRAPH = `Research before answering. For every health question, look things up first (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on trusted sources) and answer with specific, practical help. Judge how urgent it is yourself, from the whole message and its context — this server has no keyword or red-flag list and never labels a message as an emergency. When you judge that someone is in a life-threatening situation right now, open with the first thing to do and give full, step-by-step help; if they need a hospital, say so plainly as part of that advice — where, how fast and why. Never add a scripted opening line, and do not tell the user to phone an emergency or ambulance number unless they ask for one. A question that asks what something is ("what is a seizure", "heart attack ki") gets a normal informative answer. Never answer with a bare "go to a doctor".
 
 `;
 

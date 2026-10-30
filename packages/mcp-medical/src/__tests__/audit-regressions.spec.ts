@@ -283,7 +283,7 @@ describe('no predefined clinical keyword list drives behaviour', () => {
       {
         specialty: 'নিউরোলজি',
         clinical_focus: 'Synthetic case: recurrent headache',
-        red_flags: ['Caller-supplied escalation: any new focal deficit'],
+        danger_signs: ['Caller-supplied escalation: any new focal deficit'],
         context_questions: ['Caller-supplied: how did the headache start?'],
         tools: ['lab_result_interpreter', 'not_a_real_tool'],
       },
@@ -300,14 +300,15 @@ describe('no predefined clinical keyword list drives behaviour', () => {
     expect(text).toMatch(/no profile matched, no keyword list consulted/i);
   });
 
-  it('invents no red flags when the caller supplies none', async () => {
+  it('invents no danger signs when the caller supplies none', async () => {
     const out = await blueprintTool.handler(
       { specialty: 'Cardiology', clinical_focus: 'Synthetic case' },
       { env, http: scriptedHttp([]) },
     );
     const text = String(out.text ?? out);
-    expect(text).toContain('No red-flag triggers were supplied');
-    expect(text).not.toContain('Mandatory Red-Flag Escalation Triggers');
+    expect(text).toContain('No danger signs were supplied');
+    expect(text).not.toContain('Danger Signs Needing Urgent Care');
+    expect(text).not.toMatch(/red.?flag/i);
     /** A blueprint with no tool choice lists the live catalogue, not a preset. */
     expect(text).toContain('Live MCP Tool Catalogue');
     expect(text).toMatch(/mcpTools": \[\]/);
@@ -322,7 +323,7 @@ describe('no predefined clinical keyword list drives behaviour', () => {
     }
   });
 
-  it('never adds an emergency label or a 999 instruction to a tool result because of a word', () => {
+  it('never adds an emergency label or an emergency-number instruction to a tool result because of a word', () => {
     for (const message of [
       'what is a seizure',
       'heart attack ki',
@@ -331,7 +332,7 @@ describe('no predefined clinical keyword list drives behaviour', () => {
       'I want to kill myself',
     ]) {
       const hints = resultHints({ query: message }).join('\n');
-      expect(hints).not.toMatch(/EMERGENCY|red.?flag|Call 999 now|এখনই 999|🚨/i);
+      expect(hints).not.toMatch(/EMERGENCY|red.?flag|\b999\b|৯৯৯|🚨/i);
     }
   });
 

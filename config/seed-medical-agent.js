@@ -24,6 +24,7 @@ const {
 const { logger } = require('@librechat/data-schemas');
 
 const AGENT_DIR = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'agent');
+const SUBAGENT_DIR = path.join(AGENT_DIR, 'subagents');
 const SERVER_ENTRY = path.resolve(__dirname, '..', 'packages', 'mcp-medical', 'dist', 'index.js');
 
 /**
@@ -42,125 +43,127 @@ const subagentRecordInstruction = [
   'Write only when the task or the user explicitly asks you to remember something durable, and never to a person the user has not agreed to keep a record for.',
 ].join('\n');
 
+/**
+ * Specialist sub-agents. Each one's instructions are its own skill file in
+ * packages/mcp-medical/agent/subagents/ (role, method, tools, limits), followed
+ * by the shared working rules in _shared.md and the record instruction above.
+ * The main agent's user-facing instructions are deliberately not copied in: a
+ * specialist reports to the main agent and never writes the user's reply.
+ */
 const SPECIALIST_SUBAGENT_SPECS = [
   {
     id: 'agent_sub_emergency_triage',
     name: 'Emergency & First-Aid Sub-Agent',
     description:
-      'Judges from the whole case whether a situation is life-threatening (no keyword list decides it), reads critical lab values, plans bystander first aid and time-critical escalation, and checks urgent safety recalls.',
+      'Judges from the whole case how urgent it is, gives bystander first-aid steps, says when and where hospital care is needed, and reads critical lab values.',
     toolNames: [
-      'lab_result_interpreter',
-      'clinical_calculator',
-      'safety_recalls',
-      /** Its own focus prompt promises device-recall checks; without this it
-       *  could only search drug and food recalls. */
-      'device_approval',
-      'drug_adverse_event_summary',
+      'disease_knowledge_search',
       'condition_lookup',
+      'pubmed_search',
+      'clinical_calculator',
+      'lab_result_interpreter',
+      'drug_label',
+      'drug_adverse_event_summary',
       'plain_language_summary',
     ],
-    focusPrompt:
-      'Judge urgency yourself from the whole case, never from a single word. Focus on life-threatening situations, critical laboratory panic thresholds, time-critical escalation windows, bystander rescue steps, and urgent device/drug recalls.',
+    skillFile: 'emergency-first-aid.md',
   },
   {
     id: 'agent_sub_pharmacology_ddi',
-    name: 'Clinical Pharmacology, South Asian Formulary & PGx Sub-Agent',
+    name: 'Clinical Pharmacology, Bangladesh Formulary & PGx Sub-Agent',
     description:
-      'Resolves Bangladeshi/regional brand medicines across 24,725 BDDrugBank formulations with BDT price comparison, verifies FDA/DailyMed labels & DDI matrices, and checks live CPIC pharmacogenomics.',
+      'Resolves Bangladesh brand names to generics, gives label dosing, interactions, safety warnings and CPIC pharmacogenomics, and lists same-generic Bangladesh brands with prices.',
     toolNames: [
       'bd_medicine_lookup',
-      'pharmacogenomics_guideline',
       'drug_lookup',
       'drug_label',
       'drug_interaction_check',
       'drug_safety_actions',
       'drug_adverse_event_summary',
       'drug_class_atc',
+      'pharmacogenomics_guideline',
       'drug_bioactivity',
       'compound_properties',
     ],
-    focusPrompt:
-      'Resolve every Bangladeshi or regional brand name via bd_medicine_lookup first, check CPIC pharmacogenomics via pharmacogenomics_guideline when actionable genes exist, verify current FDA/DailyMed label sections and boxed warnings, and report all clinically significant drug-drug or disease-drug interactions plus lowest-cost bioequivalent options.',
+    skillFile: 'pharmacology-bd-formulary.md',
   },
   {
     id: 'agent_sub_cardio_nephro_endo',
     name: 'Cardiology, Nephrology & Endocrinology Sub-Agent',
     description:
-      'Computes deterministic renal/cardiac/metabolic scores (2021 CKD-EPI eGFR, Cockcroft-Gault CrCl, CHA2DS2-VASc, HAS-BLED, HEART, South Asian BMI, QTc) and synthesizes GDMT trials.',
+      'Runs validated scores (CKD-EPI 2021, Cockcroft-Gault, CHA2DS2-VASc, HAS-BLED, HEART, QTc, Asian BMI), interprets cardiac, renal, diabetes and thyroid labs, and checks renal dosing and interactions against the label.',
     toolNames: [
       'clinical_calculator',
       'lab_result_interpreter',
-      'bd_medicine_lookup',
-      'pharmacogenomics_guideline',
       'drug_label',
       'drug_interaction_check',
+      'bd_medicine_lookup',
+      'pharmacogenomics_guideline',
       'pubmed_search',
       'pubmed_article',
       'clinical_trials',
-      'icd10cm_code',
       'condition_lookup',
+      'icd10cm_code',
     ],
-    focusPrompt:
-      'Always compute exact organ-function and risk scores via clinical_calculator and lab_result_interpreter rather than mental arithmetic, check renal/hepatic label adjustments, and cite landmark cardiovascular/renal/metabolic trials.',
+    skillFile: 'cardio-renal-metabolic.md',
   },
   {
     id: 'agent_sub_maternal_peds',
-    name: 'Maternal-Fetal, Lactation & Pediatric Safety Sub-Agent',
+    name: 'Maternal, Lactation & Paediatric Sub-Agent',
     description:
-      'Retrieves NLM LactMed breastfeeding records, current FDA PLLR pregnancy narratives (never retired A/B/C/D/X letters), and weight-capped pediatric dose math checks.',
+      'Medicine safety in pregnancy (label narrative, no letter categories) and breastfeeding (LactMed), child health and fever, and paediatric doses only as the label or an official guideline states them.',
     toolNames: [
-      'drug_lactation',
       'drug_label',
+      'drug_lactation',
       'bd_medicine_lookup',
-      'clinical_calculator',
       'drug_lookup',
       'drug_adverse_event_summary',
+      'clinical_calculator',
       'pubmed_search',
+      'disease_knowledge_search',
     ],
-    focusPrompt:
-      'Retrieve NLM LactMed and FDA PLLR Pregnancy/Lactation narrative sections verbatim, verify pediatric mg/kg math via clinical_calculator (pediatric_dose_check), state infant age/weight/prematurity caveats, and never report retired FDA pregnancy letter categories.',
+    skillFile: 'maternal-pediatric.md',
   },
   {
     id: 'agent_sub_oncology_genomics',
-    name: 'Precision Oncology, Pharmacogenomics & Rare Disease Sub-Agent',
+    name: 'Oncology, Genomics & Precision Medicine Sub-Agent',
     description:
-      'Analyzes ClinVar variant pathogenicity & review stars, live CPIC pharmacogenomics guidelines, MyGene/UniProt biology, Monarch phenotypes, and Open Targets pipelines.',
+      'Interprets ClinVar variants, genes and proteins, CPIC gene-drug guidance, condition targets and drugs, and recruiting cancer trials.',
     toolNames: [
-      'pharmacogenomics_guideline',
       'variant_clinical_significance',
       'gene_lookup',
       'protein_lookup',
+      'pharmacogenomics_guideline',
       'condition_lookup',
       'condition_targets_and_drugs',
       'ontology_search',
       'clinical_trials',
     ],
-    focusPrompt:
-      'Report exact ClinVar pathogenicity classifications with review status stars, CPIC germline pharmacogenomic recommendations, gene/protein biology, target-disease evidence, and recruiting precision oncology or rare-disease trials.',
+    skillFile: 'oncology-genomics.md',
   },
   {
     id: 'agent_sub_tropical_infectious',
-    name: 'Tropical Medicine, Dengue & Antibiotic Stewardship Sub-Agent',
+    name: 'Tropical & Infectious Disease Sub-Agent',
     description:
-      'Evaluates febrile thrombocytopenia, Dengue plasma-leakage CBC warning patterns, CURB-65 pneumonia severity, typhoid/respiratory infections, and WHO essential antimicrobials.',
+      'Fever and infection in Bangladesh (dengue, malaria, typhoid, kala-azar, TB, diarrhoeal disease): differential, the right test for the day of illness, fever care with paracetamol first, and careful antibiotic use.',
     toolNames: [
+      'disease_knowledge_search',
       'lab_result_interpreter',
       'clinical_calculator',
+      'drug_label',
       'bd_medicine_lookup',
       'drug_lookup',
       'drug_interaction_check',
       'pubmed_search',
       'health_statistics',
-      'disease_knowledge_search',
     ],
-    focusPrompt:
-      'Screen febrile illnesses with lab_result_interpreter and clinical_calculator (curb_65), enforce strict NSAID/aspirin avoidance in suspected Dengue or thrombocytopenia, check WHO Essential Medicines antimicrobial status via bd_medicine_lookup, and cite primary infectious disease guidelines.',
+    skillFile: 'tropical-infectious.md',
   },
   {
     id: 'agent_sub_evidence_trials',
-    name: 'Systematic Evidence, Full-Text & Trials Sub-Agent',
+    name: 'Evidence Synthesis & Clinical Trials Sub-Agent',
     description:
-      'Executes PubMed, PMC JATS full-text, Europe PMC citation graph, ClinicalTrials.gov v2, and WHO GHO epidemiological syntheses.',
+      'Finds and grades guidelines, systematic reviews and trials from PubMed, Europe PMC and full text, with effect sizes, limitations and relevance to Bangladesh.',
     toolNames: [
       'pubmed_search',
       'pubmed_article',
@@ -171,8 +174,7 @@ const SPECIALIST_SUBAGENT_SPECS = [
       'health_statistics',
       'plain_language_summary',
     ],
-    focusPrompt:
-      'Prioritize systematic reviews, meta-analyses, randomized controlled trials, and full-text methods/results via read_full_text, citing exact PMID, PMCID, DOI, and NCT identifiers.',
+    skillFile: 'evidence-trials.md',
   },
 ];
 
@@ -284,6 +286,16 @@ async function upsertAndGrantAgent({ Agent, grantPermission, author, shareWithRo
   return saved;
 }
 
+/** A specialist's own skill file, then the shared rules, then the record rules. */
+function subagentInstructions(subSpec) {
+  const read = (file) => fs.readFileSync(path.join(SUBAGENT_DIR, file), 'utf8').trim();
+  return [
+    read(subSpec.skillFile),
+    read('_shared.md'),
+    `## Person records\n\n${subagentRecordInstruction}`,
+  ].join('\n\n');
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const definition = JSON.parse(fs.readFileSync(path.join(AGENT_DIR, 'agent.json'), 'utf8'));
@@ -363,7 +375,7 @@ async function main() {
         id: subSpec.id,
         name: subSpec.name,
         description: subSpec.description,
-        instructions: `${subSpec.focusPrompt}\n\n${subagentRecordInstruction}\n\n${instructions}`,
+        instructions: subagentInstructions(subSpec),
         provider: definition.model.provider,
         model: definition.model.id,
         model_parameters: definition.modelParameters,
@@ -454,7 +466,11 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((error) => {
-  console.error(`[seed-medical-agent] failed: ${error.message}`);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`[seed-medical-agent] failed: ${error.message}`);
+    process.exit(1);
+  });
+}
+
+module.exports = { SPECIALIST_SUBAGENT_SPECS, subagentInstructions };

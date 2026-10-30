@@ -208,7 +208,7 @@ export function resultHints(args: unknown): string[] {
   const lang = detectReplyLanguage(text);
   if (lang === 'bn') {
     hints.push(
-      'REPLY LANGUAGE: The user writes Bangla or Banglish (Bangla in Latin letters). Write the whole answer in clear, natural Bangla script (standard Bangladeshi Bangla), with drug and test names in English in brackets where useful, e.g. প্যারাসিটামল (Paracetamol). Phone numbers always in English digits everywhere in the reply: 999 (never ৯৯৯), 16263 (never ১৬২৬৩).',
+      'REPLY LANGUAGE: The user writes Bangla or Banglish (Bangla in Latin letters). Write the whole answer in clear, natural Bangla script (standard Bangladeshi Bangla), with drug and test names in English in brackets where useful, e.g. প্যারাসিটামল (Paracetamol). Write every number (doses, lab values, phone numbers) with English digits, e.g. 500 mg, 16263.',
     );
   }
   if (FEVER.test(text)) {

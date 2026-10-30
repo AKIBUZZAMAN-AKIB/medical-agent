@@ -6,10 +6,10 @@
  * client, and checks what an agent actually receives:
  *
  * - the published catalogue has no triage / red-flag tool,
- * - the server instructions leave urgency to the model and say a definition
- *   question gets no 999 line,
+ * - the server instructions leave urgency to the model and script no
+ *   emergency-call line,
  * - an offline tool called with emergency-sounding words returns no forced
- *   EMERGENCY label or 999 instruction.
+ *   EMERGENCY label or emergency-number instruction.
  *
  *   node packages/mcp-medical/scripts/urgency-e2e.mjs
  *
@@ -24,7 +24,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const entry = path.resolve(here, '..', 'dist', 'index.js');
 
 const EXPECTED_TOOLS = 33;
-const FORCED_LABEL = /[Rr]ed-flag level|TRIAGE_DECISION|\bEMERGENCY\b|🚨|Call 999 now|এখনই 999/u;
+const FORCED_LABEL = /[Rr]ed-flag level|TRIAGE_DECISION|\bEMERGENCY\b|🚨|\b999\b|৯৯৯/u;
 
 /** Messages that a keyword list would have flagged. */
 const MESSAGES = [
@@ -78,8 +78,16 @@ try {
     'server instructions say there is no keyword list',
   );
   check(
-    /"what is a seizure"[^.]*no 999 line/i.test(instructions),
-    'server instructions give a definition question no 999 line',
+    !/\b999\b|৯৯৯|🚨/.test(instructions),
+    'server instructions script no emergency number or alarm line',
+  );
+  check(
+    /Never add a scripted opening line/i.test(instructions),
+    'server instructions forbid a scripted opening line',
+  );
+  check(
+    /"what is a seizure"[^.]*normal informative answer/i.test(instructions),
+    'server instructions give a definition question a normal answer',
   );
   check(
     !/emergency_triage_check/.test(instructions),
@@ -96,7 +104,10 @@ try {
       .map((part) => part.text)
       .join('\n');
     check(result.isError !== true && text.length > 0, `tool answered for: ${message}`);
-    check(!FORCED_LABEL.test(text), `no forced emergency label or 999 line for: ${message}`);
+    check(
+      !FORCED_LABEL.test(text),
+      `no forced emergency label or emergency number for: ${message}`,
+    );
   }
 } catch (error) {
   failures.push(
