@@ -137,28 +137,59 @@ function findEntry(
     return byKey;
   }
   const wanted = normalizeLabel(target.label);
-  return registry.profiles.find(
-    (entry) =>
-      entry.isSelf !== true &&
-      entry.profileId != null &&
-      normalizeLabel(String(entry.name ?? '')) === wanted,
+  const others = registry.profiles.filter(
+    (entry) => entry.isSelf !== true && entry.profileId != null,
   );
+  const byName = others.find((entry) => normalizeLabel(String(entry.name ?? '')) === wanted);
+  if (byName != null) {
+    return byName;
+  }
+  /** The label may be a record line copied back whole — name plus relationship,
+   *  in the form this module prints it or the older comma form. */
+  return others.find((entry) => {
+    if (entry.relationship == null) {
+      return false;
+    }
+    const name = String(entry.name ?? '');
+    return (
+      normalizeLabel(`${name}, ${entry.relationship}`) === wanted ||
+      normalizeLabel(`${name} (relationship: ${entry.relationship})`) === wanted
+    );
+  });
 }
 
 function formatProfileLine(profile: IProfileLean & { factCount?: number }): string {
   const who = profile.isSelf ? `${profile.name} (the user themselves)` : profile.name;
-  const relation = profile.relationship != null ? `, ${profile.relationship}` : '';
+  const relation = profile.relationship != null ? ` (relationship: ${profile.relationship})` : '';
   const count = profile.factCount ?? 0;
   return `- ${profile.profileId ?? SELF_PROFILE_ID}: ${who}${relation} — ${count} stored fact${
     count === 1 ? '' : 's'
   }`;
 }
 
+/** Which records exist, so a label that matched none can be retried with the right key. */
+function formatRecordList(registry: ProfileRegistry): string {
+  const ordered = [
+    ...registry.profiles.filter((entry) => entry.isSelf === true),
+    ...registry.profiles.filter((entry) => entry.isSelf !== true),
+  ];
+  return ordered.map((entry) => formatProfileLine(entry)).join('\n');
+}
+
 const unusableLabel = (label: string): string =>
   `"${label}" is punctuation or spacing only, so it does not name anyone and cannot be used as a record. Ask the user what they call this person.`;
 
+const noRecordFor = (label: string, registry: ProfileRegistry): string =>
+  [
+    `There is no record called "${label}". Records on file (the value before the colon is the key to pass as \`profile\`):`,
+    '',
+    formatRecordList(registry),
+    '',
+    `If the person the user means is clearly one of these, call \`${READ_PROFILE_TOOL_NAME}\` again with that record's key. If none of them is that person, nothing is stored about them: say so plainly, and never read or report another person's record in their place.`,
+  ].join('\n');
+
 const noSuchPerson = (label: string): string =>
-  `No facts are stored about ${label} yet. Answer from what the user tells you in this conversation, and do not describe an empty record as a known history. If they want a record kept, ask them first and then use \`${CREATE_PROFILE_TOOL_NAME}\`.`;
+  `No facts are stored about ${label} yet. If the user asked what is on file about them, say plainly that nothing is stored yet; do not answer a different question instead. Otherwise answer from what the user tells you in this conversation, and do not describe an empty record as a known history. If they want a record kept, ask them first and then use \`${CREATE_PROFILE_TOOL_NAME}\`.`;
 
 export function createListProfilesTool({
   userId,
@@ -176,7 +207,7 @@ export function createListProfilesTool({
         return 'No records are being kept for anyone yet.';
       }
       return [
-        'People with a record on file:',
+        'People with a record on file (the value before the colon is the key to pass as `profile`):',
         '',
         ...ordered.map((profile) => formatProfileLine(profile as IProfileLean)),
         '',
@@ -209,7 +240,7 @@ export function createReadProfileTool({
       }
       const entry = findEntry(registry, target);
       if (entry == null && !target.isSelf) {
-        return noSuchPerson(target.label);
+        return noRecordFor(target.label, registry);
       }
       const partition = {
         userId,
@@ -223,7 +254,14 @@ export function createReadProfileTool({
       if (entries.length === 0) {
         return noSuchPerson(target.isSelf ? SELF_LABEL : target.label);
       }
-      return `Facts on file about ${target.isSelf ? SELF_LABEL : target.label}:\n\n${formatted.withKeys}`;
+      const recordKey = target.isSelf ? SELF_PROFILE_ID : (entry?.profileId ?? target.label);
+      return [
+        `Facts on file about ${target.isSelf ? SELF_LABEL : target.label}:`,
+        '',
+        formatted.withKeys,
+        '',
+        `If the user has told you in this conversation that any of these has changed — a medicine stopped, switched or re-dosed, a condition resolved, an entry that was a mistake — correct it now, before you answer: \`set_memory\` with the same key and \`profile\` set to \`${recordKey}\` (the value replaces the old one, so write the whole current entry), or \`delete_memory\` for what is no longer true at all. A change the user's own doctor made is the current fact. Then tell the user in one line what you changed.`,
+      ].join('\n');
     },
     {
       name: READ_PROFILE_TOOL_NAME,
@@ -277,7 +315,7 @@ export function createCreateProfileTool({
       const key = result.profile?.profileId ?? target.profileId;
       const relation =
         relationship != null && relationship.trim() !== '' ? ` (${relationship.trim()})` : '';
-      return `Opened a record for "${target.label}"${relation} as \`${key}\`. Tell the user you are now keeping a separate record for them, that it holds nothing yet, and that they can ask you to remove it at any time.`;
+      return `Opened a record for "${target.label}"${relation} as \`${key}\`. The user has agreed to this record, so do not ask again. Now store, in this same turn, every lasting fact the user has already told you about this person in this conversation: one \`set_memory\` call per fact type with \`profile\` set to \`${key}\`. Then tell the user, in one or two lines, what you stored under this record and that they can ask you to remove it at any time.`;
     },
     {
       name: CREATE_PROFILE_TOOL_NAME,

@@ -701,7 +701,7 @@ export function agentHasInlineMemoryTools(agent: InlineMemoryAgent): boolean {
  */
 export const profileIndexInstructions = `You keep a separate record for each person the user cares about, including themselves. Facts about a person are not in this message and are not something you already know: call \`read_profile\` for the person the question is about, before you answer anything that depends on what you have on file, and before you write a new fact about them. Never answer from one person's record while the question is about another, and never combine two people's facts into one answer.
 
-The user themselves always has a record. Anyone else appears only because the user agreed to you keeping one — if someone is not listed, they are not being tracked, and you must ask before you create a record for them (with \`create_profile\`, once they agree). Any person the user names can have a record: there is no fixed list of who counts, and their own words are the label.`;
+The user themselves always has a record. Anyone else appears only because the user agreed to you keeping one — if someone is not listed, they are not being tracked, and you must ask before you create a record for them (with \`create_profile\`, once they agree). Any person the user names can have a record: there is no fixed list of who counts, and their own words are the label. Match the person a question is about to a record by name or relationship; when no record is clearly that person, nothing is stored about them — say so, and never read or report another person's record in their place.`;
 
 export interface ProfileIndexEntry {
   profileId?: string;
@@ -717,12 +717,12 @@ export function formatProfileIndex(profiles: ProfileIndexEntry[]): string {
   }
   const lines = profiles.map((profile) => {
     const who = profile.isSelf ? `${profile.name} (the user themselves)` : profile.name;
-    const relation = profile.relationship != null ? `, ${profile.relationship}` : '';
+    const relation = profile.relationship != null ? ` (relationship: ${profile.relationship})` : '';
     const id = profile.profileId ?? 'self';
     const count = profile.factCount;
     return `- ${id}: ${who}${relation} — ${count} stored fact${count === 1 ? '' : 's'}`;
   });
-  return `${profileIndexInstructions}\n\nPeople on file:\n${lines.join('\n')}`;
+  return `${profileIndexInstructions}\n\nPeople on file:\n${lines.join('\n')}\n\nThe value before each colon is the record's key: pass exactly that as \`profile\`.`;
 }
 
 /** Builds the existing-memory system context for an inline-memory agent. */

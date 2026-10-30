@@ -972,7 +972,7 @@ describe('buildInlineMemoryContext with per-person records', () => {
 
     expect(context).toContain('People on file:');
     expect(context).toContain('self: Danny (the user themselves) — 3 stored facts');
-    expect(context).toContain('father: father, parent — 1 stored fact');
+    expect(context).toContain('father: father (relationship: parent) — 1 stored fact');
     expect(context).toContain('read_profile');
     /** The facts of a person are never sent unless the model asks for them. */
     expect(getFormattedMemories).not.toHaveBeenCalled();
@@ -1364,6 +1364,6 @@ describe('buildInlineMemoryContext with profiles', () => {
     });
     expect(getFormattedMemories).not.toHaveBeenCalled();
     expect(context).toContain('- self: Rahim (the user themselves) — 2 stored facts');
-    expect(context).toContain('- father: Father, parent — 1 stored fact');
+    expect(context).toContain('- father: Father (relationship: parent) — 1 stored fact');
   });
 });

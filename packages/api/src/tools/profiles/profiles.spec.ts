@@ -7,8 +7,8 @@ import {
   createUpdateProfileTool,
   createDeleteProfileTool,
 } from './runtime';
-import { registerProfileTools, buildProfileTools } from './index';
 import { getProfileToolDefinitions, SELF_PROFILE_ID } from './definitions';
+import { registerProfileTools, buildProfileTools } from './index';
 
 const selfProfile = {
   profileId: undefined,
@@ -241,7 +241,7 @@ describe('createListProfilesTool', () => {
     const tool = createListProfilesTool({ userId: 'user-1', ...methods });
     const output = await tool.func({});
     expect(output).toContain('self: Rahim (the user themselves) — 3 stored facts');
-    expect(output).toContain('relative, parent — 1 stored fact');
+    expect(output).toContain('relative (relationship: parent) — 1 stored fact');
     expect(output).not.toContain('Has asthma');
   });
 
@@ -309,8 +309,51 @@ describe('createReadProfileTool', () => {
     const methods = deps({ getUserProfiles: jest.fn().mockResolvedValue([selfProfile]) });
     const tool = createReadProfileTool({ userId: 'user-1', ...methods });
     const output = await tool.func({ profile: 'Nobody' });
-    expect(output).toContain('No facts are stored about Nobody yet');
+    expect(output).toContain('There is no record called "Nobody"');
+    expect(output).toContain('never read or report another person');
     expect(methods.getFormattedMemories).not.toHaveBeenCalled();
+  });
+
+  it('lists the records on file when a label matches none, so the right key can be used', async () => {
+    const mother = {
+      profileId: 'u_c4d6631330b006a5cd500f6446be03dd',
+      name: 'আম্মু',
+      relationship: 'মা',
+      isSelf: false,
+      factCount: 3,
+    };
+    const methods = deps({ getUserProfiles: jest.fn().mockResolvedValue([selfProfile, mother]) });
+    const tool = createReadProfileTool({ userId: 'user-1', ...methods });
+    const output = await tool.func({ profile: 'father' });
+    expect(output).toContain('- self: Rahim (the user themselves) — 2 stored facts');
+    expect(output).toContain(
+      '- u_c4d6631330b006a5cd500f6446be03dd: আম্মু (relationship: মা) — 3 stored facts',
+    );
+    expect(output).not.toContain('No facts are stored');
+    expect(methods.getFormattedMemories).not.toHaveBeenCalled();
+  });
+
+  it('finds a record when the name and relationship are passed together as listed', async () => {
+    const mother = {
+      profileId: 'u_c4d6631330b006a5cd500f6446be03dd',
+      name: 'আম্মু',
+      relationship: 'মা',
+      isSelf: false,
+      factCount: 3,
+    };
+    for (const label of ['আম্মু, মা', 'আম্মু (relationship: মা)']) {
+      const methods = deps({
+        getUserProfiles: jest.fn().mockResolvedValue([selfProfile, mother]),
+      });
+      const tool = createReadProfileTool({ userId: 'user-1', ...methods });
+      const output = await tool.func({ profile: label });
+      expect(output).toContain('Facts on file');
+      expect(output).toContain('`profile` set to `u_c4d6631330b006a5cd500f6446be03dd`');
+      expect(methods.getFormattedMemories).toHaveBeenCalledWith({
+        userId: 'user-1',
+        profileId: 'u_c4d6631330b006a5cd500f6446be03dd',
+      });
+    }
   });
 
   it('does not describe an empty record as a known history', async () => {
@@ -319,6 +362,7 @@ describe('createReadProfileTool', () => {
     const output = await tool.func({ profile: 'Relative' });
     expect(output).toContain('No facts are stored');
     expect(output).not.toContain('Facts on file');
+    expect(output).toContain('say plainly that nothing is stored yet');
   });
 });
 
@@ -333,6 +377,16 @@ describe('createCreateProfileTool', () => {
       relationship: 'kin',
     });
     expect(output).toContain('Opened a record for "Amma"');
+  });
+
+  it('tells the model to store the facts already given once the user agreed', async () => {
+    const methods = deps({ getUserProfiles: jest.fn().mockResolvedValue([selfProfile]) });
+    const tool = createCreateProfileTool({ userId: 'user-1', ...methods });
+    const output = await tool.func({ name: 'Amma', relationship: 'kin' });
+    expect(output).toContain('do not ask again');
+    expect(output).toContain('set_memory');
+    expect(output).toMatch(/`profile` set to `[^`]+`/);
+    expect(output).not.toContain('holds nothing yet');
   });
 
   it('refuses to open a second record for the user themselves', async () => {

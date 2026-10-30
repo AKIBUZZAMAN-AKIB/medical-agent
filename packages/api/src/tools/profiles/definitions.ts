@@ -34,7 +34,7 @@ export const LIST_PROFILES_DESCRIPTION: string = `Lists the people this user kee
 
 export const READ_PROFILE_TOOL_NAME_DESCRIPTION: string = `Returns the stored facts about one person on file, each with its date. Call it before answering anything that depends on what you already know about a person, and before writing a new fact about them. Pass the exact name from \`${LIST_PROFILES_TOOL_NAME}\`. You may only read the record of the person the current question is about; never merge facts from two people into one answer.`;
 
-export const CREATE_PROFILE_TOOL_NAME_DESCRIPTION: string = `Opens a separate record for one person, so that facts about them are never mixed into the user's own record or into anyone else's. Call it only after the user has clearly asked you to keep a record about that person — a mention of a relative, or your own assumption, is not permission. The user's own record always exists; never create one for them. Ask for the name exactly as the user says it, in their own language and spelling, and pass \`relationship\` only in the user's words. Creating a record stores no facts: it only opens the place where later factual writes about that person go.`;
+export const CREATE_PROFILE_TOOL_NAME_DESCRIPTION: string = `Opens a separate record for one person, so that facts about them are never mixed into the user's own record or into anyone else's. Call it only after the user has clearly asked you to keep a record about that person — a mention of a relative, or your own assumption, is not permission. The user's own record always exists; never create one for them. Ask for the name exactly as the user says it, in their own language and spelling, and pass \`relationship\` only in the user's words. Creating a record stores no facts by itself: it only opens the place where facts about that person go. Once it is open, write the facts the user has already told you about that person with \`set_memory\` and that person as \`profile\`, in the same turn, without asking for permission a second time.`;
 
 export const UPDATE_PROFILE_TOOL_NAME_DESCRIPTION: string = `Changes how a person's record is labelled — a correction of the name, an added relationship, or the user's own record being given their name. Facts already stored stay exactly where they are: the record keeps its storage key, so nothing has to be moved and nothing can be lost. Use it when the user corrects a name or spelling rather than opening a second record for the same person.`;
 
@@ -42,7 +42,7 @@ export const DELETE_PROFILE_TOOL_NAME_DESCRIPTION: string = `Removes a person's 
 
 /** The `profile` argument added to `set_memory` / `delete_memory` when enabled. */
 export const PROFILE_ARG_DESCRIPTION: string =
-  'Which person this fact is about: the user themselves (`self`), or someone they have agreed you may keep a record for. Use the exact name from the profile list. Only pass another person here after the user has agreed to keep a record for them.';
+  'Which person this fact is about: the user themselves (`self`), or someone they have agreed you may keep a record for. Pass the key exactly as the profile list shows it (the value before the colon), or the exact name on the record. Only pass another person here after the user has agreed to keep a record for them.';
 
 export function getProfileToolDefinitions(): LCTool[] {
   return [
