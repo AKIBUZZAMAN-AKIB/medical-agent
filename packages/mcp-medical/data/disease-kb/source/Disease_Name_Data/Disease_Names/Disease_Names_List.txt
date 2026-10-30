@@ -1,0 +1,1405 @@
+Global Disease Master Chart – Disease Names List
+Total unique diseases: 1400
+Note: Project currently at 1,400 diseases (target 2,000+). List is complete for all entries present.
+============================================================
+
+D0001: Influenza
+D0002: Coronavirus disease 2019 (COVID-19)
+D0003: Tuberculosis
+D0004: Malaria
+D0005: Human immunodeficiency virus infection
+D0006: Hepatitis B
+D0007: Measles
+D0008: Varicella
+D0009: Pertussis
+D0010: Gonorrhea
+D0011: Asthma
+D0012: Chronic obstructive pulmonary disease
+D0013: Community-acquired pneumonia
+D0014: Allergic rhinitis
+D0015: Essential hypertension
+D0016: Coronary artery disease
+D0017: Heart failure
+D0018: Atrial fibrillation
+D0019: Deep vein thrombosis
+D0020: Alzheimer's disease
+D0021: Parkinson's disease
+D0022: Epilepsy
+D0023: Migraine
+D0024: Multiple sclerosis
+D0025: Major depressive disorder
+D0026: Generalized anxiety disorder
+D0027: Schizophrenia
+D0028: Bipolar disorder
+D0029: Gastroesophageal reflux disease
+D0030: Peptic ulcer disease
+D0031: Irritable bowel syndrome
+D0032: Crohn's disease
+D0033: Type 1 diabetes mellitus
+D0034: Type 2 diabetes mellitus
+D0035: Hypothyroidism
+D0036: Graves' disease
+D0037: Iron-deficiency anemia
+D0038: Sickle cell disease
+D0039: Rheumatoid arthritis
+D0040: Systemic lupus erythematosus
+D0041: Breast cancer
+D0042: Lung cancer
+D0043: Colorectal cancer
+D0044: Prostate cancer
+D0045: Osteoarthritis
+D0046: Osteoporosis
+D0047: Chronic kidney disease
+D0048: Urinary tract infection (acute cystitis)
+D0049: Atopic dermatitis
+D0050: Cataract
+D0051: Dengue fever
+D0052: Chikungunya
+D0053: Zika virus disease
+D0054: Yellow fever
+D0055: Rabies
+D0056: Tetanus
+D0057: Diphtheria
+D0058: Meningococcal disease
+D0059: Listeriosis
+D0060: Leptospirosis
+D0061: Lyme disease
+D0062: Rocky Mountain spotted fever
+D0063: Candidiasis (invasive)
+D0064: Aspergillosis (invasive)
+D0065: Pneumocystis pneumonia
+D0066: Cryptococcosis
+D0067: Schistosomiasis
+D0068: Soil-transmitted helminthiasis (Ascariasis focus)
+D0069: Hookworm infection
+D0070: Onchocerciasis
+D0071: Lymphatic filariasis
+D0072: Trachoma
+D0073: Leprosy
+D0074: Buruli ulcer
+D0075: Yaws
+D0076: Celiac disease
+D0077: Ulcerative colitis
+D0078: Primary biliary cholangitis
+D0079: Autoimmune hepatitis
+D0080: Hemochromatosis (hereditary)
+D0081: Wilson disease
+D0082: Alpha-1 antitrypsin deficiency
+D0083: Cystic fibrosis
+D0084: Huntington disease
+D0085: Duchenne muscular dystrophy
+D0086: Spinal muscular atrophy
+D0087: Neurofibromatosis type 1
+D0088: Tuberous sclerosis complex
+D0089: Marfan syndrome
+D0090: Ehlers-Danlos syndrome (hypermobile type)
+D0091: Polycystic ovary syndrome
+D0092: Endometriosis
+D0093: Polycystic kidney disease (autosomal dominant)
+D0094: Gout
+D0095: Psoriatic arthritis
+D0096: Ankylosing spondylitis
+D0097: Systemic sclerosis
+D0098: Sjögren syndrome
+D0099: Giant cell arteritis
+D0100: Polymyalgia rheumatica
+D0101: Pancreatic cancer
+D0102: Ovarian cancer
+D0103: Cervical cancer
+D0104: Melanoma
+D0105: Non-melanoma skin cancer (basal cell carcinoma focus)
+D0106: Thyroid cancer (papillary focus)
+D0107: Leukemia (acute lymphoblastic focus)
+D0108: Non-Hodgkin lymphoma
+D0109: Multiple myeloma
+D0110: Hodgkin lymphoma
+D0111: Glaucoma (primary open-angle)
+D0112: Age-related macular degeneration
+D0113: Diabetic retinopathy
+D0114: Otitis media (acute)
+D0115: Chronic rhinosinusitis
+D0116: Obstructive sleep apnea
+D0117: Insomnia disorder
+D0118: Restless legs syndrome
+D0119: Narcolepsy
+D0120: Dental caries
+D0121: Periodontitis
+D0122: Oral squamous cell carcinoma
+D0123: Benign prostatic hyperplasia
+D0124: Erectile dysfunction
+D0125: Urinary incontinence (stress focus)
+D0126: Preeclampsia
+D0127: Gestational diabetes mellitus
+D0128: Postpartum depression
+D0129: Attention-deficit/hyperactivity disorder
+D0130: Autism spectrum disorder
+D0131: Obsessive-compulsive disorder
+D0132: Post-traumatic stress disorder
+D0133: Anorexia nervosa
+D0134: Bulimia nervosa
+D0135: Alcohol use disorder
+D0136: Opioid use disorder
+D0137: Chronic fatigue syndrome / Myalgic encephalomyelitis
+D0138: Fibromyalgia
+D0139: Cluster headache
+D0140: Idiopathic intracranial hypertension
+D0141: Myasthenia gravis
+D0142: Guillain-Barré syndrome
+D0143: Amyotrophic lateral sclerosis
+D0144: Multiple system atrophy
+D0145: Progressive supranuclear palsy
+D0146: Essential tremor
+D0147: Dystonia (isolated/idiopathic focus)
+D0148: Tourette syndrome
+D0149: Cerebral palsy
+D0150: Down syndrome
+D0151: Gaucher disease
+D0152: Fabry disease
+D0153: Pompe disease
+D0154: Niemann-Pick disease type C
+D0155: Mucopolysaccharidosis type I (Hurler/Scheie)
+D0156: Phenylketonuria
+D0157: Maple syrup urine disease
+D0158: Medium-chain acyl-CoA dehydrogenase deficiency
+D0159: Galactosemia (classic)
+D0160: Congenital hypothyroidism
+D0161: Congenital adrenal hyperplasia (21-hydroxylase deficiency)
+D0162: Turner syndrome
+D0163: Klinefelter syndrome
+D0164: Fragile X syndrome
+D0165: Prader-Willi syndrome
+D0166: Angelman syndrome
+D0167: Rett syndrome
+D0168: Tuberculosis (extrapulmonary focus already covered – new: Miliary tuberculosis)
+D0169: Leishmaniasis (visceral)
+D0170: African trypanosomiasis
+D0171: Chagas disease
+D0172: Echinococcosis (cystic)
+D0173: Neurocysticercosis
+D0174: Strongyloidiasis
+D0175: Toxoplasmosis (congenital and ocular focus)
+D0176: Amebiasis (invasive)
+D0177: Giardiasis
+D0178: Cryptosporidiosis
+D0179: Lead poisoning
+D0180: Carbon monoxide poisoning
+D0181: Organophosphate poisoning
+D0182: Acetaminophen (paracetamol) poisoning
+D0183: Opioid overdose (acute)
+D0184: Silicosis
+D0185: Asbestosis
+D0186: Mesothelioma (malignant)
+D0187: Noise-induced hearing loss
+D0188: Contact dermatitis (allergic)
+D0189: Psoriasis (plaque)
+D0190: Vitiligo
+D0191: Alopecia areata
+D0192: Bullous pemphigoid
+D0193: Pemphigus vulgaris
+D0194: Stevens-Johnson syndrome / Toxic epidermal necrolysis
+D0195: Hidradenitis suppurativa
+D0196: Rosacea
+D0197: Atopic keratoconjunctivitis
+D0198: Keratoconus
+D0199: Uveitis (anterior, idiopathic/HLA-B27 associated focus)
+D0200: Retinal detachment (rhegmatogenous focus)
+D0201: Esophageal cancer
+D0202: Gastric cancer
+D0203: Hepatocellular carcinoma
+D0204: Cholangiocarcinoma
+D0205: Pancreatic neuroendocrine tumor
+D0206: Thyroid cancer (medullary)
+D0207: Adrenocortical carcinoma
+D0208: Pheochromocytoma / Paraganglioma
+D0209: Primary hyperparathyroidism
+D0210: Hypoparathyroidism
+D0211: Cushing syndrome
+D0212: Addison disease
+D0213: Acromegaly
+D0214: Prolactinoma
+D0215: Diabetes insipidus (central)
+D0216: Syndrome of inappropriate antidiuretic hormone
+D0217: Polycythemia vera
+D0218: Essential thrombocythemia
+D0219: Primary myelofibrosis
+D0220: Aplastic anemia
+D0221: Immune thrombocytopenia
+D0222: Thrombotic thrombocytopenic purpura
+D0223: Hemophilia A
+D0224: Hemophilia B
+D0225: Von Willebrand disease
+D0226: Deep vein thrombosis (already covered as D0019 – replaced with: Pulmonary embolism)
+D0227: Aortic stenosis (severe calcific)
+D0228: Mitral regurgitation (chronic severe)
+D0229: Infective endocarditis
+D0230: Pericarditis (acute)
+D0231: Aortic dissection (acute type A focus)
+D0232: Abdominal aortic aneurysm
+D0233: Peripheral artery disease
+D0234: Raynaud phenomenon
+D0235: Kawasaki disease
+D0236: Henoch-Schönlein purpura
+D0237: Juvenile idiopathic arthritis
+D0238: Congenital heart disease (ventricular septal defect focus)
+D0239: Tetralogy of Fallot
+D0240: Coarctation of the aorta
+D0241: Transposition of the great arteries
+D0242: Hypoplastic left heart syndrome
+D0243: Cleft lip and/or palate
+D0244: Neural tube defects (myelomeningocele focus)
+D0245: Congenital diaphragmatic hernia
+D0246: Esophageal atresia / Tracheoesophageal fistula
+D0247: Hirschsprung disease
+D0248: Pyloric stenosis (infantile hypertrophic)
+D0249: Intussusception (idiopathic ileocolic)
+D0250: Necrotizing enterocolitis
+D0251: Bladder cancer
+D0252: Kidney cancer (renal cell carcinoma)
+D0253: Brain tumor (glioblastoma focus)
+D0254: Soft tissue sarcoma
+D0255: Chronic lymphocytic leukemia
+D0256: Multiple system atrophy (already covered – replaced with: Progressive multifocal leukoencephalopathy)
+D0257: Chronic inflammatory demyelinating polyneuropathy
+D0258: Myotonic dystrophy type 1
+D0259: Facioscapulohumeral muscular dystrophy
+D0260: Limb-girdle muscular dystrophy (general)
+D0261: Charcot-Marie-Tooth disease
+D0262: Spinal and bulbar muscular atrophy
+D0263: Amyloidosis (AL – light chain)
+D0264: Hereditary hemochromatosis (already covered – replaced with: Wilson disease already covered; new: Alpha-1 antitrypsin deficiency already covered; new: Hereditary angioedema)
+D0265: Primary immunodeficiency (common variable immunodeficiency focus)
+D0266: Severe combined immunodeficiency
+D0267: DiGeorge syndrome / 22q11.2 deletion syndrome
+D0268: IgA nephropathy
+D0269: Membranous nephropathy
+D0270: Focal segmental glomerulosclerosis
+D0271: Autosomal dominant polycystic kidney disease (already covered – replaced with: Autosomal recessive polycystic kidney disease)
+D0272: Alport syndrome
+D0273: Minimal change disease
+D0274: Acute interstitial nephritis
+D0275: Rhabdomyolysis
+D0276: Goodpasture syndrome
+D0277: Granulomatosis with polyangiitis
+D0278: Microscopic polyangiitis
+D0279: Eosinophilic granulomatosis with polyangiitis
+D0280: Behçet disease
+D0281: Takayasu arteritis
+D0282: Polyarteritis nodosa
+D0283: Cryoglobulinemic vasculitis
+D0284: Antiphospholipid syndrome
+D0285: Systemic sclerosis (already covered – replaced with: Mixed connective tissue disease)
+D0286: Polymyositis / Dermatomyositis (idiopathic inflammatory myopathy)
+D0287: Inclusion body myositis
+D0288: Primary biliary cholangitis (already covered – replaced with: Primary sclerosing cholangitis)
+D0289: Autoimmune hepatitis (already covered – replaced with: Hereditary hemorrhagic telangiectasia)
+D0290: Hereditary spherocytosis
+D0291: G6PD deficiency
+D0292: Thalassemia (beta-thalassemia major focus)
+D0293: Sickle cell disease (already covered – replaced with: Hemoglobin SC disease)
+D0294: Paroxysmal nocturnal hemoglobinuria
+D0295: Thrombotic microangiopathy (atypical HUS focus)
+D0296: Hemolytic disease of the fetus and newborn
+D0297: Neonatal alloimmune thrombocytopenia
+D0298: Retinopathy of prematurity
+D0299: Congenital cataract
+D0300: Retinoblastoma
+D0301: Testicular cancer
+D0302: Endometrial cancer
+D0303: Head and neck squamous cell carcinoma
+D0304: Melanoma (already covered – replaced with: Merkel cell carcinoma)
+D0305: Mesothelioma (already covered – replaced with: Thymoma / Thymic carcinoma)
+D0306: Cholera
+D0307: Typhoid fever
+D0308: Dengue (already covered – replaced with: Yellow fever already covered; new: Japanese encephalitis)
+D0309: Rabies (already covered – replaced with: Ebola virus disease)
+D0310: Marburg virus disease
+D0311: Lassa fever
+D0312: Crimean-Congo hemorrhagic fever
+D0313: Hantavirus pulmonary syndrome
+D0314: Hantavirus hemorrhagic fever with renal syndrome
+D0315: Q fever
+D0316: Brucellosis
+D0317: Leptospirosis (already covered – replaced with: Melioidosis)
+D0318: Anthrax
+D0319: Plague
+D0320: Tularemia
+D0321: Psittacosis
+D0322: Legionnaires’ disease
+D0323: Mycoplasma pneumoniae infection
+D0324: Chlamydia pneumoniae infection
+D0325: Pertussis (already covered – replaced with: Diphtheria already covered; new: Tetanus already covered; new: Botulism)
+D0326: Gas gangrene / Clostridial myonecrosis
+D0327: Necrotizing fasciitis
+D0328: Toxic shock syndrome (streptococcal and staphylococcal)
+D0329: Streptococcal toxic shock syndrome (already partially covered – focus distinct invasive Group A Strep)
+D0330: Meningococcal disease (already covered – replaced with: Haemophilus influenzae type b disease)
+D0331: Pneumococcal disease (invasive)
+D0332: Group B streptococcal disease (neonatal)
+D0333: Listeriosis (already covered – replaced with: Neonatal herpes simplex virus infection)
+D0334: Congenital cytomegalovirus infection
+D0335: Congenital toxoplasmosis (already partially covered – expanded focus)
+D0336: Congenital syphilis
+D0337: Congenital rubella syndrome
+D0338: Congenital Zika syndrome
+D0339: Fetal alcohol spectrum disorders
+D0340: Neonatal abstinence syndrome
+D0341: Retinopathy of prematurity (already covered – replaced with: Bronchopulmonary dysplasia)
+D0342: Intraventricular hemorrhage of prematurity
+D0343: Hypoxic-ischemic encephalopathy (neonatal)
+D0344: Cerebral palsy (already covered – replaced with: Periventricular leukomalacia)
+D0345: Neonatal sepsis (early-onset and late-onset)
+D0346: Necrotizing enterocolitis (already covered – replaced with: Spontaneous intestinal perforation)
+D0347: Meconium aspiration syndrome
+D0348: Persistent pulmonary hypertension of the newborn
+D0349: Transient tachypnea of the newborn
+D0350: Neonatal hypoglycemia (persistent / pathologic)
+D0351: Prostate cancer
+D0352: Colorectal cancer (already covered – replaced with: Anal cancer)
+D0353: Gallbladder cancer
+D0354: Small bowel cancer (adenocarcinoma focus)
+D0355: Gastrointestinal stromal tumor
+D0356: Neuroendocrine tumor (small bowel / midgut focus)
+D0357: Adrenocortical carcinoma (already covered – replaced with: Pheochromocytoma already covered; new: Paraganglioma already covered; new: Medullary thyroid already covered; new: Anaplastic thyroid cancer)
+D0358: Osteosarcoma
+D0359: Ewing sarcoma
+D0360: Wilms tumor
+D0361: Neuroblastoma
+D0362: Hepatoblastoma
+D0363: Medulloblastoma
+D0364: Diffuse intrinsic pontine glioma
+D0365: Craniopharyngioma
+D0366: Pituitary adenoma (non-functioning focus)
+D0367: Cushing disease (already covered under Cushing – replaced with: Acromegaly already covered; new: Prolactinoma already covered; new: TSH-secreting pituitary adenoma)
+D0368: Primary hyperaldosteronism
+D0369: Pheochromocytoma (already covered – replaced with: Primary adrenal insufficiency already covered; new: Congenital adrenal hyperplasia already covered; new: 21-hydroxylase already covered; new: 11-beta-hydroxylase deficiency)
+D0370: Apparent mineralocorticoid excess
+D0371: Liddle syndrome
+D0372: Gordon syndrome
+D0373: Familial hypocalciuric hypercalcemia
+D0374: Hypophosphatemic rickets (X-linked focus)
+D0375: Osteogenesis imperfecta
+D0376: Achondroplasia
+D0377: Marfan syndrome
+D0378: Ehlers-Danlos syndrome (vascular type focus)
+D0379: Loeys-Dietz syndrome
+D0380: Vascular Ehlers-Danlos (already covered – replaced with: Classical Ehlers-Danlos syndrome)
+D0381: Hypermobile Ehlers-Danlos syndrome
+D0382: Osteopetrosis
+D0383: Fibrous dysplasia / McCune-Albright syndrome
+D0384: Multiple endocrine neoplasia type 1
+D0385: Multiple endocrine neoplasia type 2
+D0386: von Hippel-Lindau disease
+D0387: Li-Fraumeni syndrome
+D0388: Hereditary breast and ovarian cancer syndrome (BRCA1/2)
+D0389: Lynch syndrome
+D0390: Familial adenomatous polyposis
+D0391: Peutz-Jeghers syndrome
+D0392: Juvenile polyposis syndrome
+D0393: Cowden syndrome / PTEN hamartoma tumor syndrome
+D0394: Birt-Hogg-Dubé syndrome
+D0395: Hereditary leiomyomatosis and renal cell cancer
+D0396: Hereditary papillary renal cell carcinoma
+D0397: BAP1 tumor predisposition syndrome
+D0398: DICER1 syndrome
+D0399: Rhabdoid tumor predisposition syndrome
+D0400: Constitutional mismatch repair deficiency
+D0401: Histoplasmosis
+D0402: Blastomycosis
+D0403: Coccidioidomycosis
+D0404: Cryptococcosis
+D0405: Aspergillosis (invasive)
+D0406: Mucormycosis
+D0407: Pneumocystis pneumonia
+D0408: Candidemia / Invasive candidiasis
+D0409: Tinea capitis
+D0410: Onchocerciasis
+D0411: Lymphatic filariasis
+D0412: Schistosomiasis (already covered – replaced with: Soil-transmitted helminthiasis – Ascariasis focus)
+D0413: Hookworm infection
+D0414: Trichuriasis
+D0415: Strongyloidiasis
+D0416: Giardiasis (already covered – replaced with: Amebiasis already covered; new: Cryptosporidiosis already covered; new: Cyclosporiasis)
+D0417: Babesiosis
+D0418: Malaria (already covered – replaced with: African trypanosomiasis)
+D0419: Chagas disease (already covered – replaced with: Leishmaniasis – visceral focus)
+D0420: Cutaneous leishmaniasis
+D0421: Mycetoma
+D0422: Chromoblastomycosis
+D0423: Sporotrichosis
+D0424: Nocardiosis
+D0425: Actinomycosis
+D0426: Tuberculosis (already extensively covered – replaced with: Nontuberculous mycobacterial pulmonary disease)
+D0427: Leprosy (already covered – replaced with: Buruli ulcer)
+D0428: Yaws
+D0429: Bejel (endemic syphilis)
+D0430: Pinta
+D0431: Trachoma (already covered – replaced with: Scabies already covered; new: Tungiasis)
+D0432: Myiasis
+D0433: Cutaneous larva migrans
+D0434: Delusional infestation / Delusory parasitosis
+D0435: Body dysmorphic disorder
+D0436: Hoarding disorder
+D0437: Trichotillomania
+D0438: Excoriation (skin-picking) disorder
+D0439: Restless legs syndrome
+D0440: Narcolepsy (type 1 and type 2)
+D0441: Idiopathic hypersomnia
+D0442: Kleine-Levin syndrome
+D0443: REM sleep behavior disorder
+D0444: Restless legs (already covered – replaced with: Periodic limb movement disorder)
+D0445: Circadian rhythm sleep-wake disorder – delayed sleep phase type
+D0446: Shift work disorder
+D0447: Obstructive sleep apnea (already covered – replaced with: Central sleep apnea)
+D0448: Sleep-related hypoventilation disorders (obesity hypoventilation focus)
+D0449: Congenital central hypoventilation syndrome
+D0450: Prader-Willi syndrome
+D0451: Major depressive disorder
+D0452: Bipolar I disorder
+D0453: Bipolar II disorder
+D0454: Generalized anxiety disorder
+D0455: Panic disorder
+D0456: Agoraphobia
+D0457: Social anxiety disorder
+D0458: Obsessive-compulsive disorder
+D0459: Post-traumatic stress disorder
+D0460: Acute stress disorder
+D0461: Adjustment disorder
+D0462: Schizophrenia
+D0463: Schizoaffective disorder
+D0464: Delusional disorder
+D0465: Brief psychotic disorder
+D0466: Catatonia
+D0467: Attention-deficit/hyperactivity disorder
+D0468: Autism spectrum disorder
+D0469: Tourette syndrome
+D0470: Oppositional defiant disorder
+D0471: Conduct disorder
+D0472: Intermittent explosive disorder
+D0473: Pyromania
+D0474: Kleptomania
+D0475: Gambling disorder
+D0476: Alcohol use disorder
+D0477: Opioid use disorder
+D0478: Tobacco use disorder / Nicotine dependence
+D0479: Cannabis use disorder
+D0480: Stimulant use disorder (cocaine / amphetamine-type)
+D0481: Sedative, hypnotic, or anxiolytic use disorder
+D0482: Inhalant use disorder
+D0483: Hallucinogen use disorder / Hallucinogen persisting perception disorder
+D0484: Anorexia nervosa
+D0485: Bulimia nervosa
+D0486: Binge-eating disorder
+D0487: Avoidant/restrictive food intake disorder
+D0488: Pica
+D0489: Rumination disorder
+D0490: Insomnia disorder
+D0491: Hypersomnolence disorder
+D0492: Nightmare disorder
+D0493: Non-REM sleep arousal disorders (sleepwalking / sleep terrors)
+D0494: Substance/medication-induced mental disorders (general category example: Substance-induced psychotic disorder)
+D0495: Neurocognitive disorders – Delirium
+D0496: Major neurocognitive disorder (dementia) – Alzheimer disease focus
+D0497: Major neurocognitive disorder – Vascular
+D0498: Major neurocognitive disorder with Lewy bodies
+D0499: Frontotemporal dementia (behavioral variant focus)
+D0500: Mild neurocognitive disorder
+D0501: Rheumatoid arthritis
+D0502: Psoriatic arthritis
+D0503: Ankylosing spondylitis / Axial spondyloarthritis
+D0504: Systemic lupus erythematosus
+D0505: Systemic sclerosis (scleroderma)
+D0506: Sjögren syndrome (primary)
+D0507: Polymyalgia rheumatica
+D0508: Giant cell arteritis
+D0509: Polyarteritis nodosa (already covered – replaced with: Microscopic polyangiitis already covered; new: Granulomatosis with polyangiitis already covered; new: Eosinophilic granulomatosis with polyangiitis already covered; new: Behçet already covered; new: Takayasu already covered; new: Kawasaki already covered; new: Henoch-Schönlein already covered; new: Cryoglobulinemic already covered; new: Anti-GBM already covered; new: IgA vasculitis already covered; new: Primary angiitis of the CNS)
+D0510: Relapsing polychondritis
+D0511: Adult-onset Still’s disease
+D0512: Gout
+D0513: Calcium pyrophosphate deposition disease
+D0514: Osteoarthritis
+D0515: Osteoporosis
+D0516: Paget disease of bone
+D0517: Osteomalacia / Rickets (adult osteomalacia focus)
+D0518: Fibromyalgia
+D0519: Complex regional pain syndrome
+D0520: Systemic juvenile idiopathic arthritis
+D0521: Enthesitis-related arthritis / Juvenile spondyloarthritis
+D0522: Acute anterior uveitis (HLA-B27 associated focus)
+D0523: Scleritis
+D0524: Keratoconjunctivitis sicca (severe / associated with Sjögren)
+D0525: Uveitis (intermediate / posterior / panuveitis – non-infectious focus)
+D0526: Behçet disease (already covered – replaced with: Vogt-Koyanagi-Harada disease)
+D0527: Sympathetic ophthalmia
+D0528: Retinal vasculitis (non-infectious focus)
+D0529: Optic neuritis (demyelinating / MS-associated focus)
+D0530: Neuromyelitis optica spectrum disorder
+D0531: Myasthenia gravis (already covered – replaced with: Lambert-Eaton myasthenic syndrome)
+D0532: Dermatomyositis (already covered under IIM – expanded juvenile focus already in JIA context; new: Inclusion body myositis already covered; new: Immune-mediated necrotizing myopathy)
+D0533: Antisynthetase syndrome
+D0534: IgG4-related disease
+D0535: Sarcoidosis
+D0536: Amyloidosis (AL already covered – expanded AA / secondary focus)
+D0537: Hereditary ATTR amyloidosis (already covered under amyloid – expanded wild-type ATTR focus)
+D0538: Hereditary hemochromatosis (already covered – replaced with: Wilson disease already covered; new: Alpha-1 antitrypsin deficiency already covered; new: Gaucher disease)
+D0539: Fabry disease
+D0540: Pompe disease
+D0541: Mucopolysaccharidosis type I (Hurler / Hurler-Scheie / Scheie)
+D0542: Mucopolysaccharidosis type II (Hunter syndrome)
+D0543: Niemann-Pick disease type C
+D0544: Tay-Sachs disease
+D0545: Krabbe disease
+D0546: Metachromatic leukodystrophy
+D0547: X-linked adrenoleukodystrophy
+D0548: Phenylketonuria
+D0549: Maple syrup urine disease
+D0550: Urea cycle disorders (ornithine transcarbamylase deficiency focus)
+D0551: Dengue fever
+D0552: Chikungunya
+D0553: Zika virus disease
+D0554: Yellow fever
+D0555: Japanese encephalitis
+D0556: West Nile virus disease
+D0557: Rabies
+D0558: Ebola virus disease
+D0559: Marburg virus disease
+D0560: Lassa fever
+D0561: Crimean-Congo hemorrhagic fever
+D0562: Rift Valley fever
+D0563: Hantavirus pulmonary syndrome
+D0564: Hemorrhagic fever with renal syndrome
+D0565: Plague
+D0566: Tularemia
+D0567: Anthrax
+D0568: Leptospirosis
+D0569: Brucellosis
+D0570: Q fever
+D0571: Psittacosis
+D0572: Melioidosis
+D0573: Glanders
+D0574: Buruli ulcer
+D0575: Yaws
+D0576: Pinta
+D0577: Bejel (endemic syphilis)
+D0578: Onchocerciasis
+D0579: Lymphatic filariasis
+D0580: Female genital schistosomiasis
+D0581: Strongyloidiasis
+D0582: Hookworm disease
+D0583: Trichuriasis
+D0584: Enterobiasis
+D0585: Toxocariasis
+D0586: Neurocysticercosis
+D0587: Echinococcosis (hydatid disease)
+D0588: Trichinellosis
+D0589: Anisakiasis
+D0590: Diphyllobothriasis
+D0591: Fascioliasis
+D0592: Clonorchiasis / Opisthorchiasis
+D0593: Paragonimiasis
+D0594: Myiasis
+D0595: Tungiasis
+D0596: Crusted scabies
+D0597: Body lice infestation
+D0598: Bed bug infestation
+D0599: Delusional infestation
+D0600: Factitious disorder imposed on self
+D0601: Breast cancer
+D0602: Lung cancer
+D0603: Colorectal cancer
+D0604: Prostate cancer
+D0605: Gastric cancer
+D0606: Hepatocellular carcinoma
+D0607: Pancreatic cancer
+D0608: Esophageal cancer
+D0609: Cervical cancer
+D0610: Ovarian cancer
+D0611: Endometrial cancer
+D0612: Bladder cancer
+D0613: Renal cell carcinoma
+D0614: Thyroid cancer
+D0615: Melanoma
+D0616: Basal cell carcinoma
+D0617: Cutaneous squamous cell carcinoma
+D0618: Head and neck squamous cell carcinoma
+D0619: Acute myeloid leukemia
+D0620: Acute lymphoblastic leukemia
+D0621: Chronic lymphocytic leukemia
+D0622: Chronic myeloid leukemia
+D0623: Multiple myeloma
+D0624: Non-Hodgkin lymphoma
+D0625: Hodgkin lymphoma
+D0626: Coronary artery disease
+D0627: Acute myocardial infarction
+D0628: Heart failure
+D0629: Atrial fibrillation
+D0630: Hypertension
+D0631: Deep vein thrombosis
+D0632: Pulmonary embolism
+D0633: Aortic stenosis
+D0634: Aortic regurgitation
+D0635: Mitral stenosis
+D0636: Mitral regurgitation
+D0637: Infective endocarditis
+D0638: Myocarditis
+D0639: Pericarditis
+D0640: Aortic dissection
+D0641: Peptic ulcer disease
+D0642: Gastroesophageal reflux disease
+D0643: Crohn’s disease
+D0644: Ulcerative colitis
+D0645: Celiac disease
+D0646: Irritable bowel syndrome
+D0647: Acute pancreatitis
+D0648: Chronic pancreatitis
+D0649: Cirrhosis
+D0650: MASLD / MASH
+D0651: Type 1 diabetes mellitus
+D0652: Type 2 diabetes mellitus
+D0653: Hypothyroidism (primary)
+D0654: Hyperthyroidism (Graves focus)
+D0655: Cushing syndrome
+D0656: Addison disease
+D0657: Primary hyperparathyroidism
+D0658: Acromegaly
+D0659: Prolactinoma
+D0660: Pheochromocytoma / Paraganglioma
+D0661: Psoriasis
+D0662: Atopic dermatitis
+D0663: Acne vulgaris
+D0664: Chronic spontaneous urticaria
+D0665: Contact dermatitis
+D0666: Vitiligo
+D0667: Alopecia areata
+D0668: Rosacea
+D0669: Hidradenitis suppurativa
+D0670: Pemphigus vulgaris
+D0671: Acute otitis media
+D0672: Chronic rhinosinusitis
+D0673: Allergic rhinitis
+D0674: Obstructive sleep apnea
+D0675: Benign prostatic hyperplasia
+D0676: Erectile dysfunction
+D0677: Polycystic ovary syndrome
+D0678: Endometriosis
+D0679: Uterine fibroids
+D0680: Pelvic inflammatory disease
+D0681: Ectopic pregnancy
+D0682: Preeclampsia / Eclampsia
+D0683: Gestational diabetes mellitus
+D0684: Postpartum depression
+D0685: Occupational asthma
+D0686: Asbestosis
+D0687: Silicosis
+D0688: Noise-induced hearing loss
+D0689: Carbon monoxide poisoning
+D0690: Lead poisoning
+D0691: Heat stroke
+D0692: Frostbite
+D0693: Altitude sickness
+D0694: Decompression sickness
+D0695: Acute radiation syndrome
+D0696: Organophosphate / nerve agent poisoning
+D0697: Acetaminophen poisoning
+D0698: Opioid overdose
+D0699: Serotonin syndrome
+D0700: Neuroleptic malignant syndrome
+D0701: Huntington disease
+D0702: Amyotrophic lateral sclerosis
+D0703: Parkinson disease
+D0704: Alzheimer disease (already covered – expanded late-onset focus confirmed; new: Frontotemporal dementia already covered; new: Progressive supranuclear palsy)
+D0705: Multiple system atrophy
+D0706: Spinocerebellar ataxia (SCA overview / SCA3 focus)
+D0707: Friedreich ataxia
+D0708: Myasthenia gravis (already covered – expanded ocular/generalized confirmed; new: Botulism)
+D0709: Guillain-Barré syndrome
+D0710: Chronic inflammatory demyelinating polyneuropathy
+D0711: Charcot-Marie-Tooth disease
+D0712: Duchenne muscular dystrophy
+D0713: Becker muscular dystrophy
+D0714: Myotonic dystrophy type 1
+D0715: Spinal muscular atrophy
+D0716: Facioscapulohumeral muscular dystrophy
+D0717: Inclusion body myositis
+D0718: Polymyositis / Dermatomyositis (already covered – expanded juvenile dermatomyositis)
+D0719: Idiopathic inflammatory myopathies (antisynthetase already covered; new: Immune-mediated necrotizing myopathy already covered; new: Overlap myositis)
+D0720: Behçet disease (already covered – expanded neurologic focus)
+D0721: Primary CNS lymphoma
+D0722: Glioblastoma
+D0723: Meningioma
+D0724: Vestibular schwannoma
+D0725: Pituitary adenoma (non-functioning / general)
+D0726: Craniopharyngioma
+D0727: Medulloblastoma
+D0728: Neuroblastoma
+D0729: Wilms tumor
+D0730: Retinoblastoma
+D0731: Osteosarcoma
+D0732: Ewing sarcoma
+D0733: Rhabdomyosarcoma
+D0734: Acute promyelocytic leukemia
+D0735: Chronic myelomonocytic leukemia
+D0736: Essential thrombocythemia
+D0737: Polycythemia vera
+D0738: Primary myelofibrosis
+D0739: Aplastic anemia
+D0740: Paroxysmal nocturnal hemoglobinuria
+D0741: Immune thrombocytopenia
+D0742: Thrombotic thrombocytopenic purpura
+D0743: Atypical hemolytic uremic syndrome
+D0744: Hereditary spherocytosis
+D0745: Glucose-6-phosphate dehydrogenase deficiency
+D0746: Sickle cell disease
+D0747: Beta-thalassemia major / intermedia
+D0748: Alpha-thalassemia (Hb Bart’s hydrops / HbH disease)
+D0749: Hemophilia A
+D0750: Hemophilia B
+D0751: von Willebrand disease
+D0752: Factor XI deficiency
+D0753: Antiphospholipid syndrome
+D0754: Hereditary angioedema
+D0755: Alpha-1 antitrypsin deficiency
+D0756: Hereditary hemochromatosis
+D0757: Wilson disease
+D0758: Gaucher disease (already covered – expanded type confirmed; new: Niemann-Pick type A/B)
+D0759: Fabry disease (already covered; new: Pompe already covered; new: Mucopolysaccharidosis type III – Sanfilippo)
+D0760: Tay-Sachs (already covered; new: Sandhoff disease)
+D0761: Krabbe disease (already covered; new: Metachromatic leukodystrophy already covered; new: X-linked adrenoleukodystrophy already covered; new: Canavan disease)
+D0762: Alexander disease
+D0763: Pelizaeus-Merzbacher disease
+D0764: Rett syndrome
+D0765: Fragile X syndrome
+D0766: Tuberous sclerosis complex
+D0767: Neurofibromatosis type 1
+D0768: Neurofibromatosis type 2
+D0769: von Hippel-Lindau disease
+D0770: Li-Fraumeni syndrome
+D0771: Lynch syndrome
+D0772: Familial adenomatous polyposis
+D0773: BRCA1 / BRCA2 hereditary breast and ovarian cancer
+D0774: Multiple endocrine neoplasia type 1
+D0775: Multiple endocrine neoplasia type 2
+D0776: Marfan syndrome
+D0777: Ehlers-Danlos syndrome (vascular type)
+D0778: Loeys-Dietz syndrome
+D0779: Osteogenesis imperfecta
+D0780: Achondroplasia
+D0781: Osteopetrosis
+D0782: Hypophosphatasia
+D0783: X-linked hypophosphatemia
+D0784: Acute intermittent porphyria
+D0785: Porphyria cutanea tarda
+D0786: Acute intermittent porphyria (already covered; new: Erythropoietic protoporphyria)
+D0787: Familial Mediterranean fever
+D0788: Cryopyrin-associated periodic syndromes
+D0789: Tumor necrosis factor receptor-associated periodic syndrome
+D0790: Hyper-IgD syndrome / Mevalonate kinase deficiency
+D0791: Periodic fever, aphthous stomatitis, pharyngitis, adenitis
+D0792: Sarcoidosis (already covered; new: IgG4-related disease already covered; new: Castleman disease)
+D0793: Langerhans cell histiocytosis
+D0794: Erdheim-Chester disease
+D0795: Hemophagocytic lymphohistiocytosis
+D0796: Thrombotic microangiopathy (drug-induced / transplant-associated)
+D0797: Graft-versus-host disease (acute)
+D0798: Graft-versus-host disease (chronic)
+D0799: Post-transplant lymphoproliferative disorder
+D0800: Cytokine release syndrome
+D0801: Malaria (severe / cerebral)
+D0802: Dengue fever / Dengue severe
+D0803: Chikungunya
+D0804: Zika virus disease
+D0805: Yellow fever
+D0806: Japanese encephalitis
+D0807: Rabies
+D0808: Ebola virus disease
+D0809: Marburg virus disease
+D0810: Lassa fever
+D0811: Crimean-Congo hemorrhagic fever
+D0812: Leptospirosis
+D0813: Scrub typhus
+D0814: Murine typhus
+D0815: Rocky Mountain spotted fever
+D0816: Q fever
+D0817: Brucellosis
+D0818: Anthrax
+D0819: Plague
+D0820: Tularemia
+D0821: Melioidosis
+D0822: Nocardiosis
+D0823: Actinomycosis
+D0824: Tetanus
+D0825: Diphtheria
+D0826: Pertussis
+D0827: Haemophilus influenzae type b disease
+D0828: Meningococcal disease
+D0829: Pneumococcal disease (invasive)
+D0830: Group A streptococcal invasive disease
+D0831: Tuberculosis (already covered extensively; new: Nontuberculous mycobacteria pulmonary)
+D0832: Leprosy (already covered; new: Buruli ulcer)
+D0833: Yaws
+D0834: Trachoma
+D0835: Onchocerciasis
+D0836: Lymphatic filariasis
+D0837: Schistosomiasis (already covered; new: Opisthorchiasis / Clonorchiasis)
+D0838: Fascioliasis
+D0839: Paragonimiasis
+D0840: Ascariasis (already covered; new: Strongyloidiasis hyperinfection)
+D0841: Hookworm disease (already covered; new: Cutaneous larva migrans)
+D0842: Visceral larva migrans / Toxocariasis
+D0843: Cysticercosis / Neurocysticercosis
+D0844: Echinococcosis (hydatid disease)
+D0845: Trichinellosis
+D0846: Giardiasis (already covered; new: Cryptosporidiosis already covered; new: Cyclosporiasis)
+D0847: Amebiasis (already covered; new: Balantidiasis)
+D0848: Isosporiasis / Cystoisosporiasis
+D0849: Microsporidiosis
+D0850: Toxoplasmosis (already covered congenital/ocular; new: Congenital toxoplasmosis focus confirmed; expanded adult reactivation already implied)
+D0851: Cataract (age-related)
+D0852: Primary open-angle glaucoma
+D0853: Acute angle-closure glaucoma
+D0854: Age-related macular degeneration
+D0855: Diabetic retinopathy
+D0856: Rhegmatogenous retinal detachment
+D0857: Anterior uveitis
+D0858: Bacterial keratitis
+D0859: Herpes simplex keratitis
+D0860: Acanthamoeba keratitis
+D0861: Dry eye disease
+D0862: Adenoviral conjunctivitis
+D0863: Allergic conjunctivitis
+D0864: Childhood strabismus
+D0865: Amblyopia
+D0866: Retinopathy of prematurity
+D0867: Optic neuritis
+D0868: Idiopathic intracranial hypertension
+D0869: Otitis externa
+D0870: Sudden sensorineural hearing loss
+D0871: Ménière disease
+D0872: Benign paroxysmal positional vertigo
+D0873: Vestibular neuritis
+D0874: Allergic fungal rhinosinusitis
+D0875: Severe epistaxis
+D0876: Peritonsillar abscess
+D0877: Epiglottitis
+D0878: Acute laryngitis
+D0879: Vocal fold nodules
+D0880: Central sleep apnea
+D0881: Temporomandibular joint disorder
+D0882: Acute bacterial sialadenitis
+D0883: Sialolithiasis
+D0884: Oral lichen planus
+D0885: Recurrent aphthous stomatitis
+D0886: Oral candidiasis
+D0887: Periodontitis
+D0888: Dental caries
+D0889: Oral squamous cell carcinoma
+D0890: Burning mouth syndrome
+D0891: Trigeminal neuralgia
+D0892: Cluster headache
+D0893: Chronic migraine
+D0894: Chronic tension-type headache
+D0895: Idiopathic hypersomnia
+D0896: Restless legs syndrome
+D0897: Periodic limb movement disorder
+D0898: Narcolepsy type 1
+D0899: Narcolepsy type 2
+D0900: Kleine-Levin syndrome
+D0901: Major depressive disorder
+D0902: Bipolar I disorder
+D0903: Bipolar II disorder
+D0904: Generalized anxiety disorder
+D0905: Panic disorder
+D0906: Social anxiety disorder
+D0907: Obsessive-compulsive disorder
+D0908: Post-traumatic stress disorder
+D0909: Acute stress disorder
+D0910: Adjustment disorder
+D0911: Schizophrenia
+D0912: Schizoaffective disorder
+D0913: Delusional disorder
+D0914: Brief psychotic disorder
+D0915: Autism spectrum disorder
+D0916: Attention-deficit/hyperactivity disorder
+D0917: Oppositional defiant disorder
+D0918: Conduct disorder
+D0919: Anorexia nervosa
+D0920: Bulimia nervosa
+D0921: Binge-eating disorder
+D0922: Alcohol use disorder
+D0923: Opioid use disorder
+D0924: Tobacco use disorder
+D0925: Cannabis use disorder
+D0926: Stimulant use disorder (cocaine/methamphetamine)
+D0927: Sedative/hypnotic/anxiolytic use disorder
+D0928: Gambling disorder
+D0929: Insomnia disorder
+D0930: Circadian rhythm sleep-wake disorders
+D0931: Nightmare disorder
+D0932: Non-REM sleep arousal disorders
+D0933: REM sleep behavior disorder
+D0934: Gender dysphoria
+D0935: Body dysmorphic disorder
+D0936: Hoarding disorder
+D0937: Trichotillomania
+D0938: Excoriation disorder
+D0939: Dissociative identity disorder
+D0940: Depersonalization/derealization disorder
+D0941: Somatic symptom disorder
+D0942: Illness anxiety disorder
+D0943: Conversion disorder
+D0944: Factitious disorder imposed on self
+D0945: Factitious disorder imposed on another
+D0946: Personality disorders – Borderline
+D0947: Personality disorders – Antisocial
+D0948: Personality disorders – Narcissistic
+D0949: Personality disorders – Avoidant
+D0950: Personality disorders – Obsessive-compulsive
+D0951: Systemic lupus erythematosus
+D0952: Rheumatoid arthritis
+D0953: Psoriatic arthritis
+D0954: Ankylosing spondylitis
+D0955: Systemic sclerosis
+D0956: Sjögren syndrome
+D0957: Polymyalgia rheumatica
+D0958: Giant cell arteritis
+D0959: ANCA-associated vasculitis
+D0960: Polyarteritis nodosa
+D0961: Kawasaki disease
+D0962: Takayasu arteritis
+D0963: Behçet disease
+D0964: IgA vasculitis
+D0965: Cryoglobulinemic vasculitis
+D0966: Adult-onset Still’s disease
+D0967: Relapsing polychondritis
+D0968: IgG4-related disease
+D0969: Sarcoidosis
+D0970: AL amyloidosis
+D0971: ATTR amyloidosis
+D0972: Secondary iron overload
+D0973: Progressive familial intrahepatic cholestasis
+D0974: Alagille syndrome
+D0975: Biliary atresia
+D0976: Autoimmune hepatitis
+D0977: Primary biliary cholangitis
+D0978: Primary sclerosing cholangitis
+D0979: Hereditary hemorrhagic telangiectasia
+D0980: Hypermobile Ehlers-Danlos syndrome
+D0981: Congenital contractural arachnodactyly
+D0982: Stickler syndrome
+D0983: Thanatophoric dysplasia
+D0984: Apert syndrome
+D0985: Crouzon syndrome
+D0986: Treacher Collins syndrome
+D0987: Pierre Robin sequence
+D0988: 22q11.2 deletion syndrome
+D0989: Williams syndrome
+D0990: Prader-Willi syndrome
+D0991: Angelman syndrome
+D0992: MECP2 duplication syndrome
+D0993: Fragile X tremor-ataxia syndrome
+D0994: Dentatorubral-pallidoluysian atrophy
+D0995: Ataxia-telangiectasia
+D0996: Niemann-Pick disease type C
+D0997: Metachromatic leukodystrophy
+D0998: X-linked adrenoleukodystrophy
+D0999: Krabbe disease
+D1000: Mucopolysaccharidosis type I
+D1001: Chronic kidney disease
+D1002: Acute kidney injury
+D1003: Diabetic kidney disease
+D1004: IgA nephropathy
+D1005: Membranous nephropathy
+D1006: Minimal change disease
+D1007: Focal segmental glomerulosclerosis
+D1008: Lupus nephritis
+D1009: ANCA-associated glomerulonephritis
+D1010: Anti-GBM disease
+D1011: Polycystic kidney disease (autosomal dominant)
+D1012: Autosomal recessive polycystic kidney disease
+D1013: Alport syndrome
+D1014: Thin basement membrane nephropathy
+D1015: Nephrolithiasis
+D1016: Urinary tract infection (complicated)
+D1017: Pyelonephritis (acute)
+D1018: Interstitial cystitis / Bladder pain syndrome
+D1019: Overactive bladder
+D1020: Benign prostatic hyperplasia
+D1021: Prostate cancer
+D1022: Bladder cancer
+D1023: Renal cell carcinoma
+D1024: Testicular cancer
+D1025: Erectile dysfunction
+D1026: Male hypogonadism
+D1027: Klinefelter syndrome
+D1028: Premature ovarian insufficiency
+D1029: Polycystic ovary syndrome
+D1030: Endometriosis
+D1031: Adenomyosis
+D1032: Uterine fibroids
+D1033: Ovarian torsion
+D1034: Ectopic pregnancy
+D1035: Preeclampsia / Eclampsia
+D1036: Gestational diabetes mellitus
+D1037: Preterm labor / Preterm birth
+D1038: Postpartum hemorrhage
+D1039: Amniotic fluid embolism
+D1040: Hyperemesis gravidarum
+D1041: Intrahepatic cholestasis of pregnancy
+D1042: Acute fatty liver of pregnancy
+D1043: Sheehan syndrome
+D1044: Peripartum cardiomyopathy
+D1045: Gestational trophoblastic disease
+D1046: Cervical cancer
+D1047: Endometrial cancer
+D1048: Ovarian cancer (epithelial)
+D1049: Vulvar cancer
+D1050: Twin-twin transfusion syndrome
+D1051: Placenta accreta spectrum
+D1052: Placental abruption
+D1053: Placenta previa
+D1054: Vasa previa
+D1055: Uterine rupture
+D1056: Shoulder dystocia
+D1057: Postpartum endometritis
+D1058: Chorioamnionitis
+D1059: Neonatal sepsis (early-onset)
+D1060: Neonatal sepsis (late-onset)
+D1061: Respiratory distress syndrome (neonatal)
+D1062: Bronchopulmonary dysplasia
+D1063: Necrotizing enterocolitis
+D1064: Intraventricular hemorrhage (neonatal)
+D1065: Retinopathy of prematurity
+D1066: Patent ductus arteriosus (hemodynamically significant)
+D1067: Congenital diaphragmatic hernia
+D1068: Esophageal atresia / Tracheoesophageal fistula
+D1069: Gastroschisis
+D1070: Omphalocele
+D1071: Hirschsprung disease
+D1072: Intestinal malrotation with midgut volvulus
+D1073: Pyloric stenosis
+D1074: Intussusception
+D1075: Meckel diverticulum
+D1076: Appendicitis (pediatric)
+D1077: Testicular torsion
+D1078: Ovarian torsion
+D1079: Slipped capital femoral epiphysis
+D1080: Developmental dysplasia of the hip
+D1081: Clubfoot
+D1082: Scoliosis (adolescent idiopathic)
+D1083: Legg-Calvé-Perthes disease
+D1084: Osgood-Schlatter disease
+D1085: Sever’s disease
+D1086: Juvenile idiopathic arthritis
+D1087: Kawasaki disease (already covered; new: Multisystem inflammatory syndrome in children)
+D1088: Henoch-Schönlein purpura (already covered IgA vasculitis; new: Acute hemorrhagic edema of infancy)
+D1089: Serum sickness-like reaction
+D1090: Stevens-Johnson syndrome / Toxic epidermal necrolysis (pediatric)
+D1091: Staphylococcal scalded skin syndrome
+D1092: Impetigo
+D1093: Tinea capitis
+D1094: Hand-foot-and-mouth disease
+D1095: Roseola infantum
+D1096: Fifth disease
+D1097: Scarlet fever
+D1098: Pertussis
+D1099: Bronchiolitis
+D1100: Croup
+D1101: Ischemic stroke
+D1102: Intracerebral hemorrhage
+D1103: Subarachnoid hemorrhage
+D1104: Transient ischemic attack
+D1105: Cerebral venous thrombosis
+D1106: Alzheimer disease
+D1107: Vascular dementia
+D1108: Dementia with Lewy bodies
+D1109: Frontotemporal dementia
+D1110: Parkinson disease
+D1111: Essential tremor
+D1112: Dystonia
+D1113: Huntington disease
+D1114: Amyotrophic lateral sclerosis
+D1115: Myasthenia gravis
+D1116: Guillain-Barré syndrome
+D1117: Chronic inflammatory demyelinating polyneuropathy
+D1118: Multiple sclerosis
+D1119: Neuromyelitis optica spectrum disorder
+D1120: MOG antibody disease
+D1121: Epilepsy (focal)
+D1122: Epilepsy (generalized)
+D1123: Status epilepticus
+D1124: Migraine
+D1125: Tension-type headache
+D1126: Cluster headache
+D1127: Idiopathic intracranial hypertension
+D1128: Normal pressure hydrocephalus
+D1129: Bell’s palsy
+D1130: Trigeminal neuralgia
+D1131: Restless legs syndrome
+D1132: Narcolepsy type 1
+D1133: Obstructive sleep apnea
+D1134: Idiopathic pulmonary fibrosis
+D1135: Chronic obstructive pulmonary disease
+D1136: Asthma
+D1137: Bronchiectasis
+D1138: Pulmonary embolism
+D1139: Deep vein thrombosis
+D1140: Atrial fibrillation
+D1141: Heart failure with reduced ejection fraction
+D1142: Heart failure with preserved ejection fraction
+D1143: Acute coronary syndrome – STEMI
+D1144: Acute coronary syndrome – NSTE-ACS
+D1145: Aortic stenosis
+D1146: Aortic regurgitation
+D1147: Mitral regurgitation
+D1148: Mitral stenosis
+D1149: Infective endocarditis
+D1150: Myocarditis
+D1151: Pericarditis
+D1152: Cardiac tamponade
+D1153: Hypertrophic cardiomyopathy
+D1154: Dilated cardiomyopathy
+D1155: Restrictive cardiomyopathy
+D1156: Arrhythmogenic right ventricular cardiomyopathy
+D1157: Aortic dissection
+D1158: Abdominal aortic aneurysm
+D1159: Peripheral artery disease
+D1160: Raynaud phenomenon
+D1161: Giant cell arteritis (already covered; new: Takayasu already covered; new: Polyarteritis already covered; new: Kawasaki already covered; new: Behçet already covered; new: Primary angiitis of CNS)
+D1162: Thromboangiitis obliterans
+D1163: Lymphedema
+D1164: Chronic venous insufficiency
+D1165: Varicose veins
+D1166: Superficial vein thrombosis
+D1167: Pulmonary hypertension
+D1168: Cor pulmonale
+D1169: Acute respiratory distress syndrome
+D1170: Pneumonia (community-acquired)
+D1171: Hospital-acquired / Ventilator-associated pneumonia
+D1172: Tuberculosis (active pulmonary)
+D1173: Latent tuberculosis infection
+D1174: Nontuberculous mycobacterial pulmonary disease
+D1175: Aspergillosis – invasive
+D1176: Chronic pulmonary aspergillosis
+D1177: Allergic bronchopulmonary aspergillosis
+D1178: Pneumocystis pneumonia
+D1179: Cryptococcosis
+D1180: Histoplasmosis
+D1181: Coccidioidomycosis
+D1182: Blastomycosis
+D1183: Mucormycosis
+D1184: Candidemia / Invasive candidiasis
+D1185: C. auris infection
+D1186: Malaria
+D1187: Dengue fever
+D1188: Chikungunya
+D1189: Zika virus disease
+D1190: Yellow fever
+D1191: Japanese encephalitis
+D1192: West Nile virus infection
+D1193: Rabies
+D1194: Tetanus
+D1195: Botulism
+D1196: Diphtheria
+D1197: Pertussis (already covered; new: Measles)
+D1198: Mumps
+D1199: Rubella
+D1200: Varicella (chickenpox)
+D1201: Herpes zoster
+D1202: Herpes simplex encephalitis
+D1203: Viral meningitis
+D1204: Bacterial meningitis
+D1205: Brain abscess
+D1206: Spinal epidural abscess
+D1207: Osteomyelitis
+D1208: Septic arthritis
+D1209: Prosthetic joint infection
+D1210: Cellulitis
+D1211: Erysipelas
+D1212: Necrotizing fasciitis
+D1213: Gas gangrene
+D1214: Toxic shock syndrome
+D1215: Sepsis and septic shock
+D1216: Rheumatic heart disease
+D1217: Acute rheumatic fever
+D1218: Streptococcal toxic shock syndrome
+D1219: Anthrax
+D1220: Plague
+D1221: Tularemia
+D1222: Brucellosis
+D1223: Leptospirosis
+D1224: Q fever
+D1225: Rocky Mountain spotted fever
+D1226: Lyme disease
+D1227: Babesiosis
+D1228: Anaplasmosis
+D1229: Ehrlichiosis
+D1230: Colorado tick fever
+D1231: Tick-borne encephalitis
+D1232: Crimean-Congo hemorrhagic fever
+D1233: Ebola virus disease
+D1234: Marburg virus disease
+D1235: Lassa fever
+D1236: Hantavirus pulmonary syndrome
+D1237: Hemorrhagic fever with renal syndrome
+D1238: Schistosomiasis
+D1239: Soil-transmitted helminths
+D1240: Lymphatic filariasis
+D1241: Onchocerciasis
+D1242: Loiasis
+D1243: African trypanosomiasis
+D1244: American trypanosomiasis
+D1245: Visceral leishmaniasis
+D1246: Cutaneous leishmaniasis
+D1247: African tick bite fever
+D1248: Mediterranean spotted fever
+D1249: Murine typhus
+D1250: Epidemic typhus
+D1251: Lung cancer (non-small cell)
+D1252: Lung cancer (small cell)
+D1253: Breast cancer
+D1254: Colorectal cancer
+D1255: Prostate cancer
+D1256: Pancreatic adenocarcinoma
+D1257: Hepatocellular carcinoma
+D1258: Gastric cancer
+D1259: Esophageal cancer
+D1260: Ovarian cancer (epithelial)
+D1261: Cervical cancer
+D1262: Endometrial cancer
+D1263: Bladder cancer
+D1264: Renal cell carcinoma
+D1265: Melanoma
+D1266: Non-melanoma skin cancer – BCC
+D1267: Non-melanoma skin cancer – SCC
+D1268: Thyroid cancer (papillary)
+D1269: Thyroid cancer (medullary)
+D1270: Leukemia – Acute lymphoblastic (ALL)
+D1271: Leukemia – Acute myeloid (AML)
+D1272: Leukemia – Chronic lymphocytic (CLL)
+D1273: Leukemia – Chronic myeloid (CML)
+D1274: Lymphoma – Hodgkin
+D1275: Lymphoma – Diffuse large B-cell
+D1276: Lymphoma – Follicular
+D1277: Multiple myeloma
+D1278: Myelodysplastic syndromes
+D1279: Polycythemia vera
+D1280: Essential thrombocythemia
+D1281: Primary myelofibrosis
+D1282: Aplastic anemia
+D1283: Paroxysmal nocturnal hemoglobinuria
+D1284: Immune thrombocytopenia
+D1285: Thrombotic thrombocytopenic purpura
+D1286: Atypical hemolytic uremic syndrome
+D1287: Hemophilia A
+D1288: Hemophilia B
+D1289: von Willebrand disease
+D1290: Sickle cell disease
+D1291: Thalassemia major
+D1292: Glucose-6-phosphate dehydrogenase deficiency
+D1293: Hereditary spherocytosis
+D1294: Autoimmune hemolytic anemia
+D1295: Hemochromatosis (hereditary HFE)
+D1296: Wilson disease
+D1297: Alpha-1 antitrypsin deficiency
+D1298: Cystic fibrosis
+D1299: Primary ciliary dyskinesia
+D1300: Familial Mediterranean fever
+D1301: Type 1 diabetes mellitus
+D1302: Type 2 diabetes mellitus
+D1303: Gestational diabetes mellitus
+D1304: Hypothyroidism (primary)
+D1305: Hyperthyroidism – Graves disease
+D1306: Thyroiditis – Hashimoto
+D1307: Subacute thyroiditis
+D1308: Thyroid nodule / Multinodular goiter
+D1309: Primary hyperparathyroidism
+D1310: Hypoparathyroidism
+D1311: Cushing syndrome
+D1312: Addison disease
+D1313: Congenital adrenal hyperplasia (21-OH)
+D1314: Primary aldosteronism
+D1315: Pheochromocytoma / Paraganglioma
+D1316: Hyperprolactinemia / Prolactinoma
+D1317: Acromegaly
+D1318: Growth hormone deficiency
+D1319: Diabetes insipidus – central
+D1320: Osteoporosis
+D1321: Osteomalacia / Rickets
+D1322: Paget disease of bone
+D1323: Obesity
+D1324: Metabolic syndrome
+D1325: Gout
+D1326: Cataract
+D1327: Glaucoma – primary open-angle
+D1328: Glaucoma – angle-closure
+D1329: Age-related macular degeneration
+D1330: Diabetic retinopathy
+D1331: Retinal detachment
+D1332: Uveitis (anterior)
+D1333: Keratitis – bacterial
+D1334: Keratitis – herpetic
+D1335: Conjunctivitis – viral
+D1336: Conjunctivitis – bacterial
+D1337: Dry eye disease
+D1338: Amblyopia
+D1339: Strabismus
+D1340: Otitis media – acute
+D1341: Otitis media with effusion
+D1342: Otitis externa
+D1343: Chronic rhinosinusitis
+D1344: Allergic rhinitis
+D1345: Epistaxis
+D1346: Sudden sensorineural hearing loss
+D1347: Benign paroxysmal positional vertigo
+D1348: Ménière disease
+D1349: Acoustic neuroma
+D1350: Adenotonsillar hypertrophy
+D1351: Psoriasis
+D1352: Atopic dermatitis
+D1353: Acne vulgaris
+D1354: Rosacea
+D1355: Seborrheic dermatitis
+D1356: Contact dermatitis – allergic
+D1357: Contact dermatitis – irritant
+D1358: Urticaria – chronic spontaneous
+D1359: Vitiligo
+D1360: Alopecia areata
+D1361: Bullous pemphigoid
+D1362: Pemphigus vulgaris
+D1363: Hidradenitis suppurativa
+D1364: Melanoma (already covered); new: Actinic keratosis
+D1365: Scabies
+D1366: Pediculosis capitis
+D1367: Tinea corporis / Pedis / Capitis
+D1368: Onychomycosis
+D1369: Herpes zoster (already covered); new: Molluscum contagiosum
+D1370: Warts (verruca)
+D1371: Cellulitis (already covered); new: Erysipelas (already covered); new: Impetigo
+D1372: Folliculitis / Furuncle / Carbuncle
+D1373: Pressure ulcer
+D1374: Venous leg ulcer
+D1375: Arterial (ischemic) leg ulcer
+D1376: Systemic lupus erythematosus
+D1377: Rheumatoid arthritis
+D1378: Ankylosing spondylitis / Axial SpA
+D1379: Psoriatic arthritis
+D1380: Gout (already covered); new: Calcium pyrophosphate deposition
+D1381: Polymyalgia rheumatica
+D1382: Giant cell arteritis
+D1383: ANCA-associated vasculitis
+D1384: Behçet disease
+D1385: Sjögren syndrome
+D1386: Systemic sclerosis
+D1387: Inflammatory myopathies
+D1388: Mixed connective tissue disease
+D1389: Antiphospholipid syndrome
+D1390: Sarcoidosis
+D1391: IgG4-related disease
+D1392: Adult-onset Still disease
+D1393: Relapsing polychondritis
+D1394: Takayasu arteritis
+D1395: Polyarteritis nodosa
+D1396: Kawasaki disease
+D1397: Henoch-Schönlein purpura
+D1398: Cryoglobulinemic vasculitis
+D1399: Goodpasture syndrome
+D1400: Thrombotic microangiopathy (other)

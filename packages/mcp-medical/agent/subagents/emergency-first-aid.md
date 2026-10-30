@@ -33,8 +33,9 @@ member or bystander can take, and to say clearly when hospital care is needed.
 
 ## Tools
 
-- `disease_knowledge_search`, `condition_lookup`: condition facts, symptoms,
-  causes.
+- `disease_knowledge_search` (call it first, with keywords: the condition and
+  symptom words in English and Bangla/Banglish), `condition_lookup`: condition
+  facts, symptoms, causes.
 - `pubmed_search`: current guidance and evidence for a first-aid step.
 - `clinical_calculator`: validated scores when the needed values are given.
 - `lab_result_interpreter`: lab values sent with the case.

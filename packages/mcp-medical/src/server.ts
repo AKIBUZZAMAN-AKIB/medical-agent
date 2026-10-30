@@ -24,7 +24,11 @@ const URGENCY_PARAGRAPH = `Research before answering. For every health question,
 
 `;
 
-const SERVER_INSTRUCTIONS = `${URGENCY_PARAGRAPH}Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
+const DISEASE_KB_PARAGRAPH = `Disease dataset: whenever the user mentions a disease, a symptom or anything related to a disease, you MUST call disease_knowledge_search before answering, with keywords — every disease name and symptom in the message, in English plus the user's Bangla/Banglish words (e.g. ["dengue", "ডেঙ্গু", "fever", "jor"]). It returns every record of the local Global Disease Master Chart (about 2,000 records) that contains any keyword, with every field. Use all the returned data, and when the result gives next_offset, call it again with the same keywords and that offset until it says Complete. It is a compiled table: never take a dose or a treatment choice from it.
+
+`;
+
+const SERVER_INSTRUCTIONS = `${URGENCY_PARAGRAPH}${DISEASE_KB_PARAGRAPH}Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
 
 Every tool returns live data with a Sources block; cite those URLs rather than the API host, and never present a figure you did not read in a tool result. Zero results, a 404, and a rate limit are answers, not failures: say what was searched and what was not found, and widen the query instead of guessing. Upstreams are free and shared, so prefer few, well-formed calls over many speculative ones.`;
 

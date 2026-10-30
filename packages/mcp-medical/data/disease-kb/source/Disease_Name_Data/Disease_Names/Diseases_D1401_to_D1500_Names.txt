@@ -1,0 +1,158 @@
+Global Disease Master Chart – Disease Names
+Range: D1401 – D1500 (next 100 diseases)
+Note: These are newly curated unique disease names for continuation of the project.
+Full structured data will be added to the Excel file in subsequent steps.
+======================================================================
+
+D1401: Neurofibromatosis type 1
+D1402: Neurofibromatosis type 2
+D1403: Tuberous sclerosis complex
+D1404: von Hippel-Lindau disease
+D1405: Marfan syndrome
+D1406: Ehlers-Danlos syndrome (hypermobile type)
+D1407: Ehlers-Danlos syndrome (vascular type)
+D1408: Osteogenesis imperfecta
+D1409: Achondroplasia
+D1410: Huntington disease
+D1411: Myotonic dystrophy type 1
+D1412: Duchenne muscular dystrophy
+D1413: Becker muscular dystrophy
+D1414: Spinal muscular atrophy
+D1415: Amyotrophic lateral sclerosis
+D1416: Friedreich ataxia
+D1417: Spinocerebellar ataxia
+D1418: Charcot-Marie-Tooth disease
+D1419: Hereditary spastic paraplegia
+D1420: Fabry disease
+D1421: Gaucher disease
+D1422: Pompe disease
+D1423: Niemann-Pick disease type A/B
+D1424: Tay-Sachs disease
+D1425: Mucopolysaccharidosis type I (Hurler syndrome)
+D1426: Mucopolysaccharidosis type II (Hunter syndrome)
+D1427: Phenylketonuria
+D1428: Maple syrup urine disease
+D1429: Homocystinuria
+D1430: Galactosemia
+D1431: Glycogen storage disease type I
+D1432: Medium-chain acyl-CoA dehydrogenase deficiency
+D1433: Ornithine transcarbamylase deficiency
+D1434: Acute intermittent porphyria
+D1435: Hereditary angioedema
+D1436: Familial hypercholesterolemia
+D1437: Hyper-IgE syndrome
+D1438: Chronic granulomatous disease
+D1439: Severe combined immunodeficiency
+D1440: DiGeorge syndrome (22q11.2 deletion syndrome)
+D1441: Turner syndrome
+D1442: Klinefelter syndrome
+D1443: Fragile X syndrome
+D1444: Prader-Willi syndrome
+D1445: Angelman syndrome
+D1446: Rett syndrome
+D1447: Noonan syndrome
+D1448: Alport syndrome
+D1449: Autosomal dominant polycystic kidney disease
+D1450: Autosomal recessive polycystic kidney disease
+D1451: Bartter syndrome
+D1452: Gitelman syndrome
+D1453: Liddle syndrome
+D1454: Joubert syndrome
+D1455: Bardet-Biedl syndrome
+D1456: Alström syndrome
+D1457: Usher syndrome
+D1458: Leber congenital amaurosis
+D1459: Retinitis pigmentosa
+D1460: Stargardt disease
+D1461: Best vitelliform macular dystrophy
+D1462: Aniridia
+D1463: Primary congenital glaucoma
+D1464: Septo-optic dysplasia
+D1465: Holoprosencephaly
+D1466: Aicardi syndrome
+D1467: Cornelia de Lange syndrome
+D1468: Rubinstein-Taybi syndrome
+D1469: Williams syndrome
+D1470: Smith-Magenis syndrome
+D1471: Cri-du-chat syndrome
+D1472: Wolf-Hirschhorn syndrome
+D1473: 1p36 deletion syndrome
+D1474: Sotos syndrome
+D1475: Weaver syndrome
+D1476: Beckwith-Wiedemann syndrome
+D1477: Silver-Russell syndrome
+D1478: CHARGE syndrome
+D1479: VACTERL association
+D1480: Goldenhar syndrome
+D1481: Treacher Collins syndrome
+D1482: Pierre Robin sequence
+D1483: Stickler syndrome
+D1484: Marshall syndrome
+D1485: Apert syndrome
+D1486: Crouzon syndrome
+D1487: Pfeiffer syndrome
+D1488: Saethre-Chotzen syndrome
+D1489: Muenke syndrome
+D1490: Thanatophoric dysplasia
+D1491: Campomelic dysplasia
+D1492: Diastrophic dysplasia
+D1493: Multiple epiphyseal dysplasia
+D1494: Spondyloepiphyseal dysplasia congenita
+D1495: Pseudoachondroplasia
+D1496: Hypophosphatasia
+D1497: X-linked hypophosphatemic rickets
+D1498: Osteopetrosis
+D1499: Pycnodysostosis
+D1500: Fibrodysplasia ossificans progressiva
+
+D1501: Multiple endocrine neoplasia type 1
+D1502: Multiple endocrine neoplasia type 2A
+D1503: Multiple endocrine neoplasia type 2B
+D1504: Carney complex
+D1505: McCune-Albright syndrome
+D1506: Pseudohypoparathyroidism
+D1507: Hereditary hemorrhagic telangiectasia
+D1508: Blue rubber bleb nevus syndrome
+D1509: Maffucci syndrome
+D1510: Ollier disease
+D1511: Proteus syndrome
+D1512: CLOVES syndrome
+D1513: Klippel-Trenaunay syndrome
+D1514: Sturge-Weber syndrome
+D1515: PHACE syndrome
+D1516: Perlman syndrome
+D1517: Simpson-Golabi-Behmel syndrome
+D1518: Costello syndrome
+D1519: Cardio-facio-cutaneous syndrome
+D1520: Legius syndrome
+D1521: Capillary malformation-arteriovenous malformation syndrome
+D1522: Parkes Weber syndrome
+D1523: PTEN hamartoma tumor syndrome
+D1524: Bannayan-Riley-Ruvalcaba syndrome
+D1525: Birt-Hogg-Dubé syndrome
+D1526: Hereditary leiomyomatosis and renal cell cancer
+D1527: Hereditary papillary renal cell carcinoma
+D1528: Familial atypical multiple mole melanoma syndrome
+D1529: Gorlin syndrome
+D1530: Xeroderma pigmentosum
+D1531: Cockayne syndrome
+D1532: Trichothiodystrophy
+D1533: Bloom syndrome
+D1534: Werner syndrome
+D1535: Rothmund-Thomson syndrome
+D1536: Fanconi anemia
+D1537: Dyskeratosis congenita
+D1538: Hoyeraal-Hreidarsson syndrome
+D1539: Nijmegen breakage syndrome
+D1540: Ataxia-telangiectasia
+D1541: Seckel syndrome
+D1542: Meier-Gorlin syndrome
+D1543: Microcephalic osteodysplastic primordial dwarfism type II
+D1544: Roberts syndrome
+D1545: Baller-Gerold syndrome
+D1546: RAPADILINO syndrome
+D1547: Rothmund-Thomson syndrome (confirmed)
+D1547: Schimke immuno-osseous dysplasia
+D1548: Cartilage-hair hypoplasia
+D1549: Shwachman-Diamond syndrome
+D1550: Diamond-Blackfan anemia

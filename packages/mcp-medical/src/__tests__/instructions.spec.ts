@@ -111,6 +111,19 @@ describe('agent instructions — safety rules that must survive editing', () => 
     expect(instructions).toMatch(/look up each active ingredient/i);
   });
 
+  it('must search the disease dataset by keywords whenever a disease or symptom comes up', () => {
+    expect(instructions).toMatch(
+      /\*\*You MUST call it\*\* whenever the user mentions a disease, a symptom/,
+    );
+    expect(instructions).toMatch(/Pass keywords, not a sentence/);
+    expect(instructions).toMatch(/next_offset/);
+    expect(instructions).toMatch(/Use all the returned data/);
+    const server = readFileSync(resolve(__dirname, '../server.ts'), 'utf8');
+    expect(server).toMatch(/MUST call disease_knowledge_search before answering, with keywords/);
+    const shared = readFileSync(resolve(__dirname, '../../agent/subagents/_shared.md'), 'utf8');
+    expect(shared).toMatch(/you MUST call it\s+first whenever the task mentions a disease/);
+  });
+
   it('will only name a source it actually read', () => {
     expect(instructions).toMatch(/Do not\s+cite a source you did not read in this conversation/i);
     expect(instructions).toMatch(/never fill the gap from\s+memory/i);

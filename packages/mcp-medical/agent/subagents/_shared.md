@@ -24,6 +24,14 @@ and list the missing facts under "Still needed" in your report.
   that something does not exist.
 - Use only the tools you have been given. Do not refer to tools you do not
   have.
+- Disease dataset: if you have `disease_knowledge_search`, you MUST call it
+  first whenever the task mentions a disease, a symptom or anything related to
+  a disease. Pass `keywords`: every disease name and symptom in the task, in
+  English plus any Bangla/Banglish words in it. It returns every record that
+  contains a keyword, with every field. Use all of it, and when it gives
+  `next_offset`, call again with the same keywords and that offset until it
+  says "Complete". It is a compiled table: never take a dose or a treatment
+  choice from it.
 
 ## Urgency
 

@@ -31,7 +31,8 @@ and lipid questions, including medicine safety in these conditions.
 `drug_interaction_check`, `bd_medicine_lookup`,
 `pharmacogenomics_guideline`, `pubmed_search`, `pubmed_article`,
 `clinical_trials`, `condition_lookup`, `icd10cm_code` (diagnosis codes when
-asked).
+asked), `disease_knowledge_search` (call it first with keywords: the disease
+names and symptoms in the task).
 
 ## Do not
 

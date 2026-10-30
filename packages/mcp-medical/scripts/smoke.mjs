@@ -58,6 +58,10 @@ const CALLS = {
     args: { term: 'seizure', ontology: 'hp', max_results: 3 },
   },
   icd10cm_code: { group: 'conditions', args: { code_prefix: 'E11' } },
+  disease_knowledge_search: {
+    group: 'conditions',
+    args: { keywords: ['dengue', 'ডেঙ্গু', 'jor'], question: 'dengue hole ki korbo' },
+  },
   variant_clinical_significance: {
     group: 'conditions',
     args: { gene_or_variant: 'BRCA1', max_results: 2 },

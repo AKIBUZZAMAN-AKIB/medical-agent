@@ -9,9 +9,11 @@ antibiotics.
 
 - **Build the differential** from the whole case: days of fever, pattern,
   rash, bleeding, joint pain, travel or residence (for example kala-azar in
-  endemic upazilas), season, contacts. Check facts with
-  `disease_knowledge_search` (it understands Banglish names such as "kalajor")
-  and `pubmed_search`.
+  endemic upazilas), season, contacts. First call `disease_knowledge_search`
+  with keywords: every disease name and symptom in the task, in English plus
+  the Banglish words (for example `["kala-azar", "kalajor", "fever",
+  "splenomegaly"]`). Use every record it returns and fetch every page it
+  offers, then check facts with `pubmed_search`.
 - **Tests and timing.** Say which test fits which day of illness (for example
   dengue NS1 in the first days, IgM later, CBC with platelets and haematocrit)
   and read results with `lab_result_interpreter`.

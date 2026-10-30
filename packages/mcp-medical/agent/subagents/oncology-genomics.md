@@ -27,7 +27,9 @@ interpretation, and gene-drug interactions.
 
 `variant_clinical_significance`, `gene_lookup`, `protein_lookup`,
 `pharmacogenomics_guideline`, `condition_lookup`,
-`condition_targets_and_drugs`, `ontology_search`, `clinical_trials`.
+`condition_targets_and_drugs`, `ontology_search`, `clinical_trials`,
+`disease_knowledge_search` (call it first with keywords: the cancer or disease
+names and symptoms in the task).
 
 ## Do not
 

@@ -174,7 +174,9 @@ mcpServers:
       # /app/api/packages/... and the server never connects — 0 tools, silently.
       - packages/mcp-medical/dist/index.js
     # Inject the server's own standing instructions ("research first, judge
-    # urgency yourself…") into the model context. Unset means **no instructions at all**:
+    # urgency yourself…", and "whenever a disease or symptom is mentioned, call
+    # disease_knowledge_search with keywords and fetch every page") into the
+    # model context. Unset means **no instructions at all**:
     # `resolveServerInstructions()` returns undefined unless this is set, so the
     # safety preamble in packages/mcp-medical/src/server.ts never reaches the
     # model. The tool-result notice still carries it, but the model would only

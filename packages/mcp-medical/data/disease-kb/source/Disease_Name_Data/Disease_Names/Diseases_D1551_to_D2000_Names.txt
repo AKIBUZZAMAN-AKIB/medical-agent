@@ -1,0 +1,481 @@
+Global Disease Master Chart – Disease Names Only
+Range requested: D1551 – D2000
+Note: Plain text list of unique medically recognized disease names.
+These continue from the previous blocks. Full structured entries not yet added to Excel.
+======================================================================
+
+D1551: Diamond-Blackfan anemia
+D1552: Fanconi anemia
+D1553: Dyskeratosis congenita
+D1554: Shwachman-Diamond syndrome
+D1555: Severe congenital neutropenia
+D1556: Cyclic neutropenia
+D1557: Barth syndrome
+D1558: Pearson syndrome
+D1559: Kearns-Sayre syndrome
+D1560: MELAS syndrome
+D1561: MERRF syndrome
+D1562: Leigh syndrome
+D1563: Leber hereditary optic neuropathy
+D1564: Mitochondrial DNA depletion syndrome
+D1565: Pyruvate dehydrogenase deficiency
+D1566: Glutaric aciduria type 1
+D1567: Methylmalonic acidemia
+D1568: Propionic acidemia
+D1569: Isovaleric acidemia
+D1570: Biotinidase deficiency
+D1571: Holocarboxylase synthetase deficiency
+D1572: Multiple acyl-CoA dehydrogenase deficiency
+D1573: Carnitine palmitoyltransferase II deficiency
+D1574: Very long-chain acyl-CoA dehydrogenase deficiency
+D1575: Long-chain 3-hydroxyacyl-CoA dehydrogenase deficiency
+D1576: Zellweger spectrum disorder
+D1577: X-linked adrenoleukodystrophy
+D1578: Refsum disease
+D1579: Rhizomelic chondrodysplasia punctata
+D1580: Smith-Lemli-Opitz syndrome
+D1581: Mevalonate kinase deficiency
+D1582: Hyperimmunoglobulin D syndrome
+D1583: Tumor necrosis factor receptor-associated periodic syndrome
+D1584: Cryopyrin-associated periodic syndrome
+D1585: Familial cold autoinflammatory syndrome
+D1586: Muckle-Wells syndrome
+D1587: Neonatal-onset multisystem inflammatory disease
+D1588: Deficiency of adenosine deaminase 2
+D1589: STING-associated vasculopathy with onset in infancy
+D1590: Chronic atypical neutrophilic dermatosis with lipodystrophy and elevated temperature
+D1591: Aicardi-Goutières syndrome
+D1592: Spondyloenchondrodysplasia with immune dysregulation
+D1593: COPA syndrome
+D1594: VEXAS syndrome
+D1595: Schnitzler syndrome
+D1596: Adult-onset immunodeficiency with anti-interferon-gamma autoantibodies
+D1597: Autoimmune polyendocrine syndrome type 1
+D1598: Autoimmune polyendocrine syndrome type 2
+D1599: IPEX syndrome
+D1600: ALPS (autoimmune lymphoproliferative syndrome)
+D1601: Common variable immunodeficiency
+D1602: X-linked agammaglobulinemia
+D1603: Selective IgA deficiency
+D1604: Specific antibody deficiency
+D1605: Hyper-IgM syndrome
+D1606: Wiskott-Aldrich syndrome
+D1607: Dedicator of cytokinesis 8 deficiency
+D1608: STAT3 gain-of-function disease
+D1609: STAT1 gain-of-function disease
+D1610: Activated PI3K delta syndrome
+D1611: CTLA-4 haploinsufficiency
+D1612: LRBA deficiency
+D1613: NFκB1 deficiency
+D1614: Cartilage-hair hypoplasia
+D1615: Schimke immuno-osseous dysplasia
+D1616: Myhre syndrome
+D1617: Floating-Harbor syndrome
+D1618: Kabuki syndrome
+D1619: Charge syndrome (already noted earlier – using alternative)
+D1619: Bohring-Opitz syndrome
+D1620: Wiedemann-Steiner syndrome
+D1621: KBG syndrome
+D1622: Coffin-Siris syndrome
+D1623: Coffin-Lowry syndrome
+D1624: Alpha-thalassemia X-linked intellectual disability syndrome
+D1625: Börjeson-Forssman-Lehmann syndrome
+D1626: Clark-Baraitser syndrome
+D1627: FG syndrome
+D1628: Lujan-Fryns syndrome
+D1629: Renpenning syndrome
+D1630: Snyder-Robinson syndrome
+D1631: Allan-Herndon-Dudley syndrome
+D1632: Christianson syndrome
+D1633: Partington syndrome
+D1634: Proud syndrome
+D1635: X-linked lissencephaly with abnormal genitalia
+D1636: Miller-Dieker syndrome
+D1637: Norman-Roberts syndrome
+D1638: Walker-Warburg syndrome
+D1639: Muscle-eye-brain disease
+D1640: Fukuyama congenital muscular dystrophy
+D1641: Congenital muscular dystrophy type 1A
+D1642: Ullrich congenital muscular dystrophy
+D1643: Bethlem myopathy
+D1644: Rigid spine syndrome
+D1645: Nemaline myopathy
+D1646: Central core disease
+D1647: Multi-minicore disease
+D1648: Centronuclear myopathy
+D1649: Myotubular myopathy
+D1650: Congenital fiber-type disproportion
+D1651: Laing distal myopathy
+D1652: Tibial muscular dystrophy
+D1653: Vocal cord and pharyngeal weakness with distal myopathy
+D1654: Hereditary inclusion body myopathy
+D1655: GNE myopathy
+D1656: Nonaka myopathy
+D1657: Welander distal myopathy
+D1658: Miyoshi myopathy
+D1659: Limb-girdle muscular dystrophy type 2A
+D1660: Limb-girdle muscular dystrophy type 2B
+D1661: Limb-girdle muscular dystrophy type 2C
+D1662: Limb-girdle muscular dystrophy type 2D
+D1663: Limb-girdle muscular dystrophy type 2E
+D1664: Limb-girdle muscular dystrophy type 2I
+D1665: Facioscapulohumeral muscular dystrophy
+D1666: Oculopharyngeal muscular dystrophy
+D1667: Emery-Dreifuss muscular dystrophy
+D1668: Lamin A/C related congenital muscular dystrophy
+D1669: Hutchinson-Gilford progeria syndrome
+D1670: Mandibuloacral dysplasia
+D1671: Restrictive dermopathy
+D1672: Nestor-Guillermo progeria syndrome
+D1673: Werner syndrome (already noted)
+D1673: Atypical Werner syndrome
+D1674: Mandibular hypoplasia deafness progeroid features syndrome
+D1675: Ruijs-Aalfs syndrome
+D1676: Fontaine progeroid syndrome
+D1677: Cutis laxa (autosomal dominant)
+D1678: Cutis laxa (autosomal recessive)
+D1679: Geroderma osteodysplastica
+D1680: De Barsy syndrome
+D1681: RIN2 syndrome
+D1682: Macrocephaly-capillary malformation syndrome
+D1683: Megalencephaly-capillary malformation syndrome
+D1684: Megalencephaly-polymicrogyria-polydactyly-hydrocephalus syndrome
+D1685: Smith-Kingsmore syndrome
+D1686: PIK3CA-related overgrowth spectrum
+D1687: CLOVES syndrome (already noted)
+D1687: Fibroadipose hyperplasia
+D1688: Hemihyperplasia-multiple lipomatosis syndrome
+D1689: Isolated hemihyperplasia
+D1690: Beckwith-Wiedemann spectrum
+D1691: Simpson-Golabi-Behmel syndrome type 1
+D1692: Simpson-Golabi-Behmel syndrome type 2
+D1693: Perlman syndrome (already noted)
+D1693: Thauvin-Robinet-Faivre syndrome
+D1694: Tenorio syndrome
+D1695: Kosaki overgrowth syndrome
+D1696: Malan syndrome
+D1697: Marshall-Smith syndrome
+D1698: Sotos syndrome 2 (SETD2)
+D1699: Weaver syndrome (already noted)
+D1699: Susceptibility to breast cancer (BRCA1-related)
+D1700: Susceptibility to breast cancer (BRCA2-related)
+D1701: Lynch syndrome
+D1702: Familial adenomatous polyposis
+D1703: MUTYH-associated polyposis
+D1704: Peutz-Jeghers syndrome
+D1705: Juvenile polyposis syndrome
+D1706: Cowden syndrome
+D1707: Bannayan-Riley-Ruvalcaba syndrome (already)
+D1707: Hereditary diffuse gastric cancer
+D1708: Li-Fraumeni syndrome
+D1709: Hereditary breast and ovarian cancer syndrome
+D1710: PALB2-related cancer predisposition
+D1711: CHEK2-related cancer predisposition
+D1712: ATM-related cancer predisposition
+D1713: RAD51C-related cancer predisposition
+D1714: BRIP1-related cancer predisposition
+D1715: Multiple osteochondromas
+D1716: Hereditary multiple exostoses
+D1717: Progressive osseous heteroplasia
+D1718: Albright hereditary osteodystrophy (already)
+D1718: Fibrous dysplasia of bone
+D1719: McCune-Albright syndrome (already)
+D1719: Mazabraud syndrome
+D1720: Osteofibrous dysplasia
+D1721: Adamantinoma of long bones
+D1722: Chordoma
+D1723: Chondrosarcoma
+D1724: Osteosarcoma
+D1725: Ewing sarcoma
+D1726: Rhabdomyosarcoma
+D1727: Synovial sarcoma
+D1728: Liposarcoma
+D1729: Leiomyosarcoma
+D1730: Angiosarcoma
+D1731: Malignant peripheral nerve sheath tumor
+D1732: Gastrointestinal stromal tumor
+D1733: Desmoid tumor
+D1734: Tenosynovial giant cell tumor
+D1735: Pigmented villonodular synovitis
+D1736: Giant cell tumor of bone
+D1737: Aneurysmal bone cyst
+D1738: Unicameral bone cyst
+D1739: Fibrous cortical defect
+D1740: Non-ossifying fibroma
+D1741: Osteochondroma
+D1742: Enchondroma
+D1743: Chondroblastoma
+D1744: Chondromyxoid fibroma
+D1745: Osteoid osteoma
+D1746: Osteoblastoma
+D1747: Langerhans cell histiocytosis
+D1748: Erdheim-Chester disease
+D1749: Rosai-Dorfman disease
+D1750: Hemophagocytic lymphohistiocytosis
+D1751: Familial hemophagocytic lymphohistiocytosis
+D1752: X-linked lymphoproliferative disease
+D1753: Chediak-Higashi syndrome
+D1754: Griscelli syndrome
+D1755: Hermansky-Pudlak syndrome
+D1756: Oculocutaneous albinism
+D1757: Ocular albinism
+D1758: Chediak-Higashi syndrome (already)
+D1758: Elejalde syndrome
+D1759: Cross syndrome
+D1760: Waardenburg syndrome
+D1761: Tietz albinism-deafness syndrome
+D1762: Piebaldism
+D1763: Yemenite deaf-blind hypopigmentation syndrome
+D1764: Alezzandrini syndrome
+D1765: Vogt-Koyanagi-Harada disease
+D1766: Sympathetic ophthalmia
+D1767: Birdshot chorioretinopathy
+D1768: Multifocal choroiditis and panuveitis
+D1769: Punctate inner choroidopathy
+D1770: Acute posterior multifocal placoid pigment epitheliopathy
+D1771: Serpiginous choroiditis
+D1772: Multiple evanescent white dot syndrome
+D1773: Acute zonal occult outer retinopathy
+D1774: Cancer-associated retinopathy
+D1775: Melanoma-associated retinopathy
+D1776: Autoimmune retinopathy
+D1777: Susac syndrome
+D1778: Eales disease
+D1779: Coats disease
+D1780: Leber miliary aneurysms
+D1781: Familial exudative vitreoretinopathy
+D1782: Norrie disease
+D1783: Incontinentia pigmenti
+D1784: Retinopathy of prematurity
+D1785: Persistent fetal vasculature
+D1786: Morning glory disc anomaly
+D1787: Optic nerve hypoplasia
+D1788: Septo-optic dysplasia (already)
+D1788: Aicardi syndrome (already)
+D1788: Microphthalmia
+D1789: Anophthalmia
+D1790: Coloboma
+D1791: Peters anomaly
+D1792: Axenfeld-Rieger syndrome
+D1793: Alagille syndrome
+D1794: Nail-patella syndrome
+D1795: Papillorenal syndrome
+D1796: Renal coloboma syndrome
+D1797: Branchio-oto-renal syndrome
+D1798: Branchio-oculo-facial syndrome
+D1799: Townes-Brocks syndrome
+D1800: HDR syndrome (hypoparathyroidism deafness renal)
+
+D1801: Muckle-Wells syndrome (already covered in autoinflammatory)
+D1801: Familial hemophagocytic lymphohistiocytosis type 1
+D1802: Familial hemophagocytic lymphohistiocytosis type 2
+D1803: Familial hemophagocytic lymphohistiocytosis type 3
+D1804: Familial hemophagocytic lymphohistiocytosis type 4
+D1805: Familial hemophagocytic lymphohistiocytosis type 5
+D1806: X-linked lymphoproliferative disease type 1
+D1807: X-linked lymphoproliferative disease type 2
+D1808: Lymphoproliferative syndrome type 1
+D1809: Lymphoproliferative syndrome type 2
+D1810: Autoimmune lymphoproliferative syndrome type 1
+D1811: Autoimmune lymphoproliferative syndrome type 2
+D1812: Caspase-8 deficiency syndrome
+D1813: RAS-associated autoimmune leukoproliferative disease
+D1814: Dianzani autoimmune lymphoproliferative disease
+D1815: PRKCD deficiency
+D1816: MAGT1 deficiency (XMEN disease)
+D1817: ORAI1 deficiency
+D1818: STIM1 deficiency
+D1819: Calcium channelopathies of immune system
+D1820: WHIM syndrome
+D1821: Warts hypogammaglobulinemia infections myelokathexis
+D1822: GATA2 deficiency
+D1823: MonoMAC syndrome
+D1824: Emberger syndrome
+D1825: Dendritic cell monocyte B and NK lymphoid deficiency
+D1826: IRF8 deficiency
+D1827: RORC deficiency
+D1828: IL-17 related candidiasis susceptibility
+D1829: Chronic mucocutaneous candidiasis
+D1830: STAT1 gain-of-function (already)
+D1830: APECED syndrome
+D1831: Autoimmune polyendocrinopathy-candidiasis-ectodermal dystrophy
+D1832: IPEX-like syndromes
+D1833: CTLA4 deficiency (already)
+D1833: LRBA deficiency (already)
+D1834: DEF6 deficiency
+D1835: TET2 deficiency
+D1836: SOCS1 haploinsufficiency
+D1837: IKZF1 deficiency
+D1838: IKAROS-associated diseases
+D1839: HELIOS deficiency
+D1840: NFKB2 deficiency
+D1841: RelB deficiency
+D1842: NEMO deficiency syndrome
+D1843: EDA-ID syndrome
+D1844: Incontinentia pigmenti (already)
+D1844: Hypohidrotic ectodermal dysplasia with immune deficiency
+D1845: Anhidrotic ectodermal dysplasia with immune deficiency
+D1846: IRAK-4 deficiency
+D1847: MyD88 deficiency
+D1848: TLR3 deficiency
+D1849: UNC93B1 deficiency
+D1850: TRAF3 deficiency
+D1851: TBK1 deficiency
+D1852: IRF3 deficiency
+D1853: IFNAR1 deficiency
+D1854: IFNAR2 deficiency
+D1855: STAT2 deficiency
+D1856: IRF7 deficiency
+D1857: IRF9 deficiency
+D1858: MDA5 deficiency
+D1859: RIG-I deficiency
+D1860: RNA polymerase III deficiency
+D1861: Severe influenza susceptibility syndromes
+D1862: Herpes simplex encephalitis genetic susceptibility
+D1863: TLR3-pathway deficiencies
+D1864: Predisposition to invasive fungal disease
+D1865: CARD9 deficiency
+D1866: Chronic granulomatous disease (already)
+D1866: Myeloperoxidase deficiency
+D1867: Glucose-6-phosphate dehydrogenase deficiency (already covered)
+D1867: Glutathione synthetase deficiency
+D1868: Leukocyte adhesion deficiency type 1
+D1869: Leukocyte adhesion deficiency type 2
+D1870: Leukocyte adhesion deficiency type 3
+D1871: Rac2 deficiency
+D1872: Localized juvenile periodontitis genetic forms
+D1873: Papillon-Lefèvre syndrome
+D1874: Haim-Munk syndrome
+D1875: Chediak-Higashi syndrome (already)
+D1875: Griscelli syndrome type 1
+D1876: Griscelli syndrome type 2
+D1877: Griscelli syndrome type 3
+D1878: Hermansky-Pudlak syndrome type 1
+D1879: Hermansky-Pudlak syndrome type 2
+D1880: Hermansky-Pudlak syndrome type 3
+D1881: Hermansky-Pudlak syndrome type 4
+D1882: Hermansky-Pudlak syndrome type 5
+D1883: Hermansky-Pudlak syndrome type 6
+D1884: Hermansky-Pudlak syndrome type 7
+D1885: Hermansky-Pudlak syndrome type 8
+D1886: Hermansky-Pudlak syndrome type 9
+D1887: Hermansky-Pudlak syndrome type 10
+D1888: Hermansky-Pudlak syndrome type 11
+D1889: Chediak-Higashi-like syndromes
+D1890: P14/MAPBPIP deficiency
+D1891: VPS45 deficiency
+D1892: Cohen syndrome
+D1893: Cohen syndrome-like
+D1894: Mirhosseini-Holmes-Walton syndrome
+D1895: Northern epilepsy
+D1896: Progressive myoclonus epilepsy
+D1897: Unverricht-Lundborg disease
+D1898: Lafora disease
+D1899: Neuronal ceroid lipofuscinosis type 1
+D1900: Neuronal ceroid lipofuscinosis type 2
+D1901: Neuronal ceroid lipofuscinosis type 3
+D1902: Neuronal ceroid lipofuscinosis type 5
+D1903: Neuronal ceroid lipofuscinosis type 6
+D1904: Neuronal ceroid lipofuscinosis type 7
+D1905: Neuronal ceroid lipofuscinosis type 8
+D1906: Neuronal ceroid lipofuscinosis type 10
+D1907: Neuronal ceroid lipofuscinosis type 11
+D1908: Neuronal ceroid lipofuscinosis type 12
+D1909: Sialidosis
+D1910: Galactosialidosis
+D1911: Aspartylglucosaminuria
+D1912: Fucosidosis
+D1913: Alpha-mannosidosis
+D1914: Beta-mannosidosis
+D1915: Schindler disease
+D1916: Kanzaki disease
+D1917: Mucolipidosis type II
+D1918: Mucolipidosis type III
+D1919: Mucolipidosis type IV
+D1920: Multiple sulfatase deficiency
+D1921: Metachromatic leukodystrophy
+D1922: Krabbe disease
+D1923: X-linked adrenoleukodystrophy (already)
+D1923: Alexander disease
+D1924: Canavan disease
+D1925: Vanishing white matter disease
+D1926: Childhood ataxia with central nervous system hypomyelination
+D1927: Megalencephalic leukoencephalopathy with subcortical cysts
+D1928: Aicardi-Goutières syndrome (already)
+D1928: RNASET2-deficient leukoencephalopathy
+D1929: Band-like calcification with simplified gyration and polymicrogyria
+D1930: Occludin deficiency
+D1931: Pseudo-TORCH syndrome
+D1932: Collagen type VI related disorders
+D1933: Ullrich disease (already)
+D1933: Bethlem myopathy (already)
+D1934: Collagen type XII related myopathy
+D1935: Collagen type XIII related myopathy
+D1936: Dystroglycanopathies
+D1937: Walker-Warburg spectrum
+D1938: Muscle-eye-brain disease spectrum
+D1939: Fukuyama congenital muscular dystrophy spectrum
+D1940: LGMD2I (FKRP related)
+D1941: LGMD2K (POMT1 related)
+D1942: LGMD2M (FKTN related)
+D1943: LGMD2N (POMT2 related)
+D1944: LGMD2O (POMGnT1 related)
+D1945: LGMD2P (DAG1 related)
+D1946: LGMD2T (GMPPB related)
+D1947: LGMD2U (ISPD related)
+D1948: Congenital disorder of glycosylation type Ia
+D1949: Congenital disorder of glycosylation type Ib
+D1950: Congenital disorder of glycosylation type Ic
+D1951: Congenital disorder of glycosylation type II
+D1952: ALG6-CDG
+D1953: PMM2-CDG
+D1954: MPI-CDG
+D1955: ALG1-CDG
+D1956: ALG3-CDG
+D1957: ALG12-CDG
+D1958: DPAGT1-CDG
+D1959: SRD5A3-CDG
+D1960: NGLY1 deficiency
+D1961: Congenital disorder of deglycosylation
+D1962: Phosphomannomutase 2 deficiency
+D1963: Mannosyltransferase deficiencies
+D1964: COG complex deficiencies
+D1965: ATP6V0A2-CDG
+D1966: TMEM165-CDG
+D1967: SLC35A1-CDG
+D1968: SLC35A2-CDG
+D1969: SLC35C1-CDG
+D1970: Genetic forms of cutis laxa with glycosylation defects
+D1971: Fontaine syndrome
+D1972: RIN2 syndrome (already)
+D1972: Macrocephaly-alopecia-cutis laxa-scoliosis syndrome
+D1973: Geroderma osteodysplastica (already)
+D1973: Autosomal recessive cutis laxa type 2
+D1974: Autosomal recessive cutis laxa type 3
+D1975: De Barsy syndrome (already)
+D1975: Progeroid cutis laxa syndromes
+D1976: Wrinkly skin syndrome
+D1977: Arterial tortuosity syndrome
+D1978: Loeys-Dietz syndrome type 1
+D1979: Loeys-Dietz syndrome type 2
+D1980: Loeys-Dietz syndrome type 3
+D1981: Loeys-Dietz syndrome type 4
+D1982: Loeys-Dietz syndrome type 5
+D1983: Shprintzen-Goldberg syndrome
+D1984: Congenital contractural arachnodactyly
+D1985: Beals syndrome
+D1986: MASS syndrome
+D1987: Mitral valve prolapse-aortic dilatation-skin-skeletal syndrome
+D1988: Familial thoracic aortic aneurysm and dissection
+D1989: ACTA2-related aortic disease
+D1990: MYH11-related aortic disease
+D1991: MYLK-related aortic disease
+D1992: PRKG1-related aortic disease
+D1993: TGFB2-related aortic disease
+D1994: TGFB3-related aortic disease
+D1995: SMAD3-related aortic disease
+D1996: LOX-related aortic disease
+D1997: MAT2A-related aortic disease
+D1998: FOXE3-related aortic disease
+D1999: Heritable thoracic aortic disease spectrum
+D2000: Familial abdominal aortic aneurysm predisposition

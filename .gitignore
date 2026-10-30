@@ -217,10 +217,9 @@ scripts/activity-labels/results/
 **/ts-admin/
 gate-password.txt
 gate.json
-# disease knowledge base: raw dataset and built index stay local (no licence)
-packages/mcp-medical/data/disease-kb/
-datasets/
 *.xlsx
+# the disease dataset workbooks are committed on purpose (source of the disease index)
+!packages/mcp-medical/data/disease-kb/source/**/*.xlsx
 # medtools model weights
 medtools/models/
 # searxng settings carry the instance secret_key; commit the example instead

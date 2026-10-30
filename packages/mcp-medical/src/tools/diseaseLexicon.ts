@@ -306,3 +306,74 @@ export function expandQuery(query: string): string[] {
 export function hasBangla(text: string): boolean {
   return /[\u0980-\u09FF]/.test(text);
 }
+
+/**
+ * English search phrases for each lexicon `en` string. The `en` strings join
+ * several phrases with spaces ("typhoid fever enteric fever"), which is fine for
+ * an embedding query but not for exact keyword matching, so the phrases are
+ * listed here. An entry mapped to `[]` is a question intent ("symptoms",
+ * "causes", "child") rather than a disease or symptom: it would match almost
+ * every record, so it adds no keyword. Entries not listed use `en` as one phrase.
+ */
+const EN_PHRASES: Record<string, string[]> = {
+  'dengue fever': ['dengue'],
+  'typhoid fever enteric fever': ['typhoid', 'enteric fever'],
+  'paratyphoid fever': ['paratyphoid'],
+  'diarrhea gastroenteritis': ['diarrhea', 'diarrhoea', 'gastroenteritis'],
+  'dysentery shigellosis bloody diarrhea': ['dysentery', 'shigellosis', 'bloody diarrhea'],
+  'rabies dog bite': ['rabies', 'dog bite'],
+  'jaundice hepatitis': ['jaundice', 'hepatitis'],
+  'varicella chickenpox': ['varicella', 'chickenpox'],
+  'tinea ringworm dermatophytosis': ['tinea', 'ringworm', 'dermatophytosis'],
+  'intestinal worms helminth ascariasis': ['intestinal worms', 'helminth', 'ascariasis'],
+  'visceral leishmaniasis kala-azar': ['visceral leishmaniasis', 'kala-azar'],
+  'nipah virus': ['nipah'],
+  'pertussis whooping cough': ['pertussis', 'whooping cough'],
+  'COVID-19 coronavirus': ['covid-19', 'coronavirus'],
+  'sore throat pharyngitis tonsillitis': ['sore throat', 'pharyngitis', 'tonsillitis'],
+  'otitis media ear infection': ['otitis media', 'ear infection'],
+  'zika virus': ['zika'],
+  'diabetes mellitus': ['diabetes'],
+  'hypertension high blood pressure': ['hypertension', 'high blood pressure'],
+  'myocardial infarction heart attack': ['myocardial infarction', 'heart attack'],
+  'epilepsy seizure': ['epilepsy', 'seizure'],
+  'peptic ulcer gastritis dyspepsia': ['peptic ulcer', 'gastritis', 'dyspepsia'],
+  'gallstones cholelithiasis': ['gallstone', 'cholelithiasis'],
+  'kidney stones nephrolithiasis': ['kidney stone', 'nephrolithiasis'],
+  'thyroid hypothyroidism hyperthyroidism': ['thyroid', 'hypothyroidism', 'hyperthyroidism'],
+  'allergy allergic': ['allergy', 'allergic'],
+  'eczema atopic dermatitis': ['eczema', 'atopic dermatitis'],
+  'arsenicosis arsenic poisoning': ['arsenicosis', 'arsenic'],
+  'depression depressive disorder': ['depression', 'depressive disorder'],
+  'anxiety disorder': ['anxiety'],
+  'heat stroke': ['heat stroke', 'heatstroke'],
+  'snakebite envenoming': ['snakebite', 'snake bite', 'envenoming'],
+  'shortness of breath dyspnea': ['shortness of breath', 'dyspnea', 'breathlessness'],
+  'joint pain arthralgia': ['joint pain', 'arthralgia'],
+  'rash itching': ['rash', 'itching', 'pruritus'],
+  'weakness fatigue': ['weakness', 'fatigue'],
+  'seizure convulsion': ['seizure', 'convulsion'],
+  symptoms: [],
+  causes: [],
+  prevention: [],
+  'diagnosis test': [],
+  'child children': [],
+  'pregnancy pregnant': [],
+  'transmission contagious': [],
+};
+
+/**
+ * English keyword phrases for a Bangla or Banglish keyword, via the lexicon.
+ * Returns the matched lexicon entries' phrases (deduplicated) and the entries'
+ * `en` strings, or empty arrays when the keyword is not in the lexicon.
+ */
+export function lexiconTerms(keyword: string): { phrases: string[]; matched: string[] } {
+  const matched = expandQuery(keyword);
+  const phrases: string[] = [];
+  for (const en of matched) {
+    for (const p of EN_PHRASES[en] ?? [en]) {
+      if (!phrases.includes(p)) phrases.push(p);
+    }
+  }
+  return { phrases, matched };
+}

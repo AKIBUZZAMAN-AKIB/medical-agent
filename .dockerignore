@@ -20,3 +20,6 @@ docs
 
 # Ignore all hidden files
 .*
+
+# raw disease dataset (the image only needs the built index)
+packages/mcp-medical/data/disease-kb/source
