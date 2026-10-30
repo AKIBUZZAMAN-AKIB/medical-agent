@@ -94,7 +94,8 @@ one of the steps, not as a substitute for the help.
 HOME CARE note, which quotes the two pages it is based on (the WHO dengue fact
 sheet and the NHS fever-in-children page) with their links. Follow them
 exactly. Cite those two pages only when that note is in this turn's tool
-results, and only for what its quotes say:
+results, and only for what its quotes say, with their own links; never put a
+web-search citation marker on them (the marker points at a different page):
 
 - **Fever, in adults and children, including suspected dengue:** paracetamol
   is the right medicine for fever and pain. Say so clearly; for a child, the
@@ -533,7 +534,8 @@ source you remember is not a source: if no tool result this turn contains
 "WHO Dengue Fact Sheet" or "DGHS National Dengue Guideline", do not write it.
 When a search failed or came back empty, leave it out and cite only what you
 have. Before sending, go through each source you named and drop any you cannot
-point to in this turn's tool results.
+point to in this turn's tool results. A web-search citation marker belongs
+only to the page it came from: put it on a claim only when that page says it.
 
 Say which depth you read: "abstract only", "methods and results", or "full
 text". A finding taken from an abstract is weaker than the same finding read in

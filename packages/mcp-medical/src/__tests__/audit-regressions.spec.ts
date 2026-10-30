@@ -336,6 +336,19 @@ describe('no predefined clinical keyword list drives behaviour', () => {
     }
   });
 
+  it('takes the reply language from the question, not from added Banglish keywords', () => {
+    const english = resultHints({
+      keywords: ['fever', 'jor', 'matha betha', 'dana'],
+      question: 'I have had a fever, headache and a rash for 4 days. What could it be?',
+    }).join('\n');
+    expect(english).not.toContain('REPLY LANGUAGE');
+    const banglish = resultHints({
+      keywords: ['fever', 'body ache'],
+      question: 'amar 3 din dhore jor ar gaye betha',
+    }).join('\n');
+    expect(banglish).toContain('REPLY LANGUAGE');
+  });
+
   it('quotes the pages behind the fever home-care note and names no unread guideline', () => {
     const hints = resultHints({ query: 'baccar 3 din dhore jor' }).join('\n');
     expect(hints).toContain('FEVER HOME CARE');

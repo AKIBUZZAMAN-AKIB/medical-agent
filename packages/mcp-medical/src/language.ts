@@ -205,7 +205,14 @@ export function collectArgText(args: unknown, depth = 0): string {
 export function resultHints(args: unknown): string[] {
   const text = collectArgText(args).slice(0, 4000);
   const hints: string[] = [];
-  const lang = detectReplyLanguage(text);
+  // The reply language follows the user's own words. Tools that take the
+  // user's message as `question` also get extra search terms (Banglish
+  // synonyms of English keywords), so those must not decide the language.
+  const question =
+    args && typeof args === 'object' ? (args as Record<string, unknown>).question : undefined;
+  const lang = detectReplyLanguage(
+    typeof question === 'string' && question.trim() ? question.slice(0, 4000) : text,
+  );
   if (lang === 'bn') {
     hints.push(
       'REPLY LANGUAGE: The user writes Bangla or Banglish (Bangla in Latin letters). Write the whole answer in clear, natural Bangla script (standard Bangladeshi Bangla), with drug and test names in English in brackets where useful, e.g. প্যারাসিটামল (Paracetamol). Write every number (doses, lab values, phone numbers) with English digits, e.g. 500 mg, 16263.',
