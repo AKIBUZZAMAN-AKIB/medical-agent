@@ -6,9 +6,8 @@ dose table, no interaction matrix, no review abstracts. Every fact in an answer
 came back from an upstream API during the conversation, with a link to the
 record it came from.
 
-33 read-only tools across 11 domain groups, no API keys required — including one
-triage tool whose decision procedure is a deterministic, unit-tested pure function
-(it holds no clinical word list; see below).
+33 read-only tools across 11 domain groups, no API keys required. None of them
+decides urgency: there is no triage tool and no red-flag keyword list (see below).
 
 ## What it is for
 
@@ -38,31 +37,18 @@ the research method are written down.
 | `trials`           | `clinical_trials`                                                                                                                                                                         | ClinicalTrials.gov API v2                                                                          |
 | `epidemiology`     | `health_statistics`                                                                                                                                                                       | WHO Global Health Observatory                                                                      |
 | `devices`          | `device_approval`, `safety_recalls`                                                                                                                                                       | openFDA 510(k), device recall and food enforcement                                                 |
-| `clinical`         | `emergency_triage_check`, `provider_lookup`, `plain_language_summary`                                                                                                                      | None for the triage tool (policy evaluation is deterministic; severity comes from a classifier); NPPES NPI Registry v2.1, Wikipedia |
+| `clinical`         | `provider_lookup`, `plain_language_summary`                                                                                                                                                | NPPES NPI Registry v2.1, Wikipedia |
 
 Group the tools any way the deployment needs — see `MEDICAL_TOOL_GROUPS` below.
-`emergency_triage_check` is the one exception: it is the safety floor and is
-published whatever the group selection or exclude list says.
 
-### The triage tool holds no clinical rules, on purpose
+### Urgency is the model's judgement, not a word list
 
-It contains no red-flag word list, no symptom lexicon and no first-aid text. An
-earlier revision did (~1,800 lines); it was removed because an enumerated word
-list is a *maintained* asset rather than a safety guarantee — every phrasing it
-lacks is silently unsupported, it cannot be reviewed for clinical validity as a
-whole, and 39 hand-written concepts read like coverage that was never adjudicated.
-
-What remains is a pure evaluator (`src/safety/triage.ts`) over evidence supplied
-by a classifier: severity ordering is a monotone max-join, denials are inert
-unless a policy reads them explicitly, and an absent, throwing, timing-out or
-malformed classifier is `unknown` — never `routine`. Semantics are the
-classifier's; the decision procedure is this repository's, and it is tested with
-synthetic evidence and property tests rather than with clinical strings.
-
-A stdio MCP server has no model, so out of the box the tool returns `UNKNOWN` and
-says it is undecided. That is the honest failure. Real classification belongs on
-the host side, where the agent's model already lives — see
-[`docs/MEMORY_AND_LONG_RUN.md`](../../docs/MEMORY_AND_LONG_RUN.md).
+The server has no emergency triage tool, no red-flag knowledge base and no
+keyword or regex rule that labels a message as an emergency. Earlier revisions
+had both a word list and a classifier-backed triage tool; both were removed
+because a word match cannot tell "what is a seizure" from "my child is having a
+seizure now". The model reads the whole message and decides; the agent
+instructions say when to open with the one 999 line and when not to.
 
 - **Emergencies get actions, not a phone number.**
 
@@ -104,7 +90,7 @@ agent rather than a stateless one:
   is about. A patient talking about their father and themselves in one message
   is the normal case, and a pooled history turns that into a wrong answer about
   the wrong person's medication. The agent may open a record for a relative
-  only after asking once and being told yes, and never delays emergency triage
+  only after asking once and being told yes, and never delays emergency help
   for that question.
 
 `memory_profiles` is the lever to reach for anywhere a user talks about more

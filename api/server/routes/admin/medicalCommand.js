@@ -97,10 +97,6 @@ const TOOL_LAB_GROUPS = [
 
 /** JSON prefilled into the console when a tool is picked. Presentation only. */
 const TOOL_SAMPLE_ARGS = {
-  emergency_triage_check: {
-    message: 'My father is sweating, has chest pain and cannot catch his breath.',
-    age: 62,
-  },
   bd_medicine_lookup: { query: 'Bizoran 5/20', max_alternatives: 8 },
   drug_lookup: { drug: 'empagliflozin', max_candidates: 5 },
   drug_label: { drug: 'metformin' },
@@ -235,17 +231,17 @@ function loadPublishedToolCatalog() {
  *
  * The blueprint still exists — an operator wants a one-click starting point —
  * but its instructions are now a neutral template that carries no clinical
- * claim. What a specialist may say about severity comes from
- * `emergency_triage_check` (classifier-backed); medical facts come from the MCP
+ * claim. Severity is the model's own judgement of the whole case — no keyword
+ * list or triage tool decides it; medical facts come from the MCP
  * tools listed on the blueprint, with citations; everything else the operator
  * writes themselves.
  */
 function presetInstructions(specialtyLabel) {
   return [
     `You are the ${specialtyLabel} specialist sub-agent for this deployment.`,
-    'Run emergency_triage_check on any message that describes symptoms, an injury, an ingestion or distress, and take the severity it returns as the severity you report — never from your own wording match.',
+    'Judge urgency yourself from the whole message — who it is about, what is happening, since when — never from a single word. Only when you judge a life-threatening situation now, open with one short 999 line, then give full step-by-step help; a definition question gets a normal answer with no 999 line.',
     'Take every drug, dose-reference, interaction, guideline and literature statement from the MCP tools listed on this blueprint, and carry their citations and limitations into the answer.',
-    'Never diagnose, never start, stop or change a medicine or a dose, and escalate to emergency care whenever a classifier or a cited source says to.',
+    'Never diagnose, never start, stop or change a medicine or a dose, and escalate to emergency care whenever your reading of the case or a cited source says to.',
     'This is a scaffold: the deployment owner supplies any additional clinical content, and none is preloaded here.',
   ].join(' ');
 }

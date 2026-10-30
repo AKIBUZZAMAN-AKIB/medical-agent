@@ -9,13 +9,15 @@ on the host and are git-ignored.
 The agent always researches first and then gives practical, structured help
 instead of stopping at "see a doctor".
 
-- Triage (`src/tools/emergency.ts`) is an internal signal only: it returns a
-  level and the matched red flags, never canned "go to hospital" text.
-- In an emergency the reply starts with one line, `🚨 এখনই 999-এ কল করুন।`
+- Urgency is the model's own judgement. There is no triage tool, no red-flag
+  list and no keyword or regex rule anywhere that labels a message as an
+  emergency. The model reads the whole message and decides.
+- When the model judges a life-threatening situation, the reply starts with one line, `🚨 এখনই 999-এ কল করুন।`
   (plus Kaan Pete Roi for self-harm), followed by the full step-by-step help:
   what to do now, on the way, danger signs, likely causes, what to tell the
   hospital, what to do if the hospital is far, and questions.
-- Non-emergencies never get the 999 line.
+- Non-emergencies never get the 999 line, and neither does a definition
+  question such as "what is a seizure" or "heart attack ki".
 - Every tool result carries short hints added by the server
   (`src/language.ts`): a reply-language note when the user writes Bangla or
   Banglish, and correct fever home care (paracetamol is the right medicine
@@ -37,7 +39,7 @@ All services run on the same host via `deploy-compose.yml` +
 | Service | Port | Purpose |
 | --- | --- | --- |
 | LibreChat API + client | 3080 | Chat UI, agents, MCP host |
-| `mcp-medical` (stdio, inside the API container) | – | 34 tools: PubMed, drug labels, interactions, triage, disease KB, lab reference ranges, BD drug index |
+| `mcp-medical` (stdio, inside the API container) | – | 33 tools: PubMed, drug labels, interactions, disease KB, lab reference ranges, BD drug index |
 | SearXNG | internal | Private web search for the agent (`searxng/settings.example.yml`) |
 | medtools | 4134 | `multilingual-e5` embeddings and cross-encoder reranker for RAG, page scraper for web search, and Mistral-compatible OCR for prescription photos and scanned lab reports |
 | rag_api + vectordb | internal | Uploaded-file search |

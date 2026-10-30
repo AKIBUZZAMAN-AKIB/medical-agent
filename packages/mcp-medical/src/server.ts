@@ -2,7 +2,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ToolSpec } from './types.js';
 import type { ServerEnv } from './env.js';
 import { describeError, EmptyResultError } from './errors.js';
-import { triageMode } from './tools/emergency.js';
 import { selectTools } from './tools/index.js';
 import { resultHints } from './language.js';
 import { HttpClient } from './http.js';
@@ -17,20 +16,15 @@ const SERVER_NAME = 'medical';
  * they are a property of the agent, not of the tool layer.
  */
 /**
- * The first paragraph follows the triage mode (see tools/emergency.ts). In the
- * default `signal` mode the red-flag check is an optional hint and the server
- * no longer tells the model to run it first or to hold back lookups.
+ * Urgency is the model's own judgement. Nothing in this server matches words to
+ * decide that a message is an emergency, and no tool result carries a severity
+ * label or a forced 999 line.
  */
-const TRIAGE_PARAGRAPH =
-  triageMode() === 'signal'
-    ? `Research before answering. For every health question, look things up first (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on trusted sources) and answer with specific, practical help — emergencies included. \`emergency_triage_check\` is an optional internal red-flag signal: it returns a level and matched danger patterns, never an answer. On a life-threatening red flag, open the reply with one short 999 line and then give full, detailed help; never answer with a bare "go to a doctor".
-
-`
-    : `Call \`emergency_triage_check\` first, with the user's own words, on any message that describes symptoms, an injury, an ingestion, or emotional distress. It evaluates a deterministic triage policy over evidence from a classifier. This server has no model, so with no classifier configured it returns UNKNOWN — undecided, never ROUTINE — which must be treated as urgent and is never a clearance. Do not run a lookup before it, and never present an undecided result as reassurance.
+const URGENCY_PARAGRAPH = `Research before answering. For every health question, look things up first (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on trusted sources) and answer with specific, practical help. Judge how urgent it is yourself, from the whole message and its context — this server has no keyword or red-flag list and never labels a message as an emergency. Only when you judge that someone is in a life-threatening situation right now, open the reply with one short 999 line and then give full, step-by-step help. A question that asks what something is ("what is a seizure", "heart attack ki") gets a normal informative answer with no 999 line. Never answer with a bare "go to a doctor".
 
 `;
 
-const SERVER_INSTRUCTIONS = `${TRIAGE_PARAGRAPH}Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
+const SERVER_INSTRUCTIONS = `${URGENCY_PARAGRAPH}Live lookups against public, keyless biomedical APIs: PubMed and Europe PMC, openFDA (drug labels, enforcement, devices, food), RxNorm, DailyMed, LactMed, ChEMBL, PubChem, ClinVar, MedGen, MyGene.info, ClinicalTrials.gov, Open Targets, Monarch Initiative, UniProt, EBI OLS, NLM Clinical Tables, WHO GHO, NPPES and Wikipedia.
 
 Every tool returns live data with a Sources block; cite those URLs rather than the API host, and never present a figure you did not read in a tool result. Zero results, a 404, and a rate limit are answers, not failures: say what was searched and what was not found, and widen the query instead of guessing. Upstreams are free and shared, so prefer few, well-formed calls over many speculative ones.`;
 

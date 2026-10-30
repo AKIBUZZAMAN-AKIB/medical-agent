@@ -39,8 +39,7 @@ cd packages/mcp-medical
 npm run typecheck             # tsc --noEmit            → clean
 npm run test:ci               # jest                    → 157/157
 npm run build                 # tsc -p tsconfig.build   → clean
-npm run test:e2e-emergency    # real MCP stdio, offline → 19/19
-node scripts/benchmark-emergency.mjs 2000   # measured latency
+npm run test:e2e-urgency      # real MCP stdio, offline → 14/14
 ```
 
 > On a low-memory machine add `--maxWorkers=2` to jest; the default worker count
@@ -50,8 +49,7 @@ node scripts/benchmark-emergency.mjs 2000   # measured latency
 
 | Suite | Proves | Needs |
 | --- | --- | --- |
-| `emergency.spec.ts` (46) | 100% critical-case recall over 33 labelled emergencies; zero emergency over-triage over 21 benign messages; negation/history scoping; misspelling + Bangla + Banglish; injection resistance; call-first ordering; the screen cannot be configured away | nothing |
-| `emergency-e2e.mjs` (19) | The screen is reachable over the **real MCP stdio transport**, is registered first, and keeps its disposition on a 3.6 KB message | nothing |
+| `urgency-e2e.mjs` (14) | Over the **real MCP stdio transport**: 33 tools, no triage/red-flag tool, server instructions leave urgency to the model, and no tool result carries a forced EMERGENCY label or 999 line | nothing |
 | `instructions.spec.ts` (19) | Each load-bearing safety rule is still **written down** in `instructions.md` | nothing |
 | `http.spec.ts`, `readers.spec.ts`, `queries.spec.ts`, `clinical-suite.spec.ts`, `tooling.spec.ts`, `eval.spec.ts` | Retry/timeout/cache correctness, XML parsing against captured fixtures, equations, registry | nothing |
 
@@ -137,8 +135,7 @@ node config/seed-medical-agent.js --dry-run   # prints discovered tools, writes 
 node config/seed-medical-agent.js             # creates/updates the agent
 ```
 
-Verified: the dry run discovers **33 tools** and lists
-`emergency_triage_check_mcp_medical` first. `--dry-run` is a CI gate in both
+Verified: the dry run discovers **33 tools**; none of them is a triage tool. `--dry-run` is a CI gate in both
 `backend-review.yml` and `medical-mcp-upstreams.yml`, because the seed hard-codes
 a tool list: a tool added to the package and not to the seed ships an agent that
 cannot call it, and nothing else notices.
@@ -204,7 +201,7 @@ for the automated preflight.
 | Variable | Default | Effect |
 | --- | --- | --- |
 | `MEDICAL_TOOL_GROUPS` | all | Publish only these groups |
-| `MEDICAL_TOOL_EXCLUDE` | none | Hide individual tools. **`emergency_triage_check` is ignored — the screen cannot be disabled.** |
+| `MEDICAL_TOOL_EXCLUDE` | none | Hide individual tools. |
 | `MEDICAL_REQUEST_TIMEOUT_MS` | 20000 | Per-request budget |
 | `MEDICAL_MAX_ATTEMPTS` | 3 | Total attempts incl. first |
 | `MEDICAL_CACHE_TTL_MS` | 300000 | Success cache lifetime |
@@ -231,7 +228,7 @@ for the automated preflight.
 | --- | --- | --- |
 | App liveness | `/health` (Express) | non-200 for 2 min |
 | Upstream health | `medical-mcp-upstreams.yml` daily; `scripts/smoke.mjs` | any job failure |
-| Safety regressions | `emergency.spec.ts` + `emergency-e2e.mjs` in CI | any failure blocks merge |
+| Safety regressions | `instructions.spec.ts` + `urgency-e2e.mjs` in CI | any failure blocks merge |
 | Tool error rate | structured logs from `describeError` | >5% of calls per tool |
 | LLM provider errors | app logs | any sustained 429/5xx — **there is no circuit breaker** |
 | Mongo | platform metrics | connection pool saturation |

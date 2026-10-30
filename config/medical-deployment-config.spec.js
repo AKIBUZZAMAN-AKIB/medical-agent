@@ -265,16 +265,16 @@ describe('medical deployment config — specialist sub-agent tool wiring', () =>
     expect(missing).toEqual([]);
   });
 
-  it('gives the emergency specialist the deterministic screen', () => {
+  it('gives no specialist a keyword-based emergency screen', () => {
     /**
-     * The regression: the specialist dedicated to red-flag triage was the one
-     * agent that could not call the screen built for exactly that job. It
-     * reports `unknown` today, which is a refusal to clear — an agent that
-     * cannot ask is an agent that has to assume.
+     * Urgency is the model's own judgement of the whole case. No specialist
+     * gets a triage or red-flag tool that would label a message by its words.
      */
     const emergency = specialists.find((spec) => spec.id.includes('emergency'));
     expect(emergency).toBeDefined();
-    expect(emergency.tools).toContain('emergency_triage_check');
+    for (const spec of specialists) {
+      expect(spec.tools.some((tool) => /triage|red_?flag/i.test(tool))).toBe(false);
+    }
   });
 
   it('gives every specialist the tools its own focus prompt promises', () => {

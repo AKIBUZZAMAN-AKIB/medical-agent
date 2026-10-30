@@ -324,17 +324,17 @@ describe('MedCalc deterministic clinical_calculator & lab_result_interpreter', (
   });
 });
 
-describe('Dynamic specialist_subagent_blueprint & 34-tool registry', () => {
-  it('publishes all 34 tools across 11 groups and generates valid agent_dyn_* specs', async () => {
-    // 33 lookup tools (incl. disease_knowledge_search) plus the emergency screen.
-    expect(allTools).toHaveLength(34);
+describe('Dynamic specialist_subagent_blueprint & 33-tool registry', () => {
+  it('publishes all 33 tools across 11 groups and generates valid agent_dyn_* specs', async () => {
+    // 33 lookup tools (incl. disease_knowledge_search); no keyword emergency screen.
+    expect(allTools).toHaveLength(33);
     expect(allTools.map((t) => t.name)).toContain('disease_knowledge_search');
     const groups = describeToolGroups();
     for (const g of ['formulary', 'pharmacogenomics', 'calculators', 'orchestration']) {
       expect(groups).toContain(`${g}:`);
     }
-    // 1 formulary + 2 calculators + the non-removable emergency screen.
-    expect(selectTools(loadEnv({ MEDICAL_TOOL_GROUPS: 'formulary,calculators' }))).toHaveLength(4);
+    // 1 formulary + 2 calculators.
+    expect(selectTools(loadEnv({ MEDICAL_TOOL_GROUPS: 'formulary,calculators' }))).toHaveLength(3);
 
     const blueprint = await orchestrationTools[0].handler(
       {
@@ -352,7 +352,7 @@ describe('Dynamic specialist_subagent_blueprint & 34-tool registry', () => {
     expect(blueprint.text).toContain('Live MCP Tool Catalogue');
     expect(blueprint.text).toContain('lab_result_interpreter');
     expect(blueprint.text).toContain('No red-flag triggers were supplied');
-    expect(allTools.map((tool) => tool.name)).toContain('emergency_triage_check');
+    expect(allTools.map((tool) => tool.name)).not.toContain('emergency_triage_check');
   });
 
   it('transparently fails over condition_lookup to EBI OLS4 MONDO when Monarch returns HTTP 502', async () => {

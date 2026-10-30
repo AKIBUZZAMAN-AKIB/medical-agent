@@ -1,7 +1,7 @@
 {
   "name": "@librechat/mcp-medical",
   "version": "0.2.0",
-  "description": "Keyless medical & clinical decision MCP server for LibreChat: 33 live biomedical and deterministic emergency-screening, pharmacogenomic (CPIC), Bangladesh formulary (BDDrugBank 24,725 brands), clinical calculator (MedCalc), lab panel, and specialist sub-agent orchestration tools",
+  "description": "Keyless medical & clinical decision MCP server for LibreChat: 33 live biomedical, pharmacogenomic (CPIC), Bangladesh formulary (BDDrugBank 24,725 brands), clinical calculator (MedCalc), lab panel, and specialist sub-agent orchestration tools",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,7 +31,7 @@
     "smoke": "node scripts/smoke.mjs",
     "eval": "node eval/run.mjs",
     "verify": "npm run typecheck && npm run test:ci",
-    "test:e2e-emergency": "node scripts/emergency-e2e.mjs"
+    "test:e2e-urgency": "node scripts/urgency-e2e.mjs"
   },
   "repository": {
     "type": "git",

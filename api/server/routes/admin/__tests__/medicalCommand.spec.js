@@ -163,7 +163,7 @@ describe('Medical Admin Command Center API (/api/admin/medical-command)', () => 
 
     expect(served.sort()).toEqual([...published].sort());
     expect(res.body.totalTools).toBe(published.length);
-    expect(served).toContain('emergency_triage_check');
+    expect(served).not.toContain('emergency_triage_check');
     expect(served).toContain('specialist_subagent_blueprint');
     for (const group of res.body.groups) {
       expect(group.tools.length).toBeGreaterThan(0);

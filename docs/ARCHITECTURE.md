@@ -28,8 +28,8 @@ one workspace package, one seed script, one prompt, one deployment config.
 │MongoDB │   │  Redis    │  │  mcp-medical  (this repo)   │
 │convo · │   │ sessions  │  │  33 tools · 12 modules      │
 │memory ·│   │ cache     │  │  ┌───────────────────────┐  │
-│agents  │   └───────────┘  │  │ emergency_triage_check│  │
-└────────┘                  │  │ deterministic safety  │  │
+│agents  │   └───────────┘  │  │ no triage / keyword   │  │
+└────────┘                  │  │ urgency: model judges │  │
                             │  └───────────────────────┘  │
                             └─────┬───────────────────────┘
                                   │ HTTPS, keyless
@@ -77,32 +77,23 @@ Three properties fall out of the stdio boundary, and each is load-bearing:
    bounded retry with backoff → character-budgeted result with a `Sources:` block).
 6. **Response.** Composed as markdown, streamed over SSE, persisted to MongoDB.
 
-### The safety path (added in this audit)
+### The safety path
 
 ```
 user message
    │
-   ├─► emergency_triage_check          ← model calls this FIRST (instructed)
-   │      normalize → concepts → scope → rules → disposition
-   │      emergency | urgent | routine | insufficient
-   │      returns: call-first line, ordered first aid, limitations, ruleset version
-   │
-   └─► (only afterwards) lookup tools
+   └─► the model reads the whole message, researches with the lookup tools,
+       and judges urgency itself
+          life-threatening now → one 999 line, then full step-by-step help
+          anything else        → normal answer, danger signs listed, no 999 line
 ```
 
-The screen is pure: no imports, no I/O, no clock, no randomness, ~0.3 ms p99. It
-is **model-invoked**, so escalation still depends on the model following the
-instruction — see `REPOSITORY_DEEP_AUDIT.md` §F-06 and §H.5 for the host-hook
-design that would remove that dependency.
-
-### Disposition semantics
-
-| Disposition | Meaning | Required agent behaviour |
-| --- | --- | --- |
-| `emergency` | A red-flag rule fired | Deliver call-for-help + first aid in the given order, before anything else. No lookup first. |
-| `urgent` | Symptom below an emergency threshold, or a definitional question containing a red flag | Say what needs checking and how soon. Never reassure. |
-| `insufficient` | Too short to screen | Ask the returned questions, then re-screen. |
-| `routine` | No rule fired | **Not a clearance.** Must be reported with its limitations. |
+There is no triage tool, red-flag knowledge base or keyword/regex rule. An
+earlier revision had a pattern-list screen (`emergency_triage_check`); it was
+removed because a word match cannot tell "what is a seizure" from "my child is
+having a seizure now". The rules for when to open with 999 live in
+`packages/mcp-medical/agent/instructions.md` and are pinned by
+`instructions.spec.ts`.
 
 ## 4. Data ownership
 

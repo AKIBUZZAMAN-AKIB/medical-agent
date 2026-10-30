@@ -173,8 +173,8 @@ mcpServers:
       # Starting it from `api/` (the upstream image default) resolves this to
       # /app/api/packages/... and the server never connects — 0 tools, silently.
       - packages/mcp-medical/dist/index.js
-    # Inject the server's own standing instructions ("call emergency_triage_check
-    # first…") into the model context. Unset means **no instructions at all**:
+    # Inject the server's own standing instructions ("research first, judge
+    # urgency yourself…") into the model context. Unset means **no instructions at all**:
     # `resolveServerInstructions()` returns undefined unless this is set, so the
     # safety preamble in packages/mcp-medical/src/server.ts never reaches the
     # model. The tool-result notice still carries it, but the model would only
@@ -183,7 +183,7 @@ mcpServers:
     timeout: 60000
     initTimeout: 30000
     chatMenu: false
-    title: 'Medical Evidence Suite - 34 Live Tools'
+    title: 'Medical Evidence Suite - 33 Live Tools'
     description: 'PubMed, Europe PMC, OpenFDA, RxNorm, DailyMed, LactMed, ChEMBL, Open Targets, ClinVar, ClinicalTrials.gov, MyGene.info, ICD-10-CM, WHO GHO, CMS NPI, BDDrugBank, CPIC, MedCalc'
     env:
       MEDICAL_CONTACT_EMAIL: 'medical-agent@example.org'

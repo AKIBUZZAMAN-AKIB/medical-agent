@@ -45,16 +45,10 @@ const subagentRecordInstruction = [
 const SPECIALIST_SUBAGENT_SPECS = [
   {
     id: 'agent_sub_emergency_triage',
-    name: 'Emergency & Red-Flag Triage Sub-Agent',
+    name: 'Emergency & First-Aid Sub-Agent',
     description:
-      'Screens symptoms and lab values for immediate life-threatening red flags (airway/choking, stroke, ACS, sepsis, dengue shock, GI bleed, anaphylaxis, crisis, critical panic electrolytes) and checks urgent safety recalls.',
+      'Judges from the whole case whether a situation is life-threatening (no keyword list decides it), reads critical lab values, plans bystander first aid and time-critical escalation, and checks urgent safety recalls.',
     toolNames: [
-      /** The specialist whose whole job is red-flag triage was the one agent
-       *  that could not call the deterministic screen. It reports `unknown`
-       *  until a host classifier is supplied, and that is the point: an
-       *  undecided screen is not a clearance, and the specialist should be told
-       *  so in the tool result rather than infer safety from silence. */
-      'emergency_triage_check',
       'lab_result_interpreter',
       'clinical_calculator',
       'safety_recalls',
@@ -66,7 +60,7 @@ const SPECIALIST_SUBAGENT_SPECS = [
       'plain_language_summary',
     ],
     focusPrompt:
-      'Focus strictly on life-threatening red flags, critical laboratory panic thresholds, time-critical escalation windows, bystander rescue steps, and urgent device/drug recalls.',
+      'Judge urgency yourself from the whole case, never from a single word. Focus on life-threatening situations, critical laboratory panic thresholds, time-critical escalation windows, bystander rescue steps, and urgent device/drug recalls.',
   },
   {
     id: 'agent_sub_pharmacology_ddi',

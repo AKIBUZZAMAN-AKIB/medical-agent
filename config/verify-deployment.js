@@ -266,7 +266,7 @@ async function checkMedicalPackage() {
     } else {
       pass('mcp.tools', `${names.size} MCP tools exported`);
     }
-    for (const required of ['emergency_triage_check', 'bd_medicine_lookup']) {
+    for (const required of ['disease_knowledge_search', 'bd_medicine_lookup']) {
       if (!names.has(required)) {
         fail('mcp.tools', `Required tool ${required} is not exported`);
       }

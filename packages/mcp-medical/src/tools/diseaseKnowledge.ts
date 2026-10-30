@@ -424,7 +424,7 @@ export const diseaseKnowledgeTools = [
     description:
       'Hybrid (keyword + semantic + rerank) search over a local knowledge base of ~900 diseases (the "Global Disease Master Chart" v2.3 dataset): definition, key symptoms, causes, risk factors, transmission, affected age group, severity wording, warning signs/complications, diagnostic methods and prevention/management notes, each with the authority the dataset cites (WHO, CDC, NIH, NHS, specialty societies). ' +
       'Use it FIRST for general questions about what a disease is, its symptoms, causes, spread, who it affects and how it is diagnosed or prevented, and to list conditions that match a symptom picture as background (never as a diagnosis). Accepts English, Bangla or Banglish; an English disease name gives the best match. ' +
-      'It is a compiled reference table, not a guideline: never take a dose, a threshold or a treatment decision from it — use drug_label / pubmed_search / web_search (DGHS, WHO) for those and for anything current such as outbreak status. Run emergency_triage_check before this tool when the user describes symptoms.',
+      'It is a compiled reference table, not a guideline: never take a dose, a threshold or a treatment decision from it — use drug_label / pubmed_search / web_search (DGHS, WHO) for those and for anything current such as outbreak status.',
     readOnly: true,
     inputSchema: {
       query: z
@@ -484,7 +484,7 @@ export const diseaseKnowledgeTools = [
       const notices = [
         `Cite this as "${label}" plus the record ID, and name the authority it cites (e.g. "CDC-এর তথ্য অনুযায়ী, Global Disease Master Chart [D0051]"). It is a compiled reference table (marked self-verified, no author or licence stated): good for orientation, not proof. Confirm anything decision-relevant with the cited authority, a guideline (pubmed_search) or web_search.`,
         'Never take a dose, a lab threshold or a treatment choice from this dataset. Its "prevention" column often holds management notes; report them only as general background and refer treatment to a clinician.',
-        'A symptom match is a list of conditions to consider, not a diagnosis. Keep the emergency triage result first in the reply.',
+        'A symptom match is a list of conditions to consider, not a diagnosis. Judge urgency yourself from the whole message.',
       ];
       if (weak) {
         notices.unshift(

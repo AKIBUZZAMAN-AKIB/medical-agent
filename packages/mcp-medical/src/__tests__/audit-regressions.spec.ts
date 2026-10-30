@@ -4,12 +4,12 @@
  * Each `describe` names the behaviour that was wrong, so a failure here says what
  * broke rather than only where. Fixtures are synthetic; no upstream is contacted.
  */
-import { RED_FLAG_KB_VERSION } from '../safety/redflags-bd.js';
 import { orchestrationTools } from '../tools/orchestration.js';
 import { calculatorTools } from '../tools/calculators.js';
 import { literatureTools } from '../tools/literature.js';
-import { emergencyTools } from '../tools/emergency.js';
 import { drugTools } from '../tools/drugs.js';
+import { allTools } from '../tools/index.js';
+import { resultHints } from '../language.js';
 import { UpstreamError } from '../errors.js';
 import { HttpClient } from '../http.js';
 import { loadEnv } from '../env.js';
@@ -313,22 +313,26 @@ describe('no predefined clinical keyword list drives behaviour', () => {
     expect(text).toMatch(/mcpTools": \[\]/);
   });
 
-  it('keeps the triage verdict machine-readable and classifier-attributed', async () => {
-    const out = await emergencyTools[0].handler(
-      { message: 'synthetic message that names no symptom at all' },
-      { env, http: scriptedHttp([]) },
-    );
-    const text = String(out.text ?? out);
-    const match = /<<<TRIAGE_DECISION (\{[\s\S]*?\})>>>/.exec(text);
-    expect(match).not.toBeNull();
-    const payload = JSON.parse(match![1]);
-    /** The operator red-flag knowledge base is the classifier, and the verdict
-     *  names it; a message that matches no pattern is a routine decision, not
-     *  an unknown one. */
-    expect(payload.decided).toBe(true);
-    expect(payload.severity).toBe('routine');
-    expect(payload.classifier).toBe(`kb:${RED_FLAG_KB_VERSION}`);
-    expect(payload.ruleset).toBe('2.0.0-generation');
+  it('has no keyword-based emergency tool or label anywhere in the catalogue', () => {
+    const names = allTools.map((tool) => tool.name);
+    expect(names).not.toContain('emergency_triage_check');
+    expect(names.some((name) => /triage|red_?flag/i.test(name))).toBe(false);
+    for (const tool of allTools) {
+      expect(tool.description).not.toMatch(/emergency_triage_check/);
+    }
+  });
+
+  it('never adds an emergency label or a 999 instruction to a tool result because of a word', () => {
+    for (const message of [
+      'what is a seizure',
+      'heart attack ki',
+      'amar baba buke tibro betha, ghame vije jacche',
+      'আমার ভাইকে সাপে কামড় দিয়েছে',
+      'I want to kill myself',
+    ]) {
+      const hints = resultHints({ query: message }).join('\n');
+      expect(hints).not.toMatch(/EMERGENCY|red.?flag|Call 999 now|এখনই 999|🚨/i);
+    }
   });
 
   it('names no diagnosis and no treatment in the lab panel', async () => {

@@ -64,30 +64,27 @@ describe('agent instructions — safety rules that must survive editing', () => 
     expect(instructions).toMatch(/Give the crisis contact every time/i);
   });
 
-  it('uses the red-flag screen as an internal signal, never as a gate or the answer', () => {
+  it('leaves urgency to the model, with no keyword screen or triage tool', () => {
     expect(instructions).toMatch(
-      /`emergency_triage_check` is an internal hint, not an answer and not a gate/i,
+      /No tool, keyword list or pattern decides whether a message is an emergency/i,
     );
-    /** The pass-through requirement is what keeps negation and time framing intact. */
-    expect(instructions).toMatch(/with the user's words\s+verbatim/i);
-    expect(instructions).toMatch(/It never has to run first, it never stops you from researching/i);
-    expect(instructions).toMatch(/you never copy its text to the user/i);
+    expect(instructions).toMatch(/A single word is never\s+enough/i);
+    expect(instructions).not.toMatch(/emergency_triage_check/);
   });
 
   it('opens a real emergency with exactly one 999 line and keeps it off everything else', () => {
     expect(instructions).toMatch(/open the reply with \*\*one short line\*\*/i);
     expect(instructions).toMatch(/🚨 এখনই 999-এ কল করুন।/);
     expect(instructions).toMatch(/🚨 Call 999 now\./);
-    expect(instructions).toMatch(/\*\*Any other level\*\*: no 999 line/i);
+    expect(instructions).toMatch(/\*\*Anything else\*\*: no 999 line/i);
+    /** A definition question is information, not an emergency. */
+    expect(instructions).toMatch(/a normal informative answer\s+with no 999 line/i);
   });
 
-  it('does not let the pattern list stand in for reading the message', () => {
-    /** A screen that matched nothing is not a clearance: the danger signs still
-     *  have to be written out, and the agent's own reading decides. */
+  it('writes out the danger signs when it is not an emergency', () => {
     expect(instructions).toMatch(
       /List the danger signs that\s+would make it an emergency instead/i,
     );
-    expect(instructions).toMatch(/The pattern list can miss things and can flag things wrongly/i);
   });
 
   it('keeps clinical facts out of memory and personal facts out of databases', () => {

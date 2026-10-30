@@ -703,7 +703,7 @@ jobs:
         run: |
           npm run build --workspace @librechat/mcp-medical
           npm run verify --workspace @librechat/mcp-medical
-          npm run test:e2e-emergency --workspace @librechat/mcp-medical
+          npm run test:e2e-urgency --workspace @librechat/mcp-medical
           node config/seed-medical-agent.js --dry-run
 
   test-packages-api:

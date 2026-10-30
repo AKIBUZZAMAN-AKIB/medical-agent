@@ -79,11 +79,11 @@ jobs:
       - name: Run typecheck and unit/eval suite
         run: npm run verify --workspace @librechat/mcp-medical
 
-      - name: Emergency screen end-to-end over MCP stdio
-        # Offline: no upstream, no API key, no model. Proves the deterministic
-        # screen is actually reachable through the protocol an agent uses, so a
-        # registration or schema regression cannot ship green.
-        run: npm run test:e2e-emergency --workspace @librechat/mcp-medical
+      - name: No keyword urgency end-to-end over MCP stdio
+        # Offline: no upstream, no API key, no model. Proves over the protocol an
+        # agent uses that no tool or instruction labels a message as an
+        # emergency by keyword; urgency is the model's judgement.
+        run: npm run test:e2e-urgency --workspace @librechat/mcp-medical
 
       - name: Call every tool against the real upstreams
         run: |

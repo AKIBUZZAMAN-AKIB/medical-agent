@@ -10,8 +10,8 @@
  * clinical statement the sub-agent was told to make was author-invented text
  * keyed on that match.
  *
- * It has been removed deliberately, for the same reason the emergency lexicon
- * was removed (see `../safety/emergency.ts`):
+ * It has been removed deliberately, for the same reason the emergency keyword
+ * lists were removed from this package:
  *
  *  - The caller already knows the specialty. It arrives as `args.specialty`, in
  *    the user's own words and language. A regex list of English (and no Bangla)
@@ -30,8 +30,8 @@
  *
  * Consequence, stated where it cannot be missed: with no `red_flags` supplied,
  * the blueprint contains **no red-flag triggers** and says so, instead of
- * silently substituting an author's list. Emergency screening is not this
- * tool's job — `emergency_triage_check` is, and it is classifier-backed.
+ * silently substituting an author's list. Urgency is not decided by this tool
+ * or by any word list: the model reads the whole message and judges it.
  */
 import { z } from 'zod';
 import { bulletList, composeResult, definitionList, heading } from '../format.js';
@@ -75,7 +75,7 @@ export const orchestrationTools = [
         .array(z.string().min(1))
         .optional()
         .describe(
-          'Red-flag escalation triggers for this sub-agent, chosen by the calling agent from the evidence it gathered (for example the findings in an emergency_triage_check result). Omitted = the blueprint ships no red-flag triggers and says so; nothing is invented here.',
+          'Red-flag escalation triggers for this sub-agent, chosen by the calling agent from the evidence it gathered (for example the danger signs it found in the case). Omitted = the blueprint ships no red-flag triggers and says so; nothing is invented here.',
         ),
       context_questions: z
         .array(z.string().min(1))
@@ -160,7 +160,7 @@ export const orchestrationTools = [
           contextQuestions: contextQuestions.length > 0 ? contextQuestions : [],
           safetyInvariants: [
             'Never diagnose or prescribe/adjust doses',
-            'Escalate whatever the deployment-supplied triage classifier returned, with a concrete time window',
+            'Judge urgency from the whole message and escalate a life-threatening situation with a concrete time window',
             'Never cite unverified sources or retired FDA pregnancy letter categories',
           ],
         },
@@ -171,11 +171,11 @@ export const orchestrationTools = [
 
       const notices: string[] = [
         'This blueprint contains no clinical vocabulary of its own. Everything clinical in it was supplied by the caller; fields the caller left empty came back empty on purpose.',
-        'The rendered sub-agent does no emergency screening by itself. Give it `emergency_triage_check` and require it on symptom messages — severity there comes from a classifier, never from a word list.',
+        'The rendered sub-agent has no keyword-based emergency screen. It must judge urgency itself from the whole message, never from a word list.',
       ];
       if (redFlags.length === 0) {
         notices.push(
-          'No red-flag triggers were supplied, so this sub-agent spec has none. Do not read that as "no red flags exist" — derive them from the triage evidence for this case.',
+          'No red-flag triggers were supplied, so this sub-agent spec has none. Do not read that as "no red flags exist" — derive them from the facts of this case.',
         );
       }
       if (unknownTools.length > 0) {
