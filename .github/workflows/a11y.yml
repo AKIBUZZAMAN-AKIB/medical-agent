@@ -23,9 +23,14 @@ concurrency:
 jobs:
   axe-linter:
     runs-on: ubuntu-latest
+    # Axe Linter is a paid service keyed to the upstream LibreChat repository
+    # (AXE_LINTER_API_KEY), so the job only runs there; forks skip it at job level,
+    # before the action is resolved.
     if: >
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_workflow == 'true')
+      github.repository == 'danny-avila/LibreChat' && (
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.run_workflow == 'true')
+      )
 
     steps:
       - name: Check Axe Linter API key

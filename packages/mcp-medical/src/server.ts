@@ -1,12 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { resultHints } from './language.js';
 import type { ToolSpec } from './types.js';
 import type { ServerEnv } from './env.js';
 import { describeError, EmptyResultError } from './errors.js';
+import { triageMode } from './tools/emergency.js';
 import { selectTools } from './tools/index.js';
+import { resultHints } from './language.js';
 import { HttpClient } from './http.js';
 import { loadEnv } from './env.js';
-import { triageMode } from './tools/emergency.js';
 
 const SERVER_NAME = 'medical';
 

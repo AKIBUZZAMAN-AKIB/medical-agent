@@ -290,7 +290,7 @@ async function mockActiveOAuthResumeStream({
     }),
   );
 
-  await page.route(`**/api/agents/chat/stream/${conversationId}**`, (route) =>
+  await page.route(`**/api/agents/stream/${conversationId}**`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'text/event-stream',
@@ -452,7 +452,7 @@ async function mockPreCreatedOAuthStream({
     },
   ];
 
-  await page.route(`**/api/agents/chat/stream/${conversationId}**`, (route) =>
+  await page.route(`**/api/agents/stream/${conversationId}**`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'text/event-stream',
@@ -847,13 +847,13 @@ test.describe('message tree stream operations', () => {
 
     // Hold the SSE stream so the `created` event cannot arrive: the optimistic
     // render is all there is. The chat POST returns a stream id; the stream
-    // itself is a separate GET (/api/agents/chat/stream/<id>) — gate that one,
-    // not the POST, which must complete to hand back the id.
+    // itself is a separate subscription (/api/agents/stream/<id>) — gate that
+    // one, not the chat POST, which must complete to hand back the id.
     let release = () => {};
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    await page.route(/\/api\/agents\/chat\/stream\//, async (route: Route) => {
+    await page.route(/\/api\/agents\/stream\//, async (route: Route) => {
       await gate;
       return route.continue();
     });

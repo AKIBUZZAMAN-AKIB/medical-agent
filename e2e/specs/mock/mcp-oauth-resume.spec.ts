@@ -97,8 +97,8 @@ test.describe('MCP OAuth stream resume', () => {
         (request) => {
           const url = new URL(request.url());
           return (
-            request.method() === 'GET' &&
-            url.pathname === `/api/agents/chat/stream/${conversationId}` &&
+            request.method() === 'POST' &&
+            url.pathname === `/api/agents/stream/${conversationId}` &&
             url.searchParams.get('resume') === 'true' &&
             url.searchParams.get('generationProtocolVersion') === '2' &&
             url.searchParams.has('generationCreatedAt')

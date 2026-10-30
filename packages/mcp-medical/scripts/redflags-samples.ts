@@ -32,6 +32,8 @@ for (const [expected, msg] of samples) {
   const got = Severity[d.severity];
   const ok = got === expected;
   if (ok) pass++;
-  console.log(`${ok ? 'PASS' : 'FAIL'} expected=${expected} got=${got} rules=${d.fired.map((r) => r.id).join(',') || '-'} | ${msg}`);
+  console.log(
+    `${ok ? 'PASS' : 'FAIL'} expected=${expected} got=${got} rules=${d.fired.map((r) => r.id).join(',') || '-'} | ${msg}`,
+  );
 }
 console.log(`\n${pass}/${samples.length} passed`);

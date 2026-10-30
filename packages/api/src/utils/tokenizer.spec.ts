@@ -1,4 +1,5 @@
 import { Tokenizer as AiTokenizer } from 'ai-tokenizer';
+import * as o200kBase from 'ai-tokenizer/encoding/o200k_base';
 import Tokenizer, { splitForTokenCounting } from './tokenizer';
 
 jest.mock('@librechat/data-schemas', () => ({
@@ -16,7 +17,7 @@ describe('Tokenizer', () => {
   describe('initEncoding', () => {
     it('counts real tokens on cold start instead of a character estimate', () => {
       const text = 'Cold start token count';
-      const exact = new AiTokenizer(require('ai-tokenizer/encoding/o200k_base')).count(text);
+      const exact = new AiTokenizer(o200kBase).count(text);
       expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBe(exact);
     });
 
@@ -62,12 +63,21 @@ describe('Tokenizer', () => {
 
     it.each([
       { label: 'prose', text: 'The patient reports mild fever and cough.  '.repeat(800) },
-      { label: 'pretty JSON', text: JSON.stringify(Array.from({ length: 400 }, (_, i) => ({ name: `tool_${i}`, type: 'object' })), null, 2) },
+      {
+        label: 'pretty JSON',
+        text: JSON.stringify(
+          Array.from({ length: 400 }, (_, i) => ({ name: `tool_${i}`, type: 'object' })),
+          null,
+          2,
+        ),
+      },
       { label: 'Bengali', text: 'আমার মাথা ব্যথা করছে।\n\n  '.repeat(800) },
     ])('counts long $label exactly (same as one whole pass)', ({ text }) => {
-      const whole = new AiTokenizer(require('ai-tokenizer/encoding/o200k_base')).count(text);
+      const whole = new AiTokenizer(o200kBase).count(text);
       expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBe(whole);
-      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBeLessThan(Buffer.byteLength(text, 'utf8'));
+      expect(Tokenizer.getTokenCount(text, 'o200k_base')).toBeLessThan(
+        Buffer.byteLength(text, 'utf8'),
+      );
     });
 
     it('keeps pathological runs linear by cutting them into bounded pieces', () => {

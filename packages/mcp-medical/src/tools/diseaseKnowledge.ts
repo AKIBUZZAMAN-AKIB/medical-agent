@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { gunzipSync } from 'node:zlib';
 import { z } from 'zod';
+import { gunzipSync } from 'node:zlib';
+import { dirname, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { clampInt, composeResult, definitionList, heading, type SourceRef } from '../format.js';
-import { defineTool } from '../types.js';
 import { expandQuery, hasBangla } from './diseaseLexicon.js';
+import { defineTool } from '../types.js';
 
 /**
  * `disease_knowledge_search` — hybrid retrieval over the local "Global Disease
@@ -80,9 +80,9 @@ const STOP = new Set(
 );
 
 const GENERIC_KEYS = new Set(
-  'fever pain rash itching cough headache vomiting bleeding weakness fatigue seizure symptom cause prevention child children pregnancy test diagnosis infection disease syndrome chest pain joint pain abdominal pain'.split(
-    ' ',
-  ).concat(['chest pain', 'joint pain', 'abdominal pain', 'sore throat', 'common cold']),
+  'fever pain rash itching cough headache vomiting bleeding weakness fatigue seizure symptom cause prevention child children pregnancy test diagnosis infection disease syndrome chest pain joint pain abdominal pain'
+    .split(' ')
+    .concat(['chest pain', 'joint pain', 'abdominal pain', 'sore throat', 'common cold']),
 );
 
 function tokenize(text: string): string[] {
@@ -93,7 +93,11 @@ function tokenize(text: string): string[] {
     .replace(/[^a-z0-9]+/g, ' ')
     .split(' ')
     .filter((t) => t.length > 1 && !STOP.has(t))
-    .map((t) => (t.length > 4 && t.endsWith('s') && !t.endsWith('ss') && !t.endsWith('is') ? t.slice(0, -1) : t));
+    .map((t) =>
+      t.length > 4 && t.endsWith('s') && !t.endsWith('ss') && !t.endsWith('is')
+        ? t.slice(0, -1)
+        : t,
+    );
 }
 
 function resolveKbPath(): string | null {
@@ -153,7 +157,10 @@ export function loadDiseaseKb(path?: string): LoadedKb | null {
           // Skip a variant that loses a one-letter word ("Q fever" -> "fever",
           // "Hepatitis B" -> "hepatitis"), and bare symptom words that would
           // match half the questions.
-          const words = n.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+          const words = n
+            .toLowerCase()
+            .split(/[^a-z0-9]+/)
+            .filter(Boolean);
           return words.some((w) => w.length === 1) ? '' : tokenize(n).join(' ');
         })
         .filter((n) => n.length >= 4 && !GENERIC_KEYS.has(n)),
@@ -306,7 +313,10 @@ export async function searchDiseases(
   const kb = kbOverride ?? loadDiseaseKb();
   if (kb == null) return null;
   const expansion = expandQuery(query);
-  const englishQuery = [query.replace(/[\u0980-\u09FF]+/g, ' '), ...expansion].join(' ').replace(/\s+/g, ' ').trim();
+  const englishQuery = [query.replace(/[\u0980-\u09FF]+/g, ' '), ...expansion]
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const terms = tokenize(englishQuery);
   const modes: string[] = [];
   const errors: string[] = [];
@@ -335,15 +345,24 @@ export async function searchDiseases(
   boost.forEach((b, i) => {
     if (b > 0) fused.set(i, (fused.get(i) ?? 0) + 0.02 * b);
   });
-  const candidates = [...fused.entries()].sort((a, b) => b[1] - a[1]).slice(0, 24).map(([i]) => i);
+  const candidates = [...fused.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 24)
+    .map(([i]) => i);
   if (candidates.length === 0) {
     return { hits: [], expansion, modes, errors };
   }
 
-  let order: Array<{ i: number; score: number | null }> = candidates.map((i) => ({ i, score: null }));
+  let order: Array<{ i: number; score: number | null }> = candidates.map((i) => ({
+    i,
+    score: null,
+  }));
   try {
     const rq = hasBangla(query) || expansion.length ? englishQuery : query;
-    const rs = await rerank(rq, candidates.map((i) => rerankText(kb.file.records[i])));
+    const rs = await rerank(
+      rq,
+      candidates.map((i) => rerankText(kb.file.records[i])),
+    );
     if (rs) {
       modes.push('rerank');
       // Keep an exact name hit in front of a reranker that prefers a longer neighbour.
@@ -358,7 +377,11 @@ export async function searchDiseases(
   const hits = order.slice(0, limit).map(({ i, score }) => ({
     record: kb.file.records[i],
     rerankScore: score,
-    via: [kwRank.has(i) ? 'keyword' : '', semRank.has(i) ? 'semantic' : '', boost[i] > 0 ? 'name' : ''].filter(Boolean),
+    via: [
+      kwRank.has(i) ? 'keyword' : '',
+      semRank.has(i) ? 'semantic' : '',
+      boost[i] > 0 ? 'name' : '',
+    ].filter(Boolean),
   }));
   return { hits, expansion, modes, errors };
 }
@@ -411,7 +434,13 @@ export const diseaseKnowledgeTools = [
         .describe(
           'Disease name or question, e.g. "dengue warning signs", "typhoid causes", "ডেঙ্গুর লক্ষণ", "kalajor ki". Prefer the English disease name when you know it.',
         ),
-      limit: z.number().int().min(1).max(6).optional().describe('How many diseases to return (default 3).'),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(6)
+        .optional()
+        .describe('How many diseases to return (default 3).'),
     },
     async handler(args, { env }) {
       const limit = clampInt(args.limit, 1, 6, 3);
@@ -441,7 +470,11 @@ export const diseaseKnowledgeTools = [
       // medtools returns sigmoid relevance in 0..1; below ~0.1 the best record is off-topic.
       const weak = top.rerankScore != null && top.rerankScore < 0.1 && !top.via.includes('name');
       const sections = result.hits.map((h, k) =>
-        renderRecord(h.record, `${label}, record ${h.record.id} (source: ${h.record.source_name || 'not stated'})`, k < 2),
+        renderRecord(
+          h.record,
+          `${label}, record ${h.record.id} (source: ${h.record.source_name || 'not stated'})`,
+          k < 2,
+        ),
       );
       const sources: SourceRef[] = result.hits.map((h) => ({
         name: `${label} — ${h.record.name} [${h.record.id}]`,
@@ -454,7 +487,9 @@ export const diseaseKnowledgeTools = [
         'A symptom match is a list of conditions to consider, not a diagnosis. Keep the emergency triage result first in the reply.',
       ];
       if (weak) {
-        notices.unshift('Weak match: the reranker scored even the best record low, so the dataset may not cover this question. Say so, or use web_search / pubmed_search.');
+        notices.unshift(
+          'Weak match: the reranker scored even the best record low, so the dataset may not cover this question. Say so, or use web_search / pubmed_search.',
+        );
       }
       if (result.expansion.length) {
         notices.push(`Bangla/Banglish words were read as: ${result.expansion.join('; ')}.`);

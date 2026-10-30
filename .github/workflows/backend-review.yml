@@ -421,6 +421,12 @@ jobs:
       - name: Prepare .env.test file
         run: cp api/test/.env.test.example api/test/.env.test
 
+      # The admin medical console (api/server/routes/admin/medicalCommand.js) serves the
+      # tool catalogue from packages/mcp-medical/dist/tool-catalog.json and answers 503
+      # when it is missing, so its route tests need the package built first.
+      - name: Build @librechat/mcp-medical
+        run: npm run build --workspace @librechat/mcp-medical
+
       # mongodb-memory-server cold-downloads a ~122MB MongoDB binary into
       # ~/.cache/mongodb-binaries on first use — inside a 15s beforeAll hook, which is a
       # timeout on a slow mirror day. Every MISSED verdict the codegraph shadow evaluator has

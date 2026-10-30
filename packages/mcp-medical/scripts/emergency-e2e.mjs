@@ -21,22 +21,35 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 const here = path.dirname(fileURLToPath(import.meta.url));
 const entry = path.resolve(here, '..', 'dist', 'index.js');
 
-/** [message, expected disposition, rule ids that must appear in the result] */
 /**
- * Cases assert the *honesty* contract, not clinical recognition.
+ * [message, expected red-flag level or null for "any decided level"]
  *
- * This server has no model, so every message must come back UNKNOWN — undecided,
- * never ROUTINE. Asserting "emergency" here would require the server to hold a
- * hand-written lexicon, which is exactly what this change removed. Clinical
- * recognition is measured against a live model in `eval/`.
+ * The screen is the operator red-flag pattern list (src/safety/redflags-bd.ts):
+ * an internal signal for the agent, not the answer. These cases assert the
+ * contract the agent relies on — a decided level that names its pattern list,
+ * the one-line 999 instruction only for a life-threatening match, and the
+ * pattern list's own limits — not clinical recognition, which is measured
+ * against a live model in `eval/`. A bare definition question may or may not
+ * match a pattern; the agent's own reading decides that one, so it is not
+ * pinned here.
  */
 const CASES = [
-  ['my father is not breathing and he is unconscious', 'UNKNOWN'],
-  ['I cannot breathe', 'UNKNOWN'],
-  ['crushing chest pain radiating to my left arm and sweating', 'UNKNOWN'],
-  ['what is a seizure', 'UNKNOWN'],
-  ['What is the BD price of Napa Extend 665 mg', 'UNKNOWN'],
+  ['my father is not breathing and he is unconscious', 'EMERGENCY'],
+  ['I cannot breathe', 'EMERGENCY'],
+  ['crushing chest pain radiating to my left arm and sweating', 'EMERGENCY'],
+  ['what is a seizure', null],
+  ['What is the BD price of Napa Extend 665 mg', 'ROUTINE'],
 ];
+
+const LEVEL = /Red-flag level: (NONE|INFORMATIONAL|ROUTINE|URGENT|EMERGENCY|UNKNOWN)/i;
+const CALL_999 = '🚨 Call 999 now.';
+const LIMITS = /Pattern matching, not clinician-reviewed, not a diagnosis/i;
+
+/** @param {string} text */
+function decision(text) {
+  const match = /<<<TRIAGE_DECISION (\{[\s\S]*?\})>>>/.exec(text);
+  return match ? JSON.parse(match[1]) : null;
+}
 
 const failures = [];
 const transport = new StdioClientTransport({
@@ -55,8 +68,8 @@ try {
   const names = tools.map((tool) => tool.name);
   console.log(`server published ${names.length} tool(s)`);
 
-  if (names.length !== 33) {
-    failures.push(`expected 33 tools over the wire, got ${names.length}`);
+  if (names.length !== 34) {
+    failures.push(`expected 34 tools over the wire, got ${names.length}`);
   }
   if (names[0] !== 'emergency_triage_check') {
     failures.push(`expected emergency_triage_check first, got ${names[0]}`);
@@ -72,27 +85,35 @@ try {
       .map((part) => part.text)
       .join('\n');
 
-    const severity = /Triage severity: (NONE|INFORMATIONAL|ROUTINE|URGENT|EMERGENCY|UNKNOWN)/i.exec(
-      text,
-    )?.[1];
-    const ok = severity?.toUpperCase() === expected.toUpperCase();
-    if (expected === 'UNKNOWN' && !/undecided/i.test(text)) {
-      failures.push(`UNKNOWN was not reported as undecided for: ${message || '(empty)'}`);
+    const level = LEVEL.exec(text)?.[1]?.toUpperCase();
+    const payload = decision(text);
+    const ok = level != null && (expected == null || level === expected);
+    if (!payload || payload.decided !== true || !String(payload.classifier).startsWith('kb:')) {
+      failures.push(`no decided, pattern-list-attributed verdict for: ${message}`);
     }
-    if (!/Limits of this assessment/i.test(text)) {
-      failures.push(`result carried no limitations for: ${message || '(empty)'}`);
+    if (!/internal hint, not an answer/i.test(text)) {
+      failures.push(`result was not marked as an internal hint for: ${message}`);
+    }
+    if (!LIMITS.test(text)) {
+      failures.push(`result carried no limitations for: ${message}`);
+    }
+    if (level === 'EMERGENCY' && !text.includes(CALL_999)) {
+      failures.push(`an emergency match did not carry the 999 line for: ${message}`);
+    }
+    if (level !== 'EMERGENCY' && !/do NOT add a 999 line/.test(text)) {
+      failures.push(`a non-emergency level did not hold back the 999 line for: ${message}`);
     }
     if (result.isError) {
       failures.push(`tool reported an error for: ${message}`);
     }
     if (text.includes('[truncated')) {
-      failures.push(`result was truncated for: ${message} — the call-first line may be lost`);
+      failures.push(`result was truncated for: ${message} — the 999 line may be lost`);
     }
     console.log(
-      `${ok ? 'PASS' : 'FAIL'}  ${String(severity).padEnd(12)} ${expected.toUpperCase().padEnd(12)} ${message.slice(0, 52)}`,
+      `${ok ? 'PASS' : 'FAIL'}  ${String(level).padEnd(12)} ${String(expected ?? 'any').padEnd(12)} ${message.slice(0, 52)}`,
     );
     if (!ok) {
-      failures.push(`expected ${expected}, got ${severity} for: ${message || '(empty)'}`);
+      failures.push(`expected ${expected ?? 'a level'}, got ${level} for: ${message}`);
     }
   }
 
@@ -118,10 +139,14 @@ try {
     },
   });
   const longText = long.content.map((part) => part.text).join('\n');
-  if (!/Triage severity: UNKNOWN/i.test(longText) || !/Limits of this assessment/i.test(longText)) {
-    failures.push('a long message lost the severity or its limitations');
+  if (
+    !/Red-flag level: EMERGENCY/i.test(longText) ||
+    !longText.includes(CALL_999) ||
+    !LIMITS.test(longText)
+  ) {
+    failures.push('a long message lost the level, the 999 line or its limitations');
   } else {
-    console.log('PASS  long message keeps the severity and its limitations');
+    console.log('PASS  long message keeps the level, the 999 line and its limitations');
   }
 } catch (error) {
   failures.push(
@@ -138,4 +163,4 @@ if (failures.length > 0) {
   }
   process.exit(1);
 }
-console.log(`\nAll ${CASES.length + 1} end-to-end cases passed over MCP stdio.`);
+console.log(`\nAll ${CASES.length + 2} end-to-end cases passed over MCP stdio.`);

@@ -28,7 +28,10 @@ const LIVE_FAIL_TTL_MS = 60 * 1000;
 const LIVE_TIMEOUT_MS = 5000;
 
 let fileCache: { path: string; mtimeMs: number; models: Record<string, ContextEntry> } | undefined;
-const liveCache = new Map<string, { at: number; ttl: number; models: Record<string, ContextEntry> }>();
+const liveCache = new Map<
+  string,
+  { at: number; ttl: number; models: Record<string, ContextEntry> }
+>();
 
 function positiveInt(value: unknown): number | undefined {
   const n = typeof value === 'string' ? Number(value) : value;
@@ -71,21 +74,31 @@ function readContextFile(): Record<string, ContextEntry> | undefined {
     const doc = JSON.parse(fs.readFileSync(path, 'utf8')) as { models?: Record<string, unknown> };
     const models: Record<string, ContextEntry> = {};
     for (const [id, raw] of Object.entries(doc.models ?? {})) {
-      const parsed = raw && typeof raw === 'object' ? contextFromModelEntry(raw as Record<string, unknown>) : undefined;
+      const parsed =
+        raw && typeof raw === 'object'
+          ? contextFromModelEntry(raw as Record<string, unknown>)
+          : undefined;
       if (parsed) {
         models[id] = parsed;
       }
     }
     fileCache = { path, mtimeMs, models };
-    logger.info(`[modelContext] Loaded real context windows for ${Object.keys(models).length} models from ${path}`);
+    logger.info(
+      `[modelContext] Loaded real context windows for ${Object.keys(models).length} models from ${path}`,
+    );
     return models;
   } catch (error) {
-    logger.warn(`[modelContext] Could not read MODEL_CONTEXT_FILE ${path}: ${(error as Error).message}`);
+    logger.warn(
+      `[modelContext] Could not read MODEL_CONTEXT_FILE ${path}: ${(error as Error).message}`,
+    );
     return fileCache?.models;
   }
 }
 
-async function readLiveModels(baseURL: string, apiKey?: string): Promise<Record<string, ContextEntry>> {
+async function readLiveModels(
+  baseURL: string,
+  apiKey?: string,
+): Promise<Record<string, ContextEntry>> {
   const key = baseURL.replace(/\/+$/, '');
   const cached = liveCache.get(key);
   if (cached && Date.now() - cached.at < cached.ttl) {
@@ -119,7 +132,9 @@ async function readLiveModels(baseURL: string, apiKey?: string): Promise<Record<
     }
   } catch (error) {
     ttl = LIVE_FAIL_TTL_MS;
-    logger.debug(`[modelContext] Live model list unavailable at ${key}/models: ${(error as Error).message}`);
+    logger.debug(
+      `[modelContext] Live model list unavailable at ${key}/models: ${(error as Error).message}`,
+    );
   } finally {
     clearTimeout(timer);
   }

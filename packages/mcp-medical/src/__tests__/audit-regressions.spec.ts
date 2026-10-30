@@ -4,14 +4,15 @@
  * Each `describe` names the behaviour that was wrong, so a failure here says what
  * broke rather than only where. Fixtures are synthetic; no upstream is contacted.
  */
-import { HttpClient } from '../http.js';
-import { UpstreamError } from '../errors.js';
-import { loadEnv } from '../env.js';
-import { calculatorTools } from '../tools/calculators.js';
-import { drugTools } from '../tools/drugs.js';
-import { emergencyTools } from '../tools/emergency.js';
+import { RED_FLAG_KB_VERSION } from '../safety/redflags-bd.js';
 import { orchestrationTools } from '../tools/orchestration.js';
+import { calculatorTools } from '../tools/calculators.js';
 import { literatureTools } from '../tools/literature.js';
+import { emergencyTools } from '../tools/emergency.js';
+import { drugTools } from '../tools/drugs.js';
+import { UpstreamError } from '../errors.js';
+import { HttpClient } from '../http.js';
+import { loadEnv } from '../env.js';
 
 const env = loadEnv({});
 
@@ -314,17 +315,19 @@ describe('no predefined clinical keyword list drives behaviour', () => {
 
   it('keeps the triage verdict machine-readable and classifier-attributed', async () => {
     const out = await emergencyTools[0].handler(
-      { message: 'synthetic message, no classifier is configured in tests' },
+      { message: 'synthetic message that names no symptom at all' },
       { env, http: scriptedHttp([]) },
     );
     const text = String(out.text ?? out);
     const match = /<<<TRIAGE_DECISION (\{[\s\S]*?\})>>>/.exec(text);
     expect(match).not.toBeNull();
     const payload = JSON.parse(match![1]);
-    /** No model here, so the only honest verdict is "undecided". */
-    expect(payload.decided).toBe(false);
-    expect(payload.severity).toBe('unknown');
-    expect(payload.classifier).toBe('none');
+    /** The operator red-flag knowledge base is the classifier, and the verdict
+     *  names it; a message that matches no pattern is a routine decision, not
+     *  an unknown one. */
+    expect(payload.decided).toBe(true);
+    expect(payload.severity).toBe('routine');
+    expect(payload.classifier).toBe(`kb:${RED_FLAG_KB_VERSION}`);
     expect(payload.ruleset).toBe('2.0.0-generation');
   });
 

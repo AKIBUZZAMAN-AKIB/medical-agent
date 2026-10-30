@@ -17,25 +17,35 @@ const instructions = readFileSync(resolve(__dirname, '../../agent/instructions.m
 
 describe('agent instructions — safety rules that must survive editing', () => {
   it('holds the line between research and clinical care', () => {
-    expect(instructions).toMatch(/never\s+diagnose/i);
-    expect(instructions).toMatch(/never prescribe or adjust a dose/i);
+    expect(instructions).toMatch(
+      /You do not\s+prescribe, start, stop, or set or change an individual's dose/i,
+    );
+    /** A differential is reasoning shown to the user, not a verdict on them. */
+    expect(instructions).toMatch(/never as a diagnosis/i);
     /** Bystander first aid and a person's own rescue medicine are the two
      *  exceptions, and each has to stay written down or the model resolves the
      *  conflict in whichever direction it guesses. */
-    expect(instructions).toMatch(/"call for help" is not the whole answer/i);
-    expect(instructions).toMatch(/rescue medication is not a prescription/i);
+    expect(instructions).toMatch(/Two things are\s+not prescribing/i);
+    expect(instructions).toMatch(/\*\*First aid\.\*\*/);
+    expect(instructions).toMatch(/A rescue medicine already prescribed to this person/i);
   });
 
-  it('identifies the system as an AI tool and refuses a clinician role', () => {
-    expect(instructions).toMatch(/You are an AI research tool/);
-    expect(instructions).toMatch(/never accept a\s+clinician's role/i);
+  it('treats a bare referral as a failed reply', () => {
+    expect(instructions).toMatch(
+      /only says "consult a\s+doctor" or "go to the hospital" is a failed reply/i,
+    );
+    expect(instructions).toMatch(/Never reply with only questions/i);
+  });
+
+  it('identifies the system as an AI', () => {
+    expect(instructions).toMatch(/You are an AI, and you say so plainly if asked/);
   });
 
   it('treats under-triage as the more dangerous error', () => {
     expect(instructions).toMatch(/under-triage/i);
-    expect(instructions).toMatch(/refer at the higher level of urgency/i);
+    expect(instructions).toMatch(/When you cannot tell, give the higher urgency/i);
     /** The sentence that ends a conversation before the illness does. */
-    expect(instructions).toMatch(/Never close a message with reassurance you have not earned/i);
+    expect(instructions).toMatch(/Never close with reassurance you have not earned/i);
     expect(instructions).toMatch(/Say how long they have/i);
   });
 
@@ -54,32 +64,30 @@ describe('agent instructions — safety rules that must survive editing', () => 
     expect(instructions).toMatch(/Give the crisis contact every time/i);
   });
 
-  it('requires the deterministic screen before any other tool', () => {
-    expect(instructions).toMatch(/Before any other tool call/i);
+  it('uses the red-flag screen as an internal signal, never as a gate or the answer', () => {
     expect(instructions).toMatch(
-      /call `emergency_triage_check` with the\s+user's own words, verbatim/i,
+      /`emergency_triage_check` is an internal hint, not an answer and not a gate/i,
     );
     /** The pass-through requirement is what keeps negation and time framing intact. */
-    expect(instructions).toMatch(/Pass the message through unchanged/i);
+    expect(instructions).toMatch(/with the user's words\s+verbatim/i);
+    expect(instructions).toMatch(/It never has to run first, it never stops you from researching/i);
+    expect(instructions).toMatch(/you never copy its text to the user/i);
   });
 
-  it('forbids reporting a non-emergency severity as a clearance', () => {
-    expect(instructions).toMatch(/`unknown` is not a clearance, and neither is `routine`/i);
-    expect(instructions).toMatch(/Do not present a\s+non-emergency severity as evidence that nothing is wrong/i);
+  it('opens a real emergency with exactly one 999 line and keeps it off everything else', () => {
+    expect(instructions).toMatch(/open the reply with \*\*one short line\*\*/i);
+    expect(instructions).toMatch(/🚨 এখনই 999-এ কল করুন।/);
+    expect(instructions).toMatch(/🚨 Call 999 now\./);
+    expect(instructions).toMatch(/\*\*Any other level\*\*: no 999 line/i);
   });
 
-  it('requires an unassessed message to be handled as urgent, not laundered', () => {
-    expect(instructions).toMatch(/No assessment was obtained/i);
-    expect(instructions).toMatch(/Do not launder an\s+unassessed message into a confident\s+answer/i);
-  });
-
-  it('does not let the agent invent triage when the classifier is absent', () => {
-    expect(instructions).toMatch(/The tool holds no clinical rule set/i);
-    expect(instructions).toMatch(/do not fill the gap with your own triage/i);
-  });
-
-  it("requires the screen's own limitations to travel with the answer", () => {
-    expect(instructions).toMatch(/limitations must travel with the answer/i);
+  it('does not let the pattern list stand in for reading the message', () => {
+    /** A screen that matched nothing is not a clearance: the danger signs still
+     *  have to be written out, and the agent's own reading decides. */
+    expect(instructions).toMatch(
+      /List the danger signs that\s+would make it an emergency instead/i,
+    );
+    expect(instructions).toMatch(/The pattern list can miss things and can flag things wrongly/i);
   });
 
   it('keeps clinical facts out of memory and personal facts out of databases', () => {

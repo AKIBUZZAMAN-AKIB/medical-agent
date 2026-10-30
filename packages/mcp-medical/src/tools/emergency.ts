@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { composeResult } from '../format.js';
-import { defineTool } from '../types.js';
 import {
   EMERGENCY_RULESET_VERSION,
   Severity,
@@ -9,6 +7,8 @@ import {
   triage,
 } from '../safety/emergency.js';
 import { RED_FLAG_LIMITATIONS, RED_FLAG_POLICY, redFlagClassifier } from '../safety/redflags-bd.js';
+import { composeResult } from '../format.js';
+import { defineTool } from '../types.js';
 
 /**
  * The triage tool.
@@ -82,7 +82,7 @@ export function triageMode(): TriageMode {
 }
 
 const SIGNAL_DESCRIPTION =
-  'Optional internal red-flag signal. Returns a level (emergency | urgent | routine | informational | none | unknown) and the danger patterns that matched in the message (English, Bangla, Banglish). It is NOT an answer and contains no advice: it never replaces research and never needs to run first. Use it, if you like, to decide whether the reply opens with one short 999 line. Pass the user\'s own words verbatim.';
+  "Optional internal red-flag signal. Returns a level (emergency | urgent | routine | informational | none | unknown) and the danger patterns that matched in the message (English, Bangla, Banglish). It is NOT an answer and contains no advice: it never replaces research and never needs to run first. Use it, if you like, to decide whether the reply opens with one short 999 line. Pass the user's own words verbatim.";
 
 const CONTROL_DESCRIPTION =
   'Evaluate a message through the deterministic triage policy and return the resulting severity, the evidence behind it, ordered guidance from the policy author, and the assessment’s limits. Call it before any lookup whenever the message describes symptoms, an injury, an ingestion, or emotional distress. This server holds no clinical rule set: severity comes from a classifier (a model or a clinically reviewed knowledge base) and the decision procedure is the auditable pure function in src/safety/triage.ts. Returns severity emergency | urgent | routine | informational | none | unknown. UNKNOWN means no classifier was available — it is a fail-safe, never a clearance, and it must be treated as urgent until a human decides otherwise. Every result includes its own limitations; carry them into the answer.';
@@ -100,20 +100,29 @@ export function renderSignal(decision: TriageDecision): string {
     lines.push('', 'Matched danger patterns:');
     for (const f of flags) lines.push(`- ${f.code} [${Severity[f.severity]}]: ${f.rationale}`);
   } else {
-    lines.push('', 'No danger pattern from the fixed list matched. That says nothing either way about the person.');
+    lines.push(
+      '',
+      'No danger pattern from the fixed list matched. That says nothing either way about the person.',
+    );
   }
   const denied = decision.evidence.filter((e) => e.denied);
   if (denied.length > 0) {
     lines.push('', 'Mentioned but denied / in the past:');
     for (const d of denied) lines.push(`- ${d.code}: ${d.rationale}`);
   }
-  lines.push('', `Pattern list: ${decision.policy}. Pattern matching, not clinician-reviewed, not a diagnosis.`);
+  lines.push(
+    '',
+    `Pattern list: ${decision.policy}. Pattern matching, not clinician-reviewed, not a diagnosis.`,
+  );
   return lines.join('\n');
 }
 
 function signalNotices(decision: TriageDecision): string[] {
   const notices = [
-    (decision.decided && decision.severity >= Severity.emergency ? '' : 'Not a life-threatening red flag: do NOT add a 999 line; give full help and list the danger signs that would make it an emergency. ') + 'This is an internal hint, not the answer. Do NOT copy it to the user and do NOT reply with a generic "go to a doctor / hospital". Now research the question (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on WHO/CDC/NIH/NICE/NHS/DGHS) and give full, specific, practical help.',
+    (decision.decided && decision.severity >= Severity.emergency
+      ? ''
+      : 'Not a life-threatening red flag: do NOT add a 999 line; give full help and list the danger signs that would make it an emergency. ') +
+      'This is an internal hint, not the answer. Do NOT copy it to the user and do NOT reply with a generic "go to a doctor / hospital". Now research the question (disease_knowledge_search, pubmed_search / europe_pmc_search, drug_label, web_search on WHO/CDC/NIH/NICE/NHS/DGHS) and give full, specific, practical help.',
     "Write the whole reply in the language of the user's latest message: Bangla script or Banglish -> Bangla (বাংলা); English -> English. This tool's English text does not change that.",
   ];
   if (decision.decided && decision.severity >= Severity.emergency) {
@@ -128,9 +137,10 @@ export const emergencyTools = [
   defineTool({
     name: 'emergency_triage_check',
     group: 'clinical',
-    title: triageMode() === 'signal'
-      ? 'Red-flag signal (optional, internal hint only)'
-      : 'Emergency triage decision procedure (classifier-backed)',
+    title:
+      triageMode() === 'signal'
+        ? 'Red-flag signal (optional, internal hint only)'
+        : 'Emergency triage decision procedure (classifier-backed)',
     description: triageMode() === 'signal' ? SIGNAL_DESCRIPTION : CONTROL_DESCRIPTION,
     inputSchema: {
       message: z

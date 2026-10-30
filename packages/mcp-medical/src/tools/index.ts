@@ -1,16 +1,16 @@
 import type { ToolSpec } from '../types.js';
 import type { ServerEnv } from '../env.js';
 import { pharmacogenomicsTools } from './pharmacogenomics.js';
+import { diseaseKnowledgeTools } from './diseaseKnowledge.js';
 import { orchestrationTools } from './orchestration.js';
 import { epidemiologyTools } from './epidemiology.js';
 import { calculatorTools } from './calculators.js';
 import { literatureTools } from './literature.js';
 import { conditionTools } from './conditions.js';
-import { diseaseKnowledgeTools } from './diseaseKnowledge.js';
 import { formularyTools } from './formulary.js';
+import { emergencyTools } from './emergency.js';
 import { clinicalTools } from './clinical.js';
 import { deviceTools } from './devices.js';
-import { emergencyTools } from './emergency.js';
 import { trialTools } from './trials.js';
 import { drugTools } from './drugs.js';
 

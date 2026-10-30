@@ -685,9 +685,9 @@ const loadTools = async ({
         Promise.resolve()
           .then(() => validTool())
           .catch((error) => {
-          logger.error(`Error loading tool ${tool}:`, error);
-          return null;
-        }),
+            logger.error(`Error loading tool ${tool}:`, error);
+            return null;
+          }),
       );
     }
   }

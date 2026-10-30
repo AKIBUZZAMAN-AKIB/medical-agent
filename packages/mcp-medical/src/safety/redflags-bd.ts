@@ -26,11 +26,20 @@
  * নেই"). Time framing ("three years ago") is NOT handled, so past events can
  * over-triage — the safer direction.
  */
-import { type Classifier, type Evidence, type Policy, type PolicyRule, type Rule, Severity } from './triage.js';
+import {
+  type Classifier,
+  type Evidence,
+  type Policy,
+  type PolicyRule,
+  type Rule,
+  Severity,
+} from './triage.js';
 
 export const RED_FLAG_KB_VERSION = 'bd-redflags-2026.10';
 
 type Lang = 'en' | 'bn' | 'rom';
+
+const LANGUAGE_LABEL: Record<Lang, string> = { en: 'English', bn: 'Bangla', rom: 'Banglish' };
 
 interface Concept {
   code: string;
@@ -61,7 +70,10 @@ const CONCEPTS: Concept[] = [
       '\\bpain\\s+(in|on|around)\\s+(my|the|his|her)?\\s*(chest|heart)\\b',
       '\\bheart\\s*attack\\b',
     ],
-    bn: [`বুক(?:ে|ের)?\\s*${W}{0,3}(?:${PAIN_BN}|চাপ|ভার|চিনচিন|কামড়)`, 'হার্ট\\s*(?:অ্যাটাক|এটাক|অ্যাটাক)'],
+    bn: [
+      `বুক(?:ে|ের)?\\s*${W}{0,3}(?:${PAIN_BN}|চাপ|ভার|চিনচিন|কামড়)`,
+      'হার্ট\\s*(?:অ্যাটাক|এটাক|অ্যাটাক)',
+    ],
     rom: [`\\bbuk(?:e|er)?\\s+(?:\\w+\\s+){0,3}(?:${PAIN_ROM}|chap|vari|bhari|pain|chinchin)\\b`],
   },
   {
@@ -141,7 +153,10 @@ const CONCEPTS: Concept[] = [
     label: 'seizure / convulsion',
     en: ['\\b(seizures?|seizing|convuls\\w*|fitting|having a fit|epileptic fit)\\b'],
     bn: ['খিঁচুনি|খিচুনি|খিঁচুনী|খিচুনী|খিঁচ\\s*(?:দিচ্ছে|উঠছে|ধরেছে)'],
-    rom: ['\\b(?:khichuni|khichuny|khinchuni|khichunii|khichhuni)\\b', '\\bkhich\\s+(?:uthche|dicche|dhorse)\\b'],
+    rom: [
+      '\\b(?:khichuni|khichuny|khinchuni|khichunii|khichhuni)\\b',
+      '\\bkhich\\s+(?:uthche|dicche|dhorse)\\b',
+    ],
   },
   {
     code: 'severe_bleeding',
@@ -168,7 +183,9 @@ const CONCEPTS: Concept[] = [
       '\\b(vomit\\w*|throw\\w* up|threw up|cough\\w*( up)?)\\s+(\\w+\\s+)?blood\\b',
       '\\bblood\\s+in\\s+(my |his |her |the )?(vomit|sputum|phlegm)\\b',
     ],
-    bn: ['রক্ত\\s*বমি|রক্তবমি|বমির?\\s*সাথে\\s*রক্ত|কাশির?\\s*সাথে\\s*রক্ত|কাশিতে\\s*রক্ত|বমিতে\\s*রক্ত'],
+    bn: [
+      'রক্ত\\s*বমি|রক্তবমি|বমির?\\s*সাথে\\s*রক্ত|কাশির?\\s*সাথে\\s*রক্ত|কাশিতে\\s*রক্ত|বমিতে\\s*রক্ত',
+    ],
     rom: ['\\brokto\\s*bomi\\b', '\\b(?:bomi|kashi)r?\\s+(?:sathe|shathe|songe|te)\\s+rokto\\b'],
   },
   {
@@ -181,8 +198,13 @@ const CONCEPTS: Concept[] = [
       '\\bswell\\w*\\s+(of|in|on)\\s+(the |my |his |her )?(throat|tongue|lips?|face)\\b',
       '\\bthroat\\s+(is\\s+)?(closing|tight)',
     ],
-    bn: [`(?:গলা|জিভ|জিহ্বা|ঠোঁট|মুখ|চোখ\\s*মুখ)\\s*${W}{0,1}(?:ফুলে|ফোলা|ফুলছে)`, 'অ্যানাফাইল্যাক্সিস|এনাফাইল্যাক্সিস'],
-    rom: ['\\b(?:gola|jib|jibh|thot|mukh|chokh\\s*mukh)\\s+(?:\\w+\\s+){0,1}(?:fule|phule|fula|fola|fulse|fulche)\\b'],
+    bn: [
+      `(?:গলা|জিভ|জিহ্বা|ঠোঁট|মুখ|চোখ\\s*মুখ)\\s*${W}{0,1}(?:ফুলে|ফোলা|ফুলছে)`,
+      'অ্যানাফাইল্যাক্সিস|এনাফাইল্যাক্সিস',
+    ],
+    rom: [
+      '\\b(?:gola|jib|jibh|thot|mukh|chokh\\s*mukh)\\s+(?:\\w+\\s+){0,1}(?:fule|phule|fula|fola|fulse|fulche)\\b',
+    ],
   },
   {
     code: 'suicidal',
@@ -230,23 +252,35 @@ const CONCEPTS: Concept[] = [
     label: 'snakebite',
     en: ['\\b(snake\\s*(bite|bit|bitten)|bitten by a snake|snakebite)\\b'],
     bn: ['সাপ(?:ে)?\\s*(?:কেটেছে|কাটছে|কামড়|কাটে|কেটে|কাটলো|দংশন)|সর্পদংশন'],
-    rom: ['\\b(?:shap|sap|saap|shaap)\\s*(?:e|ey)?\\s+(?:kateche|katche|kamor\\w*|kamra\\w*|kamri\\w*|kaitese|kaise|kete|katse|katlo|dongshon\\w*)\\b'],
+    rom: [
+      '\\b(?:shap|sap|saap|shaap)\\s*(?:e|ey)?\\s+(?:kateche|katche|kamor\\w*|kamra\\w*|kamri\\w*|kaitese|kaise|kete|katse|katlo|dongshon\\w*)\\b',
+    ],
   },
   {
     code: 'drowning',
     severity: Severity.emergency,
     label: 'drowning or near-drowning',
     en: ['\\b(drown\\w*|near[- ]drowning|pulled (him|her|them)? ?(out )?from (the )?water)\\b'],
-    bn: ['পানিতে\\s*(?:ডুবে|পড়ে\\s*গিয়েছিল|পড়ে\\s*গেছে)|ডুবে\\s*(?:গিয়েছিল|গেছিল|গেছে|যাচ্ছিল)'],
-    rom: ['\\b(?:panite|pani\\s+te)\\s+(?:dube|pore)\\b', '\\bdube\\s+(?:gese|geche|gechilo|giyechilo|jacchilo)\\b'],
+    bn: [
+      'পানিতে\\s*(?:ডুবে|পড়ে\\s*গিয়েছিল|পড়ে\\s*গেছে)|ডুবে\\s*(?:গিয়েছিল|গেছিল|গেছে|যাচ্ছিল)',
+    ],
+    rom: [
+      '\\b(?:panite|pani\\s+te)\\s+(?:dube|pore)\\b',
+      '\\bdube\\s+(?:gese|geche|gechilo|giyechilo|jacchilo)\\b',
+    ],
   },
   {
     code: 'electric_shock',
     severity: Severity.emergency,
     label: 'electric shock',
     en: ['\\b(electric(al)?\\s+shock|electrocut\\w*)\\b'],
-    bn: ['বিদ্যুৎ\\s*(?:শক|স্পৃষ্ট)|বিদ্যুতের\\s*শক|বিদ্যুৎস্পৃষ্ট|কারেন্ট\\s*(?:লেগেছে|লাগছে|লাগলো|শক|ধরেছে|ধরছে)'],
-    rom: ['\\bcurrent\\s+(?:legeche|lagse|lagche|dhorse|dhoreche|shock|legese|laglo)\\b', '\\bbiddut\\s*(?:shock|sprishto)\\b'],
+    bn: [
+      'বিদ্যুৎ\\s*(?:শক|স্পৃষ্ট)|বিদ্যুতের\\s*শক|বিদ্যুৎস্পৃষ্ট|কারেন্ট\\s*(?:লেগেছে|লাগছে|লাগলো|শক|ধরেছে|ধরছে)',
+    ],
+    rom: [
+      '\\bcurrent\\s+(?:legeche|lagse|lagche|dhorse|dhoreche|shock|legese|laglo)\\b',
+      '\\bbiddut\\s*(?:shock|sprishto)\\b',
+    ],
   },
   {
     code: 'major_trauma',
@@ -291,15 +325,23 @@ const CONCEPTS: Concept[] = [
     code: 'nonblanching_rash',
     severity: Severity.emergency,
     label: 'rash that does not fade when pressed',
-    en: ["\\b(rash (that )?(doesn'?t|does not|won'?t) fade|non[- ]?blanching|purple (spots|rash|blotches))\\b"],
-    bn: ['চাপ\\s*দিলেও\\s*(?:র‍্যাশ|দাগ|ফুসকুড়ি)\\s*(?:যায়|মিলায়)\\s*না|বেগুনি\\s*(?:দাগ|র‍্যাশ)'],
+    en: [
+      "\\b(rash (that )?(doesn'?t|does not|won'?t) fade|non[- ]?blanching|purple (spots|rash|blotches))\\b",
+    ],
+    bn: [
+      'চাপ\\s*দিলেও\\s*(?:র‍্যাশ|দাগ|ফুসকুড়ি)\\s*(?:যায়|মিলায়)\\s*না|বেগুনি\\s*(?:দাগ|র‍্যাশ)',
+    ],
   },
   {
     code: 'confusion',
     severity: Severity.emergency,
     label: 'sudden confusion',
-    en: ["\\b(sudden(ly)?\\s+confus\\w*|disoriented|delirious|not making sense|talking nonsense|doesn'?t recogni[sz]e (me|us|anyone))\\b"],
-    bn: ['আবোল\\s*তাবোল|উল্টা\\s*পাল্টা\\s*(?:কথা|বকছে)|উল্টাপাল্টা\\s*(?:কথা|বকছে)|ভুলভাল\\s*বকছে|কাউকে\\s*চিনতে\\s*পারছে\\s*না|প্রলাপ'],
+    en: [
+      "\\b(sudden(ly)?\\s+confus\\w*|disoriented|delirious|not making sense|talking nonsense|doesn'?t recogni[sz]e (me|us|anyone))\\b",
+    ],
+    bn: [
+      'আবোল\\s*তাবোল|উল্টা\\s*পাল্টা\\s*(?:কথা|বকছে)|উল্টাপাল্টা\\s*(?:কথা|বকছে)|ভুলভাল\\s*বকছে|কাউকে\\s*চিনতে\\s*পারছে\\s*না|প্রলাপ',
+    ],
     rom: ['\\babol\\s*tabol\\b|\\bultapalta\\s+(?:kotha|bokche)\\b|\\bchinte\\s+parche\\s+na\\b'],
     noNegation: true,
   },
@@ -311,8 +353,12 @@ const CONCEPTS: Concept[] = [
     en: [
       "\\b(baby (is )?(not|isn'?t|hasn'?t been|has not been) moving|reduced (fetal|foetal|baby'?s?) movements?|baby (is )?moving less|no (fetal|foetal) movements?|can'?t feel (the )?baby move)",
     ],
-    bn: [`পেটের\\s*বাচ্চা\\s*${W}{0,1}(?:নড়ছে|নড়াচড়া\\s*করছে)\\s*না|বাচ্চার\\s*নড়াচড়া\\s*(?:কম|বন্ধ|নেই|টের\\s*পাচ্ছি\\s*না)`],
-    rom: ['\\bpeter\\s+baccha\\s+(?:\\w+\\s+){0,1}(?:norche|nore|norachora\\s+korche)\\s+na\\b|\\bbacchar\\s+norachora\\s+(?:kom|bondho|nai)\\b'],
+    bn: [
+      `পেটের\\s*বাচ্চা\\s*${W}{0,1}(?:নড়ছে|নড়াচড়া\\s*করছে)\\s*না|বাচ্চার\\s*নড়াচড়া\\s*(?:কম|বন্ধ|নেই|টের\\s*পাচ্ছি\\s*না)`,
+    ],
+    rom: [
+      '\\bpeter\\s+baccha\\s+(?:\\w+\\s+){0,1}(?:norche|nore|norachora\\s+korche)\\s+na\\b|\\bbacchar\\s+norachora\\s+(?:kom|bondho|nai)\\b',
+    ],
   },
 
   // ---------------- urgent on their own ----------------
@@ -320,9 +366,15 @@ const CONCEPTS: Concept[] = [
     code: 'shortness_of_breath',
     severity: Severity.urgent,
     label: 'shortness of breath',
-    en: ['\\b(short(ness)? of breath|breathless\\w*|difficulty (in )?breathing|trouble breathing|hard to breathe|breathing (problems?|difficulty)|wheez\\w*|asthma attack)\\b'],
-    bn: ['শ্বাসকষ্ট|শ্বাস\\s*কষ্ট|শাসকষ্ট|শ্বাস\\s*নিতে\\s*কষ্ট|হাঁপানি|হাপানি|শ্বাস\\s*টান|হাঁপাচ্ছ'],
-    rom: ['\\b(?:shash|shas|sas|swas|nishash|nisshash)\\s*(?:kosto|kashto|koshto|nite\\s+kosto|tan|kost)\\b|\\bhapani\\b|\\bhapa(?:cche|chi|cchi)\\b'],
+    en: [
+      '\\b(short(ness)? of breath|breathless\\w*|difficulty (in )?breathing|trouble breathing|hard to breathe|breathing (problems?|difficulty)|wheez\\w*|asthma attack)\\b',
+    ],
+    bn: [
+      'শ্বাসকষ্ট|শ্বাস\\s*কষ্ট|শাসকষ্ট|শ্বাস\\s*নিতে\\s*কষ্ট|হাঁপানি|হাপানি|শ্বাস\\s*টান|হাঁপাচ্ছ',
+    ],
+    rom: [
+      '\\b(?:shash|shas|sas|swas|nishash|nisshash)\\s*(?:kosto|kashto|koshto|nite\\s+kosto|tan|kost)\\b|\\bhapani\\b|\\bhapa(?:cche|chi|cchi)\\b',
+    ],
   },
   {
     code: 'palpitations',
@@ -344,31 +396,47 @@ const CONCEPTS: Concept[] = [
     code: 'gi_bleeding',
     severity: Severity.urgent,
     label: 'blood in stool or urine, or black stool',
-    en: ['\\b((black|tarry) (stool|poo|poop)s?|blood in (my |his |her |the )?(stool|poo|poop|urine|pee)|bloody (stool|diarrh\\w*|urine))\\b'],
+    en: [
+      '\\b((black|tarry) (stool|poo|poop)s?|blood in (my |his |her |the )?(stool|poo|poop|urine|pee)|bloody (stool|diarrh\\w*|urine))\\b',
+    ],
     bn: ['পায়খানার?\\s*সাথে\\s*রক্ত|কালো\\s*পায়খানা|প্রস্রাবের?\\s*সাথে\\s*রক্ত|রক্ত\\s*আমাশয়'],
-    rom: ['\\b(?:paykhana|paikhana|toilet|prosrab|proshrab)\\w*\\s+(?:sathe|shathe)\\s+rokto\\b|\\bkalo\\s+(?:paykhana|paikhana)\\b'],
+    rom: [
+      '\\b(?:paykhana|paikhana|toilet|prosrab|proshrab)\\w*\\s+(?:sathe|shathe)\\s+rokto\\b|\\bkalo\\s+(?:paykhana|paikhana)\\b',
+    ],
   },
   {
     code: 'burn',
     severity: Severity.urgent,
     label: 'burn or scald',
-    en: ['\\b(burned|burnt|scalded|scald|got burn(ed|t)?|burn (injury|wound)|caught fire|burns? (on|to) (the |my |his |her )?(face|hand|arm|leg|body|chest))\\b'],
-    bn: [`পুড়ে\\s*(?:গেছে|গিয়েছে|গেছি|গেল)|আগুনে\\s*পুড়|গরম\\s*(?:পানি|পানিতে|তেল|তেলে|চা|ভাতের\\s*মাড়)\\s*${W}{0,1}পুড়|ছ্যাঁকা|ছেঁকা|ঝলসে`],
-    rom: ['\\b(?:pure|puira|pude|puire|pude)\\s+(?:geche|gese|gechi|gelo)\\b|\\bagune\\s+pur\\w*|\\bchheka\\b|\\bchaka\\s+(?:legeche|lagse)\\b'],
+    en: [
+      '\\b(burned|burnt|scalded|scald|got burn(ed|t)?|burn (injury|wound)|caught fire|burns? (on|to) (the |my |his |her )?(face|hand|arm|leg|body|chest))\\b',
+    ],
+    bn: [
+      `পুড়ে\\s*(?:গেছে|গিয়েছে|গেছি|গেল)|আগুনে\\s*পুড়|গরম\\s*(?:পানি|পানিতে|তেল|তেলে|চা|ভাতের\\s*মাড়)\\s*${W}{0,1}পুড়|ছ্যাঁকা|ছেঁকা|ঝলসে`,
+    ],
+    rom: [
+      '\\b(?:pure|puira|pude|puire|pude)\\s+(?:geche|gese|gechi|gelo)\\b|\\bagune\\s+pur\\w*|\\bchheka\\b|\\bchaka\\s+(?:legeche|lagse)\\b',
+    ],
   },
   {
     code: 'head_injury',
     severity: Severity.urgent,
     label: 'head injury',
-    en: ['\\b(head (injury|trauma)|hit (my|his|her|their) head|bang(ed)? (my|his|her) head|blow to the head|fell on (my|his|her) head)\\b'],
+    en: [
+      '\\b(head (injury|trauma)|hit (my|his|her|their) head|bang(ed)? (my|his|her) head|blow to the head|fell on (my|his|her) head)\\b',
+    ],
     bn: [`মাথায়\\s*${W}{0,1}(?:আঘাত|চোট|বাড়ি|লেগেছে|ফেটে)|মাথা\\s*ফেটে`],
-    rom: ['\\bmathay?\\s+(?:\\w+\\s+){0,1}(?:aghat|chot|bari|legeche|lagse|fete)\\b|\\bmatha\\s+fete\\b'],
+    rom: [
+      '\\bmathay?\\s+(?:\\w+\\s+){0,1}(?:aghat|chot|bari|legeche|lagse|fete)\\b|\\bmatha\\s+fete\\b',
+    ],
   },
   {
     code: 'accident',
     severity: Severity.urgent,
     label: 'accident',
-    en: ['\\b(road|car|bus|motorcycle|bike|traffic)\\s+(accident|crash|collision)\\b|\\baccident\\b'],
+    en: [
+      '\\b(road|car|bus|motorcycle|bike|traffic)\\s+(accident|crash|collision)\\b|\\baccident\\b',
+    ],
     bn: ['সড়ক\\s*দুর্ঘটনা|দুর্ঘটনা|এক্সিডেন্ট|অ্যাক্সিডেন্ট|এক্সিডেন্ট'],
     rom: ['\\b(?:accident|eccident|aksident|exident|exiden|accidend)\\b'],
   },
@@ -376,18 +444,30 @@ const CONCEPTS: Concept[] = [
     code: 'animal_bite',
     severity: Severity.urgent,
     label: 'animal bite (rabies risk)',
-    en: ['\\b((dog|cat|monkey|jackal|fox|bat)\\s*(bite|bit|scratch\\w*)|bitten by (a |an )?(dog|cat|monkey|jackal|fox|bat)|rabies)\\b'],
-    bn: ['(?:কুকুর|বিড়াল|বানর|শিয়াল|শেয়াল|বাদুড়)\\S*\\s*(?:কামড়|আঁচড়|আচড়|কেটেছে|কেটে)|জলাতঙ্ক|র‍্যাবিস|রেবিস'],
-    rom: ['\\b(?:kukur|biral|bilai|banor|shial|sheyal)\\w*\\s+(?:kamor\\w*|kamrai\\w*|achor\\w*|kateche|katse)\\b|\\brabies\\b'],
+    en: [
+      '\\b((dog|cat|monkey|jackal|fox|bat)\\s*(bite|bit|scratch\\w*)|bitten by (a |an )?(dog|cat|monkey|jackal|fox|bat)|rabies)\\b',
+    ],
+    bn: [
+      '(?:কুকুর|বিড়াল|বানর|শিয়াল|শেয়াল|বাদুড়)\\S*\\s*(?:কামড়|আঁচড়|আচড়|কেটেছে|কেটে)|জলাতঙ্ক|র‍্যাবিস|রেবিস',
+    ],
+    rom: [
+      '\\b(?:kukur|biral|bilai|banor|shial|sheyal)\\w*\\s+(?:kamor\\w*|kamrai\\w*|achor\\w*|kateche|katse)\\b|\\brabies\\b',
+    ],
   },
   {
     code: 'dehydration',
     severity: Severity.urgent,
     label: 'signs of dehydration',
     noNegation: true,
-    en: ["\\b(severe(ly)? dehydrat\\w*|no urine|not (peed|urinated)|haven'?t (urinated|peed)|sunken eyes|rice[- ]water (stool|diarrh\\w*)|cholera)\\b"],
-    bn: [`প্রস্রাব\\s*${W}{0,1}(?:হচ্ছে\\s*না|হয়নি|হয়\\s*নি|বন্ধ)|চোখ\\s*${W}{0,1}বসে\\s*(?:গেছে|গিয়েছে)|চাল\\s*ধোয়া\\s*পানির?\\s*মতো|কলেরা|পানিশূন্যতা`],
-    rom: ['\\b(?:prosrab|proshrab|peshab|pesab)\\s+(?:hocche\\s+na|hoche\\s+na|hoyni|bondho)\\b|\\bchokh\\s+bose\\s+(?:gese|geche)\\b|\\bcholera\\b'],
+    en: [
+      "\\b(severe(ly)? dehydrat\\w*|no urine|not (peed|urinated)|haven'?t (urinated|peed)|sunken eyes|rice[- ]water (stool|diarrh\\w*)|cholera)\\b",
+    ],
+    bn: [
+      `প্রস্রাব\\s*${W}{0,1}(?:হচ্ছে\\s*না|হয়নি|হয়\\s*নি|বন্ধ)|চোখ\\s*${W}{0,1}বসে\\s*(?:গেছে|গিয়েছে)|চাল\\s*ধোয়া\\s*পানির?\\s*মতো|কলেরা|পানিশূন্যতা`,
+    ],
+    rom: [
+      '\\b(?:prosrab|proshrab|peshab|pesab)\\s+(?:hocche\\s+na|hoche\\s+na|hoyni|bondho)\\b|\\bchokh\\s+bose\\s+(?:gese|geche)\\b|\\bcholera\\b',
+    ],
   },
   {
     code: 'severe_abdominal_pain',
@@ -412,7 +492,9 @@ const CONCEPTS: Concept[] = [
     severity: Severity.urgent,
     label: 'blurred or lost vision',
     noNegation: true,
-    en: ["\\b(blurred vision|blurry vision|vision (is )?blurr\\w*|seeing (spots|flashes)|can'?t see|vision loss|lost (my |his |her )?vision|sudden(ly)? blind)\\b"],
+    en: [
+      "\\b(blurred vision|blurry vision|vision (is )?blurr\\w*|seeing (spots|flashes)|can'?t see|vision loss|lost (my |his |her )?vision|sudden(ly)? blind)\\b",
+    ],
     bn: ['চোখে\\s*ঝাপসা|ঝাপসা\\s*দেখ|চোখে\\s*অন্ধকার|দেখতে\\s*পাচ্ছ\\S*\\s*না'],
     rom: ['\\bjhapsa\\b|\\bchokhe\\s+ondhokar\\b|\\bdekhte\\s+(?:parchi|pacchi|parche)\\s+na\\b'],
   },
@@ -421,7 +503,9 @@ const CONCEPTS: Concept[] = [
     severity: Severity.urgent,
     label: 'child danger sign (not feeding, vomits everything, lethargic)',
     noNegation: true,
-    en: ["\\b(not (feeding|drinking|breastfeeding|sucking)|won'?t (feed|drink|breastfeed)|refus\\w+ to (feed|drink|breastfeed)|vomit\\w* everything|can'?t keep anything down|letharg\\w*|floppy|very sleepy|hard to wake|limp)\\b"],
+    en: [
+      "\\b(not (feeding|drinking|breastfeeding|sucking)|won'?t (feed|drink|breastfeed)|refus\\w+ to (feed|drink|breastfeed)|vomit\\w* everything|can'?t keep anything down|letharg\\w*|floppy|very sleepy|hard to wake|limp)\\b",
+    ],
     bn: [
       `(?:দুধ|বুকের\\s*দুধ|মায়ের\\s*দুধ)\\s*${W}{0,1}(?:খাচ্ছে|টানছে|খায়|খেতে\\s*পারছে)\\s*না`,
       'কিছুই\\s*খেতে\\s*পারছে\\s*না|যা\\s*খাচ্ছে\\s*(?:তাই|সব)\\s*বমি|সব\\s*(?:কিছু\\s*)?বমি\\s*করে',
@@ -454,52 +538,126 @@ const CONCEPTS: Concept[] = [
   },
 
   // ---------------- modifiers / context (no severity alone) ----------------
-  { code: 'fever', severity: Severity.routine, label: 'fever',
+  {
+    code: 'fever',
+    severity: Severity.routine,
+    label: 'fever',
     en: ['\\b(fever|feverish|high temperature|temperature of|pyrexia|febrile)\\b'],
     bn: ['জ্বর'],
-    rom: ['\\b(?:jor|jwor|jhor|jorr|jvor|jwar|jor\\s*ashche)\\b'] },
-  { code: 'headache', severity: Severity.routine, label: 'headache',
+    rom: ['\\b(?:jor|jwor|jhor|jorr|jvor|jwar|jor\\s*ashche)\\b'],
+  },
+  {
+    code: 'headache',
+    severity: Severity.routine,
+    label: 'headache',
     en: ['\\b(headache|migraine)\\b'],
     bn: [`মাথা\\s*${PAIN_BN}|মাথাব্য[াে]?থা|মাথা\\s*ধরা`],
-    rom: [`\\bmatha\\s*(?:${PAIN_ROM}|dhora|dhorse)\\b`] },
-  { code: 'stiff_neck', severity: Severity.routine, label: 'stiff neck',
+    rom: [`\\bmatha\\s*(?:${PAIN_ROM}|dhora|dhorse)\\b`],
+  },
+  {
+    code: 'stiff_neck',
+    severity: Severity.routine,
+    label: 'stiff neck',
     en: ["\\b(stiff neck|neck (is )?stiff|can'?t bend (my|his|her) neck)\\b"],
     bn: [`ঘাড়\\s*${W}{0,1}(?:শক্ত|বাঁকাতে\\s*পারছ|নাড়াতে\\s*পারছ)`],
-    rom: ['\\b(?:ghar|ghaar)\\s+(?:\\w+\\s+){0,1}(?:shokto|sokto|shakto)\\b'] },
-  { code: 'vomiting', severity: Severity.routine, label: 'vomiting',
-    en: ['\\b(vomit\\w*|throwing up|threw up)\\b'], bn: ['বমি'], rom: ['\\bbomi\\b'] },
-  { code: 'abdominal_pain', severity: Severity.routine, label: 'abdominal pain',
-    en: ['\\b((abdominal|stomach|belly|tummy|lower abdominal)\\s+(pain|ache|cramps?)|stomach ?ache)\\b'],
+    rom: ['\\b(?:ghar|ghaar)\\s+(?:\\w+\\s+){0,1}(?:shokto|sokto|shakto)\\b'],
+  },
+  {
+    code: 'vomiting',
+    severity: Severity.routine,
+    label: 'vomiting',
+    en: ['\\b(vomit\\w*|throwing up|threw up)\\b'],
+    bn: ['বমি'],
+    rom: ['\\bbomi\\b'],
+  },
+  {
+    code: 'abdominal_pain',
+    severity: Severity.routine,
+    label: 'abdominal pain',
+    en: [
+      '\\b((abdominal|stomach|belly|tummy|lower abdominal)\\s+(pain|ache|cramps?)|stomach ?ache)\\b',
+    ],
     bn: [`পেট(?:ে)?\\s*${W}{0,1}${PAIN_BN}|পেটব্য[াে]?থা|তলপেটে?\\s*${PAIN_BN}`],
-    rom: [`\\b(?:tol)?pet\\s*(?:e\\s+)?(?:\\w+\\s+)?${PAIN_ROM}`] },
-  { code: 'bleeding', severity: Severity.routine, label: 'bleeding',
+    rom: [`\\b(?:tol)?pet\\s*(?:e\\s+)?(?:\\w+\\s+)?${PAIN_ROM}`],
+  },
+  {
+    code: 'bleeding',
+    severity: Severity.routine,
+    label: 'bleeding',
     en: ['\\b(bleeding|bleed|blood loss|spotting)\\b'],
     bn: ['রক্ত\\s*(?:যাচ্ছে|পড়ছে|পড়া|ঝরছে|আসছে|বের\\s*হচ্ছে|দেখা)|রক্তপাত|রক্তক্ষরণ|ব্লিডিং'],
-    rom: ['\\brokto\\s+(?:jacche|porche|pora|jhorche|ashche|ascche|ber)\\b|\\bbleeding\\b|\\broktopat\\b'] },
-  { code: 'dengue', severity: Severity.routine, label: 'dengue',
-    en: ['\\bdengue\\b'], bn: ['ডেঙ্গু|ডেঙ্গি|ডেংগু'], rom: ['\\b(?:dengu|dengue|dengi)\\b'] },
-  { code: 'dengue_warning', severity: Severity.routine, label: 'bleeding gums or nose / repeated vomiting',
-    en: ['\\b(bleeding (gums|from (the )?(gums|nose))|nose ?bleed\\w*|gums? (are )?bleed\\w*|persistent vomiting|keeps vomiting|vomiting again and again)\\b'],
+    rom: [
+      '\\brokto\\s+(?:jacche|porche|pora|jhorche|ashche|ascche|ber)\\b|\\bbleeding\\b|\\broktopat\\b',
+    ],
+  },
+  {
+    code: 'dengue',
+    severity: Severity.routine,
+    label: 'dengue',
+    en: ['\\bdengue\\b'],
+    bn: ['ডেঙ্গু|ডেঙ্গি|ডেংগু'],
+    rom: ['\\b(?:dengu|dengue|dengi)\\b'],
+  },
+  {
+    code: 'dengue_warning',
+    severity: Severity.routine,
+    label: 'bleeding gums or nose / repeated vomiting',
+    en: [
+      '\\b(bleeding (gums|from (the )?(gums|nose))|nose ?bleed\\w*|gums? (are )?bleed\\w*|persistent vomiting|keeps vomiting|vomiting again and again)\\b',
+    ],
     bn: ['(?:মাড়ি|নাক|দাঁত)\\s*(?:দিয়ে|থেকে)\\s*রক্ত|বার\\s*বার\\s*বমি|বারবার\\s*বমি'],
-    rom: ['\\b(?:mari|maari|dat|nak)\\s+(?:diye|theke)\\s+rokto\\b|\\bbar\\s*bar\\s+bomi\\b'] },
-  { code: 'pregnant', severity: Severity.informational, label: 'pregnancy',
+    rom: ['\\b(?:mari|maari|dat|nak)\\s+(?:diye|theke)\\s+rokto\\b|\\bbar\\s*bar\\s+bomi\\b'],
+  },
+  {
+    code: 'pregnant',
+    severity: Severity.informational,
+    label: 'pregnancy',
     en: ['\\b(pregnan\\w*|expecting a baby|antenatal)\\b'],
-    bn: ['গর্ভবতী|গর্ভাবস্থ|প্রেগন্যান্ট|প্রেগনেন্ট|পোয়াতি|অন্তঃসত্ত্বা|অন্তঃসত্তা|পেটে\\s*বাচ্চা|গর্ভে'],
-    rom: ['\\b(?:gorbhoboti|gorvoboti|gorbhobhoti|pregnent|pregnant|poati|poyati|ontosotta|ontoshotta)\\b|\\bpete\\s+(?:baccha|bacha|bachcha)\\b'] },
-  { code: 'postpartum', severity: Severity.informational, label: 'recently gave birth',
-    en: ['\\b(after (giving )?birth|after (the )?delivery|postpartum|post-partum|just gave birth|after (my |her )?c-?section)\\b'],
+    bn: [
+      'গর্ভবতী|গর্ভাবস্থ|প্রেগন্যান্ট|প্রেগনেন্ট|পোয়াতি|অন্তঃসত্ত্বা|অন্তঃসত্তা|পেটে\\s*বাচ্চা|গর্ভে',
+    ],
+    rom: [
+      '\\b(?:gorbhoboti|gorvoboti|gorbhobhoti|pregnent|pregnant|poati|poyati|ontosotta|ontoshotta)\\b|\\bpete\\s+(?:baccha|bacha|bachcha)\\b',
+    ],
+  },
+  {
+    code: 'postpartum',
+    severity: Severity.informational,
+    label: 'recently gave birth',
+    en: [
+      '\\b(after (giving )?birth|after (the )?delivery|postpartum|post-partum|just gave birth|after (my |her )?c-?section)\\b',
+    ],
     bn: ['প্রসবের\\s*পর|ডেলিভারির\\s*পর|বাচ্চা\\s*হওয়ার\\s*পর|সিজারের\\s*পর'],
-    rom: ["\\b(?:prosober|delivery'?r|deliverir|sijarer|cesarer|sizarer)\\s+por\\b|\\bbaccha\\s+howar\\s+por\\b"] },
-  { code: 'child', severity: Severity.informational, label: 'child or baby',
+    rom: [
+      "\\b(?:prosober|delivery'?r|deliverir|sijarer|cesarer|sizarer)\\s+por\\b|\\bbaccha\\s+howar\\s+por\\b",
+    ],
+  },
+  {
+    code: 'child',
+    severity: Severity.informational,
+    label: 'child or baby',
     en: ['\\b(baby|babies|infant|toddler|newborn|child|kid|my son|my daughter)\\b'],
     bn: ['বাচ্চা|শিশু|নবজাতক|খোকা|খুকি|ছেলের?\\s*বয়স|মেয়ের?\\s*বয়স'],
-    rom: ['\\b(?:baccha|bacha|bachcha|bachha|shishu|sishu|babu|nobojatok)\\b'] },
-  { code: 'infant_under_3m', severity: Severity.informational, label: 'baby under 3 months',
-    en: ['\\b(newborn|neonat\\w*)\\b'], bn: ['নবজাতক'], rom: ['\\bnobojatok\\b'] },
-  { code: 'severe_modifier', severity: Severity.informational, label: 'described as severe',
-    en: ['\\b(severe|very bad|really bad|unbearable|excruciating|extreme|terrible|worst|badly|a lot|heavily|large|big)\\b'],
+    rom: ['\\b(?:baccha|bacha|bachcha|bachha|shishu|sishu|babu|nobojatok)\\b'],
+  },
+  {
+    code: 'infant_under_3m',
+    severity: Severity.informational,
+    label: 'baby under 3 months',
+    en: ['\\b(newborn|neonat\\w*)\\b'],
+    bn: ['নবজাতক'],
+    rom: ['\\bnobojatok\\b'],
+  },
+  {
+    code: 'severe_modifier',
+    severity: Severity.informational,
+    label: 'described as severe',
+    en: [
+      '\\b(severe|very bad|really bad|unbearable|excruciating|extreme|terrible|worst|badly|a lot|heavily|large|big)\\b',
+    ],
     bn: ['খুব|অনেক|প্রচণ্ড|তীব্র|অসহ্য|ভীষণ|মারাত্মক|ভয়ানক|বড়'],
-    rom: ['\\b(?:khub|onek|procondo|prochondo|tibro|osojjo|bhishon|vishon|maratmok|boro)\\b'] },
+    rom: ['\\b(?:khub|onek|procondo|prochondo|tibro|osojjo|bhishon|vishon|maratmok|boro)\\b'],
+  },
 ];
 
 // ---------------- matching ----------------
@@ -511,11 +669,11 @@ interface Compiled {
 
 const COMPILED: Compiled[] = CONCEPTS.map((concept) => ({
   concept,
-  res: ([
+  res: [
     ...(concept.en ?? []).map((s) => ({ lang: 'en' as Lang, s })),
     ...(concept.bn ?? []).map((s) => ({ lang: 'bn' as Lang, s })),
     ...(concept.rom ?? []).map((s) => ({ lang: 'rom' as Lang, s })),
-  ]).map(({ lang, s }) => ({ lang, re: new RegExp(s.normalize('NFC'), 'giu') })),
+  ].map(({ lang, s }) => ({ lang, re: new RegExp(s.normalize('NFC'), 'giu') })),
 }));
 
 const BN_DIGITS = '০১২৩৪৫৬৭৮৯';
@@ -534,7 +692,8 @@ export function normalizeMessage(text: string): string {
 const CLAUSE_BREAK = /[.!?।;\n]|\bbut\b|\bkintu\b|কিন্তু|তবে/giu;
 const EN_NEG_BEFORE =
   /\b(no|not|never|without|denies|denied|no longer|don'?t have|doesn'?t have|didn'?t have|haven'?t had|hasn'?t had|free of|nor)\s+(?:\S+\s+){0,2}$/iu;
-const BN_NEG_AFTER = /^\s*(?:নেই|নাই|হয়নি|হয়\s*নি|হচ্ছে\s*না|nei|nai|hoyni|hoy\s+ni|hocche\s+na|hoche\s+na)(?![\p{L}\p{M}])/u;
+const BN_NEG_AFTER =
+  /^\s*(?:নেই|নাই|হয়নি|হয়\s*নি|হচ্ছে\s*না|nei|nai|hoyni|hoy\s+ni|hocche\s+na|hoche\s+na)(?![\p{L}\p{M}])/u;
 
 function clauseBefore(text: string, idx: number): string {
   const before = text.slice(Math.max(0, idx - 60), idx);
@@ -585,12 +744,20 @@ function matchConcepts(text: string): Hit[] {
 }
 
 /** Temperatures and fever duration, read from numbers near a fever word. */
-function readNumbers(text: string, hasFever: boolean): { highFever?: string; prolongedFever?: string; infant?: string } {
+function readNumbers(
+  text: string,
+  hasFever: boolean,
+): { highFever?: string; prolongedFever?: string; infant?: string } {
   const out: { highFever?: string; prolongedFever?: string; infant?: string } = {};
   if (hasFever) {
-    for (const m of text.matchAll(/(\d{2,3}(?:\.\d)?)\s*(°|º|degrees?|deg|ডিগ্রি|digri|f\b|c\b|ফারেনহাইট)?/giu)) {
+    for (const m of text.matchAll(
+      /(\d{2,3}(?:\.\d)?)\s*(°|º|degrees?|deg|ডিগ্রি|digri|f\b|c\b|ফারেনহাইট)?/giu,
+    )) {
       const v = Number(m[1]);
-      if ((v >= 104 && v <= 110) || (v >= 40 && v <= 43 && /°|º|c\b|deg|ডিগ্রি|digri/iu.test(m[2] ?? ''))) {
+      if (
+        (v >= 104 && v <= 110) ||
+        (v >= 40 && v <= 43 && /°|º|c\b|deg|ডিগ্রি|digri/iu.test(m[2] ?? ''))
+      ) {
         out.highFever = m[0].trim();
         break;
       }
@@ -611,7 +778,10 @@ function readNumbers(text: string, hasFever: boolean): { highFever?: string; pro
     const n = Number(m[1]);
     const unit = m[2].toLowerCase();
     const ctx = text.slice(Math.max(0, (m.index ?? 0) - 30), (m.index ?? 0) + m[0].length + 30);
-    const babyNear = /বাচ্চা|শিশু|ছেলে|মেয়ে|baby|infant|son|daughter|baccha|bacha|bachcha|shishu|chele|meye|babu|old|বয়স/iu.test(ctx);
+    const babyNear =
+      /বাচ্চা|শিশু|ছেলে|মেয়ে|baby|infant|son|daughter|baccha|bacha|bachcha|shishu|chele|meye|babu|old|বয়স/iu.test(
+        ctx,
+      );
     if (!babyNear) continue;
     const young =
       (/মাস|mash|mas|month|^mo$/iu.test(unit) && n < 3) ||
@@ -644,14 +814,45 @@ export const redFlagClassifier: Classifier = {
       severity: h.denied ? Severity.informational : h.concept.severity,
       confidence: h.denied ? 0.6 : 0.8,
       denied: h.denied || undefined,
-      rationale: `${h.denied ? 'denied: ' : ''}${h.concept.label} (${h.lang === 'en' ? 'English' : h.lang === 'bn' ? 'Bangla' : 'Banglish'} pattern: "${h.quote}")`,
+      rationale: `${h.denied ? 'denied: ' : ''}${h.concept.label} (${LANGUAGE_LABEL[h.lang]} pattern: "${h.quote}")`,
       source: SOURCE,
     }));
-    if (nums.highFever) ev.push({ code: 'high_fever', severity: Severity.urgent, confidence: 0.8, rationale: `temperature of 104°F / 40°C or more ("${nums.highFever}")`, source: SOURCE });
-    if (nums.prolongedFever) ev.push({ code: 'prolonged_fever', severity: Severity.urgent, confidence: 0.7, rationale: `fever lasting 3 days or more (dengue / typhoid need testing) ("${nums.prolongedFever}")`, source: SOURCE });
-    if (nums.infant && !has('infant_under_3m')) ev.push({ code: 'infant_under_3m', severity: Severity.informational, confidence: 0.8, rationale: `baby under 3 months ("${nums.infant}")`, source: SOURCE });
-    if (!ev.some((e) => !e.denied && (e.severity === Severity.emergency || e.severity === Severity.urgent))) {
-      ev.push({ code: 'no_red_flag', severity: Severity.routine, confidence: 0.5, rationale: 'none of the red-flag patterns matched', source: SOURCE });
+    if (nums.highFever)
+      ev.push({
+        code: 'high_fever',
+        severity: Severity.urgent,
+        confidence: 0.8,
+        rationale: `temperature of 104°F / 40°C or more ("${nums.highFever}")`,
+        source: SOURCE,
+      });
+    if (nums.prolongedFever)
+      ev.push({
+        code: 'prolonged_fever',
+        severity: Severity.urgent,
+        confidence: 0.7,
+        rationale: `fever lasting 3 days or more (dengue / typhoid need testing) ("${nums.prolongedFever}")`,
+        source: SOURCE,
+      });
+    if (nums.infant && !has('infant_under_3m'))
+      ev.push({
+        code: 'infant_under_3m',
+        severity: Severity.informational,
+        confidence: 0.8,
+        rationale: `baby under 3 months ("${nums.infant}")`,
+        source: SOURCE,
+      });
+    if (
+      !ev.some(
+        (e) => !e.denied && (e.severity === Severity.emergency || e.severity === Severity.urgent),
+      )
+    ) {
+      ev.push({
+        code: 'no_red_flag',
+        severity: Severity.routine,
+        confidence: 0.5,
+        rationale: 'none of the red-flag patterns matched',
+        source: SOURCE,
+      });
     }
     return ev;
   },
@@ -664,7 +865,12 @@ const CALL_999 =
 const SEE_DOCTOR_TODAY =
   'See a doctor today, within the next few hours (hospital, upazila health complex or a doctor’s chamber). If it gets worse or a danger sign appears, call 999. For advice by phone: Shasthyo Batayon 16263 (government health helpline). / আজকেই, কয়েক ঘণ্টার মধ্যে ডাক্তার দেখান (হাসপাতাল, উপজেলা স্বাস্থ্য কমপ্লেক্স বা চেম্বার)। অবস্থা খারাপ হলে বা বিপদচিহ্ন দেখা দিলে ৯৯৯-এ কল করুন। ফোনে পরামর্শ: স্বাস্থ্য বাতায়ন ১৬২৬৩।';
 
-const emergency = (id: string, when: PolicyRule['when'], specific: string[] = [], questions?: string[]): PolicyRule => ({
+const emergency = (
+  id: string,
+  when: PolicyRule['when'],
+  specific: string[] = [],
+  questions?: string[],
+): PolicyRule => ({
   id: `bd/${id}`,
   severity: Severity.emergency,
   when,
@@ -681,7 +887,10 @@ const code = (c: string): Rule => ({ op: 'code', code: c });
 const all = (...codes: string[]): Rule => ({ op: 'all', of: codes.map(code) });
 const any = (...codes: string[]): Rule => ({ op: 'any', of: codes.map(code) });
 /** All of `must`, plus at least one of `oneOf`. */
-const allAny = (must: string[], oneOf: string[]): Rule => ({ op: 'all', of: [...must.map(code), any(...oneOf)] });
+const allAny = (must: string[], oneOf: string[]): Rule => ({
+  op: 'all',
+  of: [...must.map(code), any(...oneOf)],
+});
 
 const CPR =
   'If they are not breathing normally, start CPR: push hard and fast in the centre of the chest (about 2 per second) and keep going until help arrives. / স্বাভাবিকভাবে শ্বাস না নিলে CPR শুরু করুন: বুকের মাঝখানে জোরে ও দ্রুত (সেকেন্ডে প্রায় ২ বার) চাপ দিন, সাহায্য না আসা পর্যন্ত থামবেন না।';
@@ -691,9 +900,16 @@ export const RED_FLAG_POLICY: Policy = {
   noMatchSeverity: Severity.routine,
   emptySeverity: Severity.routine,
   rules: [
-    emergency('chest_pain', code('chest_pain'), [
-      'Stop all activity and sit or lie down. Do not drive yourself to hospital. / সব কাজ থামিয়ে বসুন বা শুয়ে থাকুন। নিজে গাড়ি চালিয়ে যাবেন না।',
-    ], ['Is the pain spreading to the arm, jaw or back, or coming with sweating, breathlessness or vomiting?']),
+    emergency(
+      'chest_pain',
+      code('chest_pain'),
+      [
+        'Stop all activity and sit or lie down. Do not drive yourself to hospital. / সব কাজ থামিয়ে বসুন বা শুয়ে থাকুন। নিজে গাড়ি চালিয়ে যাবেন না।',
+      ],
+      [
+        'Is the pain spreading to the arm, jaw or back, or coming with sweating, breathlessness or vomiting?',
+      ],
+    ),
     emergency('stroke', code('stroke_signs'), [
       'FAST: Face drooping, Arm weak, Speech slurred, Time to call 999. Note the time the symptoms started. Give nothing to eat or drink. / মুখ বেঁকে যাওয়া, হাত দুর্বল, কথা জড়ানো: সময় নষ্ট না করে ৯৯৯। উপসর্গ কখন শুরু হয়েছে সময়টা লিখে রাখুন। মুখে কিছু খেতে দেবেন না।',
     ]),
@@ -747,12 +963,37 @@ export const RED_FLAG_POLICY: Policy = {
     emergency('fetal_movement', code('fetal_movement_reduced'), [
       'Go to a hospital with a maternity unit now. Take the antenatal card. / এখনই প্রসূতি বিভাগ আছে এমন হাসপাতালে যান। গর্ভকালীন চেকআপ কার্ড সাথে নিন।',
     ]),
-    emergency('pregnancy_danger', allAny(['pregnant'], ['bleeding', 'severe_bleeding', 'headache', 'vision_problem', 'seizure', 'abdominal_pain', 'severe_abdominal_pain', 'water_broke', 'fever', 'anaphylaxis']), [
-      'In pregnancy this is a danger sign. Go now to a hospital with a maternity unit (call 999 for an ambulance). Take the antenatal card. / গর্ভাবস্থায় এটা বিপদচিহ্ন। এখনই প্রসূতি বিভাগ আছে এমন হাসপাতালে যান (অ্যাম্বুলেন্সের জন্য ৯৯৯)। গর্ভকালীন চেকআপ কার্ড সাথে নিন।',
-    ]),
-    emergency('postpartum_bleeding', allAny(['postpartum'], ['bleeding', 'severe_bleeding', 'seizure', 'headache', 'vision_problem']), [
-      'After giving birth, heavy bleeding, fits or severe headache are danger signs. Go to hospital now. / প্রসবের পর বেশি রক্তপাত, খিঁচুনি বা প্রচণ্ড মাথাব্যথা বিপদচিহ্ন। এখনই হাসপাতালে যান।',
-    ]),
+    emergency(
+      'pregnancy_danger',
+      allAny(
+        ['pregnant'],
+        [
+          'bleeding',
+          'severe_bleeding',
+          'headache',
+          'vision_problem',
+          'seizure',
+          'abdominal_pain',
+          'severe_abdominal_pain',
+          'water_broke',
+          'fever',
+          'anaphylaxis',
+        ],
+      ),
+      [
+        'In pregnancy this is a danger sign. Go now to a hospital with a maternity unit (call 999 for an ambulance). Take the antenatal card. / গর্ভাবস্থায় এটা বিপদচিহ্ন। এখনই প্রসূতি বিভাগ আছে এমন হাসপাতালে যান (অ্যাম্বুলেন্সের জন্য ৯৯৯)। গর্ভকালীন চেকআপ কার্ড সাথে নিন।',
+      ],
+    ),
+    emergency(
+      'postpartum_bleeding',
+      allAny(
+        ['postpartum'],
+        ['bleeding', 'severe_bleeding', 'seizure', 'headache', 'vision_problem'],
+      ),
+      [
+        'After giving birth, heavy bleeding, fits or severe headache are danger signs. Go to hospital now. / প্রসবের পর বেশি রক্তপাত, খিঁচুনি বা প্রচণ্ড মাথাব্যথা বিপদচিহ্ন। এখনই হাসপাতালে যান।',
+      ],
+    ),
     emergency('infant_fever', all('infant_under_3m', 'fever'), [
       'Any fever (38°C / 100.4°F or more) in a baby under 3 months needs a doctor now. Keep breastfeeding on the way. / ৩ মাসের কম বয়সী বাচ্চার যেকোনো জ্বর (১০০.৪°F বা তার বেশি) হলে এখনই ডাক্তার দেখাতে হবে। যাওয়ার পথে বুকের দুধ খাওয়াতে থাকুন।',
     ]),
@@ -760,9 +1001,16 @@ export const RED_FLAG_POLICY: Policy = {
       'A child who cannot drink or breastfeed, vomits everything, has fits, or is very sleepy and hard to wake needs hospital now. / বাচ্চা দুধ বা পানি খেতে না পারলে, সব বমি করে দিলে, খিঁচুনি হলে বা নিস্তেজ হয়ে গেলে এখনই হাসপাতালে নিন।',
     ]),
     emergency('child_seizure_fever', all('seizure', 'child')),
-    emergency('dengue_warning', allAny(['dengue'], ['dengue_warning', 'severe_abdominal_pain', 'child_danger_sign', 'bleeding']), [
-      'These are dengue warning signs. Go to hospital now for blood tests and fluids. Do not take ibuprofen, aspirin or other NSAID painkillers. / এগুলো ডেঙ্গুর বিপদচিহ্ন। রক্ত পরীক্ষা আর স্যালাইনের জন্য এখনই হাসপাতালে যান। আইবুপ্রোফেন, অ্যাসপিরিন বা এ ধরনের ব্যথার ওষুধ খাবেন না।',
-    ]),
+    emergency(
+      'dengue_warning',
+      allAny(
+        ['dengue'],
+        ['dengue_warning', 'severe_abdominal_pain', 'child_danger_sign', 'bleeding'],
+      ),
+      [
+        'These are dengue warning signs. Go to hospital now for blood tests and fluids. Do not take ibuprofen, aspirin or other NSAID painkillers. / এগুলো ডেঙ্গুর বিপদচিহ্ন। রক্ত পরীক্ষা আর স্যালাইনের জন্য এখনই হাসপাতালে যান। আইবুপ্রোফেন, অ্যাসপিরিন বা এ ধরনের ব্যথার ওষুধ খাবেন না।',
+      ],
+    ),
     emergency('head_injury_vomiting', all('head_injury', 'vomiting')),
     emergency('burn_severe', allAny(['burn'], ['severe_modifier', 'child', 'infant_under_3m']), [
       'Cool the burn under cool running water for 20 minutes. Remove rings or clothing near it unless stuck. Cover loosely with clean cling film or a clean cloth. No ice, toothpaste, oil or butter. / পোড়া জায়গা ২০ মিনিট ঠান্ডা (বরফ নয়) চলমান পানির নিচে রাখুন। আংটি বা কাপড় সরান, তবে লেগে থাকলে টানবেন না। পরিষ্কার কাপড় দিয়ে হালকা করে ঢেকে দিন। বরফ, টুথপেস্ট, তেল বা ডিম লাগাবেন না।',

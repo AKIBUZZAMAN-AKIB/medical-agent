@@ -114,6 +114,12 @@ const CALLS = {
   },
 };
 
+/**
+ * A tool error that carries an upstream 5xx status (see describeError in src/errors.ts).
+ * 4xx, schema and parse failures still fail the run: those mean the wiring rotted.
+ */
+const UPSTREAM_OUTAGE = /\(HTTP 5\d\d\)/;
+
 const only = process.argv[2];
 
 async function main() {
@@ -130,6 +136,7 @@ async function main() {
   }
 
   let failures = 0;
+  const outages = [];
   for (const [name, call] of Object.entries(CALLS)) {
     if (only != null && call.group !== only) {
       continue;
@@ -145,6 +152,12 @@ async function main() {
       if (text.startsWith('No result.')) {
         status = 'EMPTY';
       }
+      if (status === 'FAIL' && UPSTREAM_OUTAGE.test(text)) {
+        // The upstream itself answered 5xx after the client's retries: an outage on
+        // their side, not a moved endpoint or a broken parser here. Reported, not fatal.
+        status = 'DOWN';
+        outages.push(name);
+      }
       if (status === 'FAIL') {
         failures += 1;
       }
@@ -152,7 +165,7 @@ async function main() {
       console.log(
         `${status.padEnd(5)} ${name.padEnd(32)} ${String(Date.now() - started).padStart(6)}ms  ${firstLine.slice(0, 110)}`,
       );
-      if (status === 'FAIL') {
+      if (status === 'FAIL' || status === 'DOWN') {
         console.log(`      ${text.split('\n').slice(0, 4).join('\n      ')}`);
       }
     } catch (error) {
@@ -164,7 +177,15 @@ async function main() {
   }
 
   await client.close();
-  console.log(failures === 0 ? '\nall tools responded' : `\n${failures} tool(s) failed`);
+  if (outages.length > 0) {
+    const note = `upstream outage (HTTP 5xx) for: ${outages.join(', ')}`;
+    console.log(`\n${note}`);
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log(`::warning title=Medical MCP upstream outage::${note}`);
+    }
+  }
+  const passed = outages.length > 0 ? 'every other tool responded' : 'all tools responded';
+  console.log(failures === 0 ? `\n${passed}` : `\n${failures} tool(s) failed`);
   process.exit(failures === 0 ? 0 : 1);
 }
 
