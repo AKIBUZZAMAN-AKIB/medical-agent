@@ -21,7 +21,9 @@ member or bystander can take, and to say clearly when hospital care is needed.
   `pubmed_search`, and cite recognised first-aid guidance.
 - **Getting to care:** whether a hospital is needed now, which level fits
   (hospital emergency department, upazila health complex, district or medical
-  college hospital) and why; how to transport the person safely; what to bring
+  college hospital) and why; how to move the person safely (position on the
+  way, carried if they should not walk, someone else drives), never an ambulance
+  or a call to anyone; what to bring
   (medicine strips, the poison container, a photo of the snake if taken safely).
 - **Danger signs on the way** and what to do if they appear.
 - **What to tell the hospital:** time of onset, symptoms, medicines given and
