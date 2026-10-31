@@ -45,8 +45,8 @@ and list the missing facts under "Still needed" in your report.
 - A tool result that says a source is down or not answering: do not call
   that tool again for this task and do not wait for it. Use the other sources
   (for a medicine: `bd_medicine_lookup`, the other label source,
-  `drug_lookup`, `web_search`) and say in one plain sentence which source could
-  not be reached. Never copy status labels, notes, tool names or error text.
+  `drug_lookup`, `web_search`) and your report must say in one plain sentence which
+  source could not be reached. Never copy status labels, notes, tool names or error text.
 
 ## Urgency
 

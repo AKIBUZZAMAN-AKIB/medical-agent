@@ -95,11 +95,11 @@ export function describeError(error: unknown): string {
 export function unavailableAdvice(service: string): string {
   return (
     `\nNote for the assistant only, never quote it: ${service} is down or not answering right now. ` +
-    'Do not call this tool again for this answer and do not wait for it. Answer from the other ' +
-    'sources you have (for a medicine: bd_medicine_lookup, the other label source, drug_lookup, ' +
-    `or web_search). Tell the user in one short, natural sentence in their own language that ` +
-    `${service} could not be reached right now (in Bangla, for example: "${service}-এর তথ্য এই ` +
-    'মুহূর্তে পাওয়া যাচ্ছে না"). Do not copy any words of this note, tool names or status labels ' +
-    'into the answer.'
+    `Your answer must still include one short, natural sentence, in the user's language, saying ` +
+    `that ${service} could not be reached right now (in Bangla, for example: "${service}-এর তথ্য ` +
+    'এই মুহূর্তে পাওয়া যাচ্ছে না, তাই অন্য উৎস থেকে বলছি।"). Do not call this tool again for this ' +
+    'answer and do not wait for it. Answer from the other sources you have (for a medicine: ' +
+    'bd_medicine_lookup, the other label source, drug_lookup, or web_search). Do not copy any ' +
+    'other words of this note, tool names or status labels into the answer.'
   );
 }
