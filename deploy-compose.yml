@@ -148,6 +148,8 @@ services:
       - API_SERVER_URL=http://api:3080
       - VITE_API_BASE_URL=${DOMAIN_CLIENT:-http://localhost}
       - SESSION_COOKIE_SECURE=${ADMIN_PANEL_SESSION_COOKIE_SECURE:-false}
+      # Bearer token for the Prometheus /metrics endpoint; unset means /metrics answers 401.
+      - ADMIN_PANEL_METRICS_SECRET=${ADMIN_PANEL_METRICS_SECRET:-}
 
   client:
     image: nginx:1.27.0-alpine

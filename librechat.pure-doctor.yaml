@@ -60,45 +60,30 @@ interface:
       - Do not enter your name, phone number, address, NID or other identifying details. Where you can, cover the name and address on a report or prescription before uploading it.
 
       By pressing "I accept" you confirm that you have read and understood this and agree to use the service on these terms. The time you accepted is recorded on your account.
+  # UI only. Patients get the doctor agent and nothing to pick; the ADMIN role
+  # turns the model selector, presets and parameters back on through a role
+  # config override in the admin panel (Configuration > ADMIN).
   defaultPreset: false
   presets: false
   modelSelect: false
   parameters: false
-  multiConvo: false
-  bookmarks: false
-  # Clean UI for patients: no code runner, cost meter, build info or temporary chats.
-  runCode: false
   contextCost: false
   buildInfo: false
-  temporaryChat: false
-  fileSearch: true
-  fileCitations: true
-  webSearch: true
-  agents:
-    use: true
-    create: false
-    share: false
-    public: false
-  marketplace:
-    use: false
-  mcpServers:
-    use: true
-    create: false
-    share: false
-    public: false
-  prompts:
-    use: false
-    create: false
-    share: false
-    public: false
-  skills:
-    use: false
-    create: false
-    share: false
-    public: false
+  # Feature permissions (agents, prompts, MCP servers, skills, marketplace,
+  # web search, file search, memories, bookmarks, temporary chat, code runner,
+  # shared links, schedules) are NOT set here on purpose. Anything set here is
+  # rewritten into every role on each boot, which would lock the admin out too.
+  # They are managed per role in the admin panel (Access > Roles):
+  #   USER  - chat with the doctor agent, memories, web search, file upload
+  #           and file search; no agent/prompt/MCP/skill building or sharing,
+  #           no shared links, bookmarks, temporary chat or code runner.
+  #   ADMIN - everything.
+  # config/seed-role-policy.js applies the same policy to a fresh database.
 
 modelSpecs:
-  enforce: false
+  # Users can only chat through the doctor spec below; the API rejects any
+  # other endpoint/model. The ADMIN role override sets this back to false.
+  enforce: true
   prioritize: true
   list:
     - name: 'super-power-doctor-ai'

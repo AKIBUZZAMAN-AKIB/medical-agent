@@ -450,3 +450,80 @@ describe('medical deployment config — deployment wiring', () => {
     expect(read('.env.example')).toMatch(/^MEDICAL_LLM_BASE_URL=/m);
   });
 });
+
+describe('medical deployment config — access policy', () => {
+  const yaml = read('librechat.pure-doctor.yaml');
+  const { USER_POLICY, ADMIN_POLICY } = require('./seed-role-policy');
+
+  /** Top-level keys of the `interface:` block (two-space indented, comments skipped). */
+  function interfaceKeys(source) {
+    const start = source.search(/^interface:\s*$/m);
+    if (start === -1) return null;
+    const rest = source.slice(start).split('\n').slice(1);
+    const keys = [];
+    for (const line of rest) {
+      if (/^\S/.test(line)) break;
+      const match = /^ {2}([A-Za-z]+):/.exec(line);
+      if (match) keys.push(match[1]);
+    }
+    return keys;
+  }
+
+  it('leaves feature permissions out of interface so the admin keeps them', () => {
+    /**
+     * Every permission set under `interface:` is written into every role on
+     * boot, ADMIN included. Role permissions are managed in the admin panel and
+     * by seed-role-policy.js instead.
+     */
+    const permissionKeys = [
+      'agents',
+      'prompts',
+      'mcpServers',
+      'skills',
+      'marketplace',
+      'bookmarks',
+      'multiConvo',
+      'temporaryChat',
+      'runCode',
+      'webSearch',
+      'fileSearch',
+      'fileCitations',
+      'peoplePicker',
+      'remoteAgents',
+      'sharedLinks',
+      'memories',
+    ];
+    const keys = interfaceKeys(yaml);
+    expect(keys).not.toBeNull();
+    expect(keys.filter((key) => permissionKeys.includes(key))).toEqual([]);
+    expect(keys).toEqual(expect.arrayContaining(['modelSelect', 'presets', 'parameters']));
+  });
+
+  it('enforces the doctor model spec for patients', () => {
+    expect(yaml).toMatch(/^modelSpecs:[\s\S]*?\n {2}enforce: true/m);
+  });
+
+  it('keeps patients on the doctor agent without building or sharing rights', () => {
+    expect(USER_POLICY.AGENTS).toEqual({
+      USE: true,
+      CREATE: false,
+      SHARE: false,
+      SHARE_PUBLIC: false,
+    });
+    expect(USER_POLICY.MCP_SERVERS.USE).toBe(true);
+    expect(USER_POLICY.MCP_SERVERS.CREATE).toBe(false);
+    expect(USER_POLICY.PROMPTS.CREATE).toBe(false);
+    expect(USER_POLICY.SHARED_LINKS.SHARE_PUBLIC).toBe(false);
+    expect(USER_POLICY.MEMORIES.USE).toBe(true);
+    expect(USER_POLICY.WEB_SEARCH.USE).toBe(true);
+    expect(USER_POLICY.FILE_SEARCH.USE).toBe(true);
+  });
+
+  it('gives the admin every permission in the policy', () => {
+    for (const [type, perms] of Object.entries(USER_POLICY)) {
+      for (const perm of Object.keys(perms)) {
+        expect(ADMIN_POLICY[type][perm]).toBe(true);
+      }
+    }
+  });
+});
