@@ -131,6 +131,26 @@ jobs:
           fi
 
           echo "Retrying ${WORKFLOW_NAME} (run ${RUN_ID}, attempt ${RUN_ATTEMPT})."
-          gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/${endpoint}"
+
+          # A rerun POST answers 403/409 when the run is still in flight, or when it
+          # finished between this workflow_run event being queued and this step running.
+          # Under `set -euo pipefail` that exit 1 turned a retry bot into a red workflow:
+          # run 41071784119 (2026-10-30) failed "Re-run failed Docker jobs" in 6s while
+          # every build job in the run it was retrying had actually succeeded.
+          # So: re-check the run state, and treat "nothing to retry" as a skip rather than
+          # a failure. Log the response body so the next occurrence is diagnosable.
+          run_status=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.status')
+          if [ "$run_status" != "completed" ]; then
+            echo "Run ${RUN_ID} is currently ${run_status}; nothing to retry."
+            exit 0
+          fi
+
+          if ! response=$(gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/${endpoint}" 2>&1); then
+            echo "Retry request for run ${RUN_ID} (${endpoint}) was rejected:"
+            echo "${response}"
+            echo "Nothing to retry; skipping."
+            exit 0
+          fi
+
+          echo "${response}"
