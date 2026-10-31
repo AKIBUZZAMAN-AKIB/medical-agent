@@ -117,7 +117,10 @@ describe('HttpClient', () => {
 
   it('lets an upstream ask for more attempts than the default', async () => {
     const fetchImpl = jest.fn(async () => new Response('temporarily unavailable', { status: 503 }));
-    const client = clientWith(fetchImpl as unknown as typeof fetch, { MEDICAL_MAX_ATTEMPTS: '2' });
+    const client = clientWith(fetchImpl as unknown as typeof fetch, {
+      MEDICAL_MAX_ATTEMPTS: '2',
+      MEDICAL_REQUEST_BUDGET_MS: '180000',
+    });
     await expect(
       client.getJson('https://example.org', { ...upstream, maxAttempts: 4 }),
     ).rejects.toBeInstanceOf(UpstreamError);
@@ -128,12 +131,16 @@ describe('HttpClient', () => {
     const fetchImpl = jest.fn(async () => {
       throw new TypeError('socket hang up');
     });
-    const client = clientWith(fetchImpl as unknown as typeof fetch, { MEDICAL_MAX_ATTEMPTS: '2' });
+    const client = clientWith(fetchImpl as unknown as typeof fetch, {
+      MEDICAL_MAX_ATTEMPTS: '2',
+      MEDICAL_REQUEST_BUDGET_MS: '180000',
+    });
     await expect(
       client.getJson('https://example.org', { ...upstream, maxAttempts: 4 }),
     ).rejects.toMatchObject({
       name: 'UpstreamError',
-      message: 'request failed after 4 attempts: socket hang up',
+      message: 'could not be reached (socket hang up) after 4 attempts',
+      unavailable: true,
     });
     expect(fetchImpl).toHaveBeenCalledTimes(4);
   });

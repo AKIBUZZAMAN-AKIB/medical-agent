@@ -12,6 +12,19 @@ export interface ServerEnv {
   requestTimeoutMs: number;
   /** Total attempts per request, including the first. */
   maxAttempts: number;
+  /**
+   * Wall-clock budget for one request including its retries and backoff. A
+   * retry whose backoff would not fit is not attempted.
+   */
+  requestBudgetMs: number;
+  /** How long a host that timed out or refused connections is skipped. */
+  circuitOpenMs: number;
+  /**
+   * Hard deadline for one tool call. Kept below the MCP request timeout in
+   * librechat.yaml so the model always gets a clear error result instead of a
+   * generic MCP timeout.
+   */
+  toolDeadlineMs: number;
   /** Default success-cache lifetime for a GET. */
   cacheTtlMs: number;
   /** Upper bound on cached responses held in memory. */
@@ -39,8 +52,11 @@ export interface ServerEnv {
 const DEFAULTS = {
   userAgent:
     'LibreChat-MCP-Medical/0.1 (medical research lookup server for LibreChat; +https://librechat.ai)',
-  requestTimeoutMs: 20_000,
+  requestTimeoutMs: 10_000,
   maxAttempts: 3,
+  requestBudgetMs: 20_000,
+  circuitOpenMs: 120_000,
+  toolDeadlineMs: 40_000,
   cacheTtlMs: 300_000,
   cacheMaxEntries: 500,
   maxResultChars: 24_000,
@@ -89,6 +105,21 @@ export function loadEnv(source: EnvSource = process.env): ServerEnv {
       120_000,
     ),
     maxAttempts: readInt(source, 'MEDICAL_MAX_ATTEMPTS', DEFAULTS.maxAttempts, 1, 5),
+    requestBudgetMs: readInt(
+      source,
+      'MEDICAL_REQUEST_BUDGET_MS',
+      DEFAULTS.requestBudgetMs,
+      1_000,
+      180_000,
+    ),
+    circuitOpenMs: readInt(source, 'MEDICAL_CIRCUIT_OPEN_MS', DEFAULTS.circuitOpenMs, 0, 900_000),
+    toolDeadlineMs: readInt(
+      source,
+      'MEDICAL_TOOL_DEADLINE_MS',
+      DEFAULTS.toolDeadlineMs,
+      5_000,
+      300_000,
+    ),
     cacheTtlMs: readInt(source, 'MEDICAL_CACHE_TTL_MS', DEFAULTS.cacheTtlMs, 0, 3_600_000),
     cacheMaxEntries: readInt(
       source,

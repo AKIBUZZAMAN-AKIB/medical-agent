@@ -1,5 +1,6 @@
 import type { ServerEnv } from './env.js';
 import { boundDetail, UpstreamError } from './errors.js';
+import { HostCircuitBreaker } from './circuit.js';
 import { HostRateLimiter } from './ratelimit.js';
 import { TtlCache } from './cache.js';
 
@@ -42,9 +43,12 @@ export interface HttpClientOptions {
   env: ServerEnv;
   cache?: TtlCache;
   limiter?: HostRateLimiter;
+  breaker?: HostCircuitBreaker;
   fetchImpl?: typeof fetch;
   /** Injected for tests so retry backoff does not sleep for real. */
   sleep?: (ms: number) => Promise<void>;
+  /** Injected for tests so the request budget can be checked without waiting. */
+  now?: () => number;
 }
 
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
@@ -101,11 +105,16 @@ export class HttpClient {
   private readonly limiter: HostRateLimiter;
   private readonly fetchImpl: typeof fetch;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly now: () => number;
+  readonly breaker: HostCircuitBreaker;
 
-  constructor({ env, cache, limiter, fetchImpl, sleep }: HttpClientOptions) {
+  constructor({ env, cache, limiter, breaker, fetchImpl, sleep, now }: HttpClientOptions) {
     this.env = env;
     this.cache = cache ?? new TtlCache({ maxEntries: env.cacheMaxEntries });
     this.limiter = limiter ?? new HostRateLimiter();
+    this.now = now ?? Date.now;
+    this.breaker =
+      breaker ?? new HostCircuitBreaker({ openMs: env.circuitOpenMs ?? 0, now: this.now });
     this.fetchImpl = fetchImpl ?? globalThis.fetch;
     this.sleep = sleep ?? defaultSleep;
     if (typeof this.fetchImpl !== 'function') {
@@ -189,10 +198,26 @@ export class HttpClient {
     const host = safeHost(url);
     const maxBytes = Math.min(options.maxBytes ?? DEFAULT_MAX_BYTES, MAX_BUFFERED_BYTES);
     const maxAttempts = upstream.maxAttempts ?? this.env.maxAttempts;
+    const timeoutMs = options.timeoutMs ?? this.env.requestTimeoutMs;
+    const budgetMs = Math.max(this.env.requestBudgetMs ?? timeoutMs * maxAttempts, timeoutMs);
+    const deadline = this.now() + budgetMs;
+
+    const open = this.breaker.check(host);
+    if (open != null) {
+      throw new UpstreamError(
+        upstream.service,
+        `is unreachable right now (${open.reason ?? 'it failed moments ago'}); skipped without waiting`,
+        { unavailable: true },
+      );
+    }
+
     let lastError: unknown;
+    let attempts = 0;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      attempts = attempt;
       await this.limiter.acquire(host, upstream.minIntervalMs);
+      const attemptTimeoutMs = Math.max(Math.min(timeoutMs, deadline - this.now()), 1_000);
       try {
         const response = await this.fetchImpl(url, {
           ...options.init,
@@ -201,52 +226,101 @@ export class HttpClient {
             ...(options.init.headers as Record<string, string> | undefined),
             ...options.headers,
           },
-          signal: AbortSignal.timeout(options.timeoutMs ?? this.env.requestTimeoutMs),
+          signal: AbortSignal.timeout(attemptTimeoutMs),
           redirect: 'follow',
         });
 
         if (!response.ok) {
           const detail = await readBounded(response, maxBytes);
           const retryAfterMs = parseRetryAfter(response.headers.get('retry-after'));
+          const serverDown = response.status >= 500;
           const error = new UpstreamError(upstream.service, httpMessage(response.status), {
             status: response.status,
             retryAfterMs,
             detail: boundDetail(detail),
+            unavailable: serverDown,
           });
           if (response.status === 404 && upstream.emptyOnNotFound === true) {
+            this.breaker.recordSuccess(host);
             throw error;
           }
           if (RETRYABLE_STATUS.has(response.status) && attempt < maxAttempts) {
-            lastError = error;
-            await this.sleep(backoffMs(attempt, retryAfterMs, response.status));
-            continue;
+            const waitMs = backoffMs(attempt, retryAfterMs, response.status);
+            if (this.now() + waitMs + 1_000 < deadline) {
+              lastError = error;
+              await this.sleep(waitMs);
+              continue;
+            }
+          }
+          if (serverDown) {
+            this.breaker.recordServerError(host, `answered HTTP ${response.status}`);
+          } else {
+            this.breaker.recordSuccess(host);
           }
           throw error;
         }
 
-        return await readBounded(response, maxBytes);
+        const body = await readBounded(response, maxBytes);
+        this.breaker.recordSuccess(host);
+        return body;
       } catch (error) {
         if (error instanceof UpstreamError) {
           throw error;
         }
         lastError = error;
+        /**
+         * A timeout means the host is not answering. Retrying would wait out
+         * the same timeout again while the user sees nothing, so stop here.
+         */
+        if (isTimeout(error)) {
+          break;
+        }
         if (attempt >= maxAttempts) {
           break;
         }
-        await this.sleep(backoffMs(attempt));
+        const waitMs = backoffMs(attempt);
+        if (this.now() + waitMs + 1_000 >= deadline) {
+          break;
+        }
+        await this.sleep(waitMs);
       }
     }
 
     if (lastError instanceof UpstreamError) {
       throw lastError;
     }
+    const reason = isTimeout(lastError)
+      ? `timed out after ${Math.round(timeoutMs / 1000)}s`
+      : `could not be reached (${transportMessage(lastError)})`;
+    this.breaker.recordTransportFailure(host, reason);
     throw new UpstreamError(
       upstream.service,
-      `request failed after ${maxAttempts} attempts: ${
-        lastError instanceof Error ? lastError.message : 'unknown transport error'
-      }`,
+      `${reason}${attempts > 1 ? ` after ${attempts} attempts` : ''}`,
+      { unavailable: true },
     );
   }
+}
+
+function isTimeout(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return (
+    error.name === 'TimeoutError' ||
+    error.name === 'AbortError' ||
+    /timed? ?out|UND_ERR_(CONNECT|HEADERS|BODY)_TIMEOUT/i.test(
+      `${error.message} ${(error as { cause?: { code?: string } }).cause?.code ?? ''}`,
+    )
+  );
+}
+
+function transportMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'unknown transport error';
+  }
+  const cause = (error as { cause?: { code?: string; message?: string } }).cause;
+  const code = cause?.code ?? cause?.message;
+  return code != null && code !== error.message ? `${error.message}: ${code}` : error.message;
 }
 
 function backoffMs(attempt: number, retryAfterMs?: number, status?: number): number {

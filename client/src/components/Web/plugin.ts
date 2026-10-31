@@ -1,7 +1,13 @@
 import { visit } from 'unist-util-visit';
 import type { Node } from 'unist';
 import type { Citation, CitationNode } from './types';
-import { SPAN_REGEX, STANDALONE_PATTERN, CLEANUP_REGEX, COMPOSITE_REGEX } from '~/utils/citations';
+import {
+  SPAN_REGEX,
+  CLEANUP_REGEX,
+  COMPOSITE_REGEX,
+  STANDALONE_PATTERN,
+  stripForeignCitations,
+} from '~/utils/citations';
 
 /**
  * Checks if a standalone marker is truly standalone (not inside a composite block).
@@ -98,7 +104,9 @@ function processTree(tree: Node) {
 
     if (typeof textNode.value !== 'string') return;
 
-    const originalValue = textNode.value;
+    // Anchors the UI cannot resolve (another tool's name as the type, or no
+    // marker character) would otherwise show as raw "turn0..." text.
+    const originalValue = stripForeignCitations(textNode.value);
     const segments: Array<CitationNode> = [];
 
     // Single-pass processing through the string
@@ -248,9 +256,9 @@ function processTree(tree: Node) {
     if (segments.length > 0 && index !== undefined) {
       parentNode.children?.splice(index, 1, ...segments);
       return index + segments.length;
-    } else if (textNode.value !== textNode.value.replace(CLEANUP_REGEX, '')) {
+    } else if (textNode.value !== originalValue.replace(CLEANUP_REGEX, '')) {
       // If we didn't create segments but there are markers to clean up
-      textNode.value = textNode.value.replace(CLEANUP_REGEX, '');
+      textNode.value = originalValue.replace(CLEANUP_REGEX, '');
     }
   });
 }

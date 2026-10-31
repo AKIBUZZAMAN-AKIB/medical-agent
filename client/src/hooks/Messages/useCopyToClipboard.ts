@@ -10,6 +10,7 @@ import {
   COMPOSITE_REGEX,
   STANDALONE_PATTERN,
   INVALID_CITATION_REGEX,
+  stripForeignCitations,
 } from '~/utils/citations';
 import { markdownToHtml } from '~/utils/richtext';
 import store from '~/store';
@@ -97,7 +98,9 @@ function buildClipboardContent({
 
   if (!searchResults || Object.keys(searchResults).length === 0) {
     return parts.map((part) => ({
-      text: part.replace(INVALID_CITATION_REGEX, '').replace(CLEANUP_REGEX, ''),
+      text: stripForeignCitations(part)
+        .replace(INVALID_CITATION_REGEX, '')
+        .replace(CLEANUP_REGEX, ''),
       reserved: EMPTY_RESERVED,
     }));
   }
@@ -508,6 +511,7 @@ function createCitationProcessor(searchResults: { [key: string]: SearchResultDat
     formattedText = formattedText.replace(/\n\s*\[\d+\](\[\d+\])*\s*$/g, '');
 
     // Step 6: Clean up any remaining citation markers
+    formattedText = stripForeignCitations(formattedText);
     formattedText = formattedText.replace(INVALID_CITATION_REGEX, '');
     formattedText = formattedText.replace(CLEANUP_REGEX, '');
 

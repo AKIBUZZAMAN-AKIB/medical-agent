@@ -44,3 +44,57 @@ export const CLEANUP_REGEX =
 /** Matches invalid/orphaned citations (with leading whitespace) for removal */
 export const INVALID_CITATION_REGEX =
   /\s*(?:\\ue202|\ue202)turn\d+(search|news|image|video|ref|file)\d+/g;
+
+/** Anchor types the UI can resolve to a source. */
+const CITATION_TYPES = new Set(['search', 'image', 'news', 'video', 'ref', 'file']);
+
+/**
+ * Any anchor-shaped token: optional marker, then turn{N}{type}{index}. The type
+ * is open-ended here so anchors that name another tool are caught too.
+ */
+const ANCHOR_TOKEN_REGEX =
+  /([ \t]*)(\\ue202|\ue202)?turn(\d+)([A-Za-z][A-Za-z0-9_]*?)(\d+)(?![A-Za-z0-9_])/g;
+
+/** Brackets left empty once the anchor inside them is removed. */
+const EMPTY_BRACKETS_REGEX = /[ \t]*(?:\[[ \t]*\]|\([ \t]*\)|【[ \t]*】)/g;
+
+/**
+ * Removes citation anchors the UI can never render, so their raw text does not
+ * reach the reader:
+ * - anchors whose type is not a citation type, e.g. a model imitating the
+ *   web-search format for another tool (`\ue202turn0disease_knowledge_search0`);
+ * - bare anchors without the marker character (`turn0search0`), which the
+ *   citation renderer does not pick up.
+ * Well-formed web-search anchors (marker + known type) are left untouched for
+ * the citation renderer.
+ */
+export function stripForeignCitations(text: string): string {
+  if (!text.includes('turn')) {
+    return text;
+  }
+  let removed = false;
+  const result = text.replace(
+    ANCHOR_TOKEN_REGEX,
+    (
+      match: string,
+      _space: string,
+      marker: string | undefined,
+      _turn: string,
+      type: string,
+      _index: string,
+      offset: number,
+      source: string,
+    ) => {
+      if (marker && CITATION_TYPES.has(type)) {
+        return match;
+      }
+      if (!marker && _space === '' && offset > 0 && /[A-Za-z0-9_\\]/.test(source[offset - 1])) {
+        // Part of a longer word, not an anchor.
+        return match;
+      }
+      removed = true;
+      return '';
+    },
+  );
+  return removed ? result.replace(EMPTY_BRACKETS_REGEX, '') : result;
+}

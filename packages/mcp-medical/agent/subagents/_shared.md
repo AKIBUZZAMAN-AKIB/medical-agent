@@ -38,6 +38,15 @@ and list the missing facts under "Still needed" in your report.
   this task (a Sources block, a record ID, a PMID, a web-search citation, a
   page a tool returned). Never name WHO, DGHS, CDC, NHS or a guideline from
   memory; if a search failed or returned nothing, say so and leave it out.
+- Citation markers (anchors of the form turn + number + type + number) belong
+  to `web_search` results only: copy one exactly from an `Anchor:` line or do
+  not use it. Never build one for another tool or put a tool name in an anchor;
+  cite other tools as [D0051], "PMID 12345678" or the Sources link.
+- A tool result that says a source is down or not answering: do not call
+  that tool again for this task and do not wait for it. Use the other sources
+  (for a medicine: `bd_medicine_lookup`, the other label source,
+  `drug_lookup`, `web_search`) and say in one plain sentence which source could
+  not be reached. Never copy status labels, notes, tool names or error text.
 
 ## Urgency
 

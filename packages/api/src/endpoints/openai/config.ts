@@ -75,6 +75,54 @@ function getEffectiveURLPort(baseURL: string): string | null {
   return null;
 }
 
+function readTimeoutMs(name: string): number {
+  const raw = process.env[name];
+  if (raw == null || raw.trim() === '') {
+    return 0;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/**
+ * Undici's defaults wait 300s for response headers and 300s between body
+ * chunks. A model stream that stalls (the provider accepts the request, then
+ * sends nothing) therefore froze the chat for five minutes before the request
+ * was retried. Shorter limits make a stalled request fail fast so the retry
+ * path runs while the user is still waiting.
+ *
+ * Opt-in: `LLM_FIRST_BYTE_TIMEOUT_MS` bounds the wait for the response headers
+ * (a stall before the first chunk; the request is then retried) and
+ * `LLM_STREAM_IDLE_TIMEOUT_MS` bounds the silence between two chunks. Unset or
+ * `0` keeps undici's 300s default for that limit.
+ */
+export function getLLMStreamTimeouts(): { headersTimeout: number; bodyTimeout: number } | null {
+  const headersTimeout = readTimeoutMs('LLM_FIRST_BYTE_TIMEOUT_MS');
+  const bodyTimeout = readTimeoutMs('LLM_STREAM_IDLE_TIMEOUT_MS');
+  if (headersTimeout === 0 && bodyTimeout === 0) {
+    return null;
+  }
+  return {
+    headersTimeout: headersTimeout || 300_000,
+    bodyTimeout: bodyTimeout || 300_000,
+  };
+}
+
+let streamTimeoutAgent: { key: string; agent: Agent } | undefined;
+
+/** One shared dispatcher per timeout setting, so connections are pooled. */
+function getStreamTimeoutDispatcher(): Agent | undefined {
+  const timeouts = getLLMStreamTimeouts();
+  if (timeouts == null) {
+    return undefined;
+  }
+  const key = `${timeouts.headersTimeout}:${timeouts.bodyTimeout}`;
+  if (streamTimeoutAgent?.key !== key) {
+    streamTimeoutAgent = { key, agent: new Agent(timeouts) };
+  }
+  return streamTimeoutAgent.agent;
+}
+
 function mergeFetchOptions(configOptions: OpenAIConfiguration, options: FetchOptions): void {
   const currentOptions = (configOptions.fetchOptions ?? {}) as FetchOptions;
   configOptions.fetchOptions = {
@@ -250,6 +298,7 @@ export function getOpenAIConfig(
   if (shouldProtectUserBaseURL) {
     mergeFetchOptions(configOptions, {
       dispatcher: new Agent({
+        ...(getLLMStreamTimeouts() ?? {}),
         connect: createSSRFSafeUndiciConnect(
           options.allowedAddresses,
           getEffectiveURLPort(baseURL),
@@ -262,6 +311,13 @@ export function getOpenAIConfig(
   const proxyDispatcher = getProxyDispatcher(proxy);
   if (proxyDispatcher && !shouldProtectUserBaseURL) {
     mergeFetchOptions(configOptions, { dispatcher: proxyDispatcher });
+  }
+
+  if (!shouldProtectUserBaseURL && !proxyDispatcher) {
+    const timeoutDispatcher = getStreamTimeoutDispatcher();
+    if (timeoutDispatcher) {
+      mergeFetchOptions(configOptions, { dispatcher: timeoutDispatcher });
+    }
   }
 
   if (azure && !isAnthropic) {
